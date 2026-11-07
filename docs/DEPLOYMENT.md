@@ -4,7 +4,7 @@ For whoever runs the server. One script does all of it, for `arcade.wh1teraven.s
 
 ## Before you run it
 
-1. **A server:** a fresh Ubuntu 24.04 VPS with at least 2 GB of memory, and root access.
+1. **A server:** Ubuntu 24.04 with Python 3.12 or newer, and root access. It can already run other projects (see below).
 2. **DNS:** in Cloudflare, make an A record for `arcade` holding the server's address. Set it to **DNS only (the grey cloud)** for the first run, so the HTTPS certificate can be issued. Records already there may need changing.
 3. **An SMTP account:** any provider's free tier works. Brevo is one option, and a Gmail account with an app password works for small numbers. Set up SPF and DKIM for `wh1teraven.site`, or the codes land in spam.
 4. **Your code is pushed:** the script deploys what's on GitHub, so push first.
@@ -25,6 +25,18 @@ It asks for your certificate email, the SMTP details and your IP address once, a
 - attacks the real sandbox from inside, checks the live site, and stops with an error if anything fails
 
 To use another domain, run it with `UA_DOMAIN=your.domain`.
+
+## On a server with other projects
+
+The script spots other Nginx sites, open ports or running containers, and then leaves them alone:
+
+- **Firewall:** if it's on, it only adds 80 and 443. If it's off, it stays off.
+- **Nginx:** it only gains one more site, in its own file. If Nginx rejects that file it's removed again, so your other sites keep running. The `default` site stays.
+- **Packages:** nothing is upgraded, and tools you already have are kept. If your Node is older than 22, this app gets a private copy in `/opt/uptime-arcade-node`.
+- **Ports:** the app takes the first free port from 8600, on localhost only.
+- **Postgres and Redis:** it adds its own database to Postgres, on whichever port your cluster uses. In Redis it uses its own numbered database. If your Redis has a password or isn't on 6379, it runs a private Redis in a container instead.
+
+It stops before changing anything if something other than Nginx on this machine holds port 80 or 443, such as a container acting as your web proxy. This site would then need adding to that proxy by hand.
 
 ## After it finishes
 

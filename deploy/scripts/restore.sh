@@ -9,6 +9,6 @@ if [ "$TARGET" = "$POSTGRES_DB" ]; then
   exit 1
 fi
 export PGPASSWORD="$POSTGRES_PASSWORD"
-createdb -h "${POSTGRES_HOST:-localhost}" -U "$POSTGRES_USER" "$TARGET"
-pg_restore -h "${POSTGRES_HOST:-localhost}" -U "$POSTGRES_USER" -d "$TARGET" --no-owner "$DUMP"
-psql -h "${POSTGRES_HOST:-localhost}" -U "$POSTGRES_USER" -d "$TARGET" -c "select count(*) as accounts from auth_user;"
+createdb -h "${POSTGRES_HOST:-localhost}" -p "${POSTGRES_PORT:-5432}" -U "$POSTGRES_USER" "$TARGET"
+pg_restore -h "${POSTGRES_HOST:-localhost}" -p "${POSTGRES_PORT:-5432}" -U "$POSTGRES_USER" -d "$TARGET" --no-owner "$DUMP"
+psql -h "${POSTGRES_HOST:-localhost}" -p "${POSTGRES_PORT:-5432}" -U "$POSTGRES_USER" -d "$TARGET" -c "select count(*) as accounts from auth_user;"

@@ -16,4 +16,4 @@ docker build -q --pull -t uptime-arcade/sandbox-python:1 -f runner/sandbox/pytho
 docker build -q --pull -t uptime-arcade/sandbox-go:1 -f runner/sandbox/go.Dockerfile runner/sandbox
 systemctl restart uptime-web uptime-worker
 sleep 2
-curl -fsS -o /dev/null http://127.0.0.1:8000/api/v1/health/ -H 'X-Forwarded-Proto: https' -H "Host: $(echo "$DJANGO_ALLOWED_HOSTS" | cut -d, -f1)"
+curl -fsS -o /dev/null "http://127.0.0.1:${UPTIME_PORT:-8000}/api/v1/health/" -H 'X-Forwarded-Proto: https' -H "Host: $(echo "$DJANGO_ALLOWED_HOSTS" | cut -d, -f1)"

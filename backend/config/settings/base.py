@@ -147,7 +147,7 @@ REFRESH_COOKIE = {
 }
 
 CONTENT_DIR = BASE_DIR.parent / "content"
-NODE_BINARY = os.environ.get("NODE_BINARY", "node")
+NODE_BINARY = os.environ.get("NODE_BINARY", "node")  # a full path when the server has its own private copy
 LAB_GRADER = BASE_DIR.parent / "runner" / "grade_lab.mjs"
 LAB_DRILL = BASE_DIR.parent / "runner" / "lab_drill.mjs"
 LAB_GRADER_TIMEOUT = 8  # seconds
