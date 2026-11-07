@@ -1,6 +1,6 @@
 # ADR 0003: The scene is the surface, with no floating frame or boxed panels
 
-**Status:** accepted, 2026-11-07. Replaces the "Frame" and "Shape" decisions in ADR 0001.
+**Status:** accepted, 2026-11-07. Replaces the "Frame" and "Shape" decisions in ADR 0001. ADR 0008 brought solid tiles back on the Deck, because the room behind them is busier.
 
 ## Context
 

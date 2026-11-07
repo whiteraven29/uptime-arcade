@@ -18,6 +18,7 @@ class Player(models.Model):
     time_zone = models.CharField(max_length=64, default=settings.TIME_ZONE)
     time_zone_changed_at = models.DateTimeField(null=True, blank=True)
     sound_on = models.BooleanField(default=True)
+    avatar_index = models.PositiveSmallIntegerField(default=0)  # which system avatar, while no picture is set
     oncall_resolved = models.PositiveIntegerField(default=0)
 
     def bank(self):
@@ -68,6 +69,16 @@ class XPLedger(models.Model):
             # A mission can only ever be paid once per season, whatever a client or a race tries.
             models.UniqueConstraint(fields=["player", "reason", "ref_type", "ref_id"], name="xp_paid_once", condition=~models.Q(ref_id="")),
         ]
+
+
+class AvatarImage(models.Model):
+    """An uploaded picture, always re-encoded by accounts/avatars.py. What a user sent is never stored or
+    served. It lives in the database so deleting an account removes it with everything else."""
+
+    player = models.OneToOneField(Player, on_delete=models.CASCADE, related_name="avatar_image")
+    token = models.UUIDField(unique=True)  # the public address, unguessable and new with each upload
+    data = models.BinaryField()
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 class StreakDay(models.Model):

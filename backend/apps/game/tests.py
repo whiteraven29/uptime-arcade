@@ -231,15 +231,6 @@ class TestPlayerAndRewards:
         assert len(body["badges"]) == len(rules.BADGES)
         assert all(b["earned_at"] is None for b in body["badges"])
 
-    def test_new_season_keeps_xp_and_title(self, api):
-        p = api.user.player
-        p.peak_cleared = 150
-        p.xp = 999
-        p.save()
-        assert api.post("/api/v1/seasons/new/").json()["season"] == 2
-        p.refresh_from_db()
-        assert p.xp == 999 and p.peak_cleared == 150
-
     def test_each_badge_is_earned_once(self, user, clock):
         p = user.player
         p.best_streak = 7

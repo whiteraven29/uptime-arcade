@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { HudPanel } from '../../ui/HudPanel.jsx';
+import { OperatorFigure } from '../../ui/OperatorFigure.jsx';
+import { Logo } from '../../ui/icons.jsx';
 import { login, register, usernameStatus } from '../../api/game.js';
 
 const USERNAME_NOTES = {
@@ -59,7 +60,10 @@ function RegisterForm() {
 
   return (
     <form className="stack" onSubmit={onSubmit}>
-      <h1 className="title metal">Start as a Noob</h1>
+      <header className="auth-head center">
+        <h1>Create your operator</h1>
+        <p>You start as a Noob. Real focus earns the play time.</p>
+      </header>
       <div>
         <label className="small" htmlFor="username">Username</label>
         <input type="text" id="username" autoComplete="username" autoCapitalize="off" spellCheck="false" maxLength={20} required value={username} onChange={(e) => setUsername(e.target.value)} aria-describedby="usernameNote" />
@@ -78,7 +82,7 @@ function RegisterForm() {
         <p id="passwordNote" className="field-note">At least 10 characters.</p>
       </div>
       {error && <p className="bad" role="alert" style={{ margin: 0 }}>{error}</p>}
-      <button className="btn go" type="submit" id="registerBtn" disabled={busy || blocked}>{busy ? 'Creating...' : 'Create account'}</button>
+      <button className="btn cta" type="submit" id="registerBtn" disabled={busy || blocked}>{busy ? 'Creating...' : 'Create account'}</button>
       <p className="small" style={{ margin: 0 }}>Already playing? <Link to="/login">Log in</Link></p>
     </form>
   );
@@ -106,7 +110,10 @@ function LoginForm() {
 
   return (
     <form className="stack" onSubmit={onSubmit}>
-      <h1 className="title metal">Welcome back, operator</h1>
+      <header className="auth-head">
+        <h1>Welcome back, operator</h1>
+        <p>Log in to get back to the data centre.</p>
+      </header>
       <div>
         <label className="small" htmlFor="username">Username</label>
         <input type="text" id="username" autoComplete="username" autoCapitalize="off" spellCheck="false" required value={username} onChange={(e) => setUsername(e.target.value)} />
@@ -116,7 +123,7 @@ function LoginForm() {
         <input type="password" id="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
       </div>
       {error && <p className="bad" role="alert" style={{ margin: 0 }}>{error}</p>}
-      <button className="btn go" type="submit" id="loginBtn" disabled={busy}>{busy ? 'Logging in...' : 'Log in'}</button>
+      <button className="btn cta" type="submit" id="loginBtn" disabled={busy}>{busy ? 'Logging in...' : 'Log in'}</button>
       <p className="small" style={{ margin: 0 }}>New here? <Link to="/register">Create an account</Link></p>
     </form>
   );
@@ -127,9 +134,14 @@ export function AuthScreen() {
   return (
     <section className="screen" aria-label={pathname === '/register' ? 'Create account' : 'Log in'}>
       <div className="auth">
-        <HudPanel className="focus-card" label="Uptime Arcade">
-          {pathname === '/register' ? <RegisterForm /> : <LoginForm />}
-        </HudPanel>
+        <div className="auth-card">
+          <span className="auth-tabs" aria-hidden="true"><i /><i /><i /><i /><i /></span>
+          <div className="auth-inner">
+            <p className="auth-brand"><Logo /> Uptime Arcade</p>
+            {pathname === '/register' ? <RegisterForm /> : <LoginForm />}
+          </div>
+        </div>
+        <OperatorFigure beam={false} className="auth-figure" />
       </div>
     </section>
   );

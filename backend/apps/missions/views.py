@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from apps.content.models import ContentRelease
 from apps.content.serializers import MissionBriefingSerializer
 from apps.focus.services import require_session
+from apps.game.services import current_season
 
 from . import services
 from .throttles import GoalCheckThrottle, SubmitThrottle
@@ -20,6 +21,7 @@ def _body(request):
 def tracks(request):
     release = ContentRelease.latest()
     return Response({
+        "season": current_season(),
         "difficulties": [{"code": d["code"], "label": d["label"]} for d in (release.difficulties if release else [])],
         "tracks": services.tracks_for(request.user.player),
     })
@@ -41,6 +43,8 @@ def play(request, code):
     state = services._require_playable(player, mission)
     progress = services.progress_of(player, mission)
     used = progress.hints_used if progress else 0
+    if state == "cleared":
+        used = len(mission.hints)  # already earned, and free when revisiting
     return Response({
         "code": mission.code,
         "state": str(state),

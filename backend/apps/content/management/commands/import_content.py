@@ -30,7 +30,7 @@ def run_import(content):
     for order, t in enumerate(config["tracks"], start=1):
         tracks[t["code"]], _ = Track.objects.update_or_create(
             code=t["code"],
-            defaults={"name": t["name"], "subtitle": t["subtitle"], "order": order, "after_archmage": t.get("after_archmage", False)},
+            defaults={"name": t["name"], "subtitle": t["subtitle"], "order": order, "after_archmage": t.get("after_archmage", False), "season": t.get("season", 1), "requires": t.get("requires", "")},
         )
     by_code = {t["code"]: t for t in config["tracks"]}
     chapters = {}

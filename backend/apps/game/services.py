@@ -1,5 +1,6 @@
 """The rules that change a player. Everything runs inside a transaction holding the player's row lock,
 so two requests at once can't spend the same bank or be paid twice."""
+import hashlib
 from zoneinfo import ZoneInfo
 
 from django.db import transaction
@@ -8,13 +9,15 @@ from django.db.models import F, Sum
 from apps.core import clock
 
 from . import rules
-from .models import Player, StreakDay, StreakReward, TimeLedger, UserBadge, XPLedger
+from .models import AvatarImage, Player, StreakDay, StreakReward, TimeLedger, UserBadge, XPLedger
 
 
 def create_player(user):
     """Every account gets a player and the starter bank, however it was created (signals.py)."""
     with transaction.atomic():
-        player = Player.objects.create(user=user)
+        # Everyone starts with a system avatar picked from their username, so it's the same each time.
+        index = int(hashlib.sha256(user.get_username().encode()).hexdigest(), 16) % rules.SYSTEM_AVATARS
+        player = Player.objects.create(user=user, avatar_index=index)
         add_time(player, rules.STARTER_BANK, TimeLedger.Reason.STARTER)
     return player
 
@@ -153,6 +156,19 @@ def core_mission_count():
     from apps.content.models import Mission
 
     return Mission.objects.filter(track__after_archmage=False, status=Mission.Status.PUBLISHED).count()
+
+
+def current_season():
+    from apps.content.models import Track
+
+    return Track.objects.order_by("-season").values_list("season", flat=True).first() or 1
+
+
+def avatar_summary(player):
+    image = AvatarImage.objects.filter(player=player).values_list("token", flat=True).first()
+    if image:
+        return {"kind": "upload", "url": f"/api/v1/avatars/{image}.webp", "index": player.avatar_index}
+    return {"kind": "system", "index": player.avatar_index}
 
 
 def level_summary(player):

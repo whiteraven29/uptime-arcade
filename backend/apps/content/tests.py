@@ -29,11 +29,11 @@ class TestImport:
     def test_imports_every_mission(self):
         assert Mission.objects.count() == 200
         assert Mission.objects.filter(track__after_archmage=False).count() == 150
-        assert Track.objects.count() == 6
+        assert Track.objects.count() == 7
         assert FixtureFile.objects.count() > 50
 
     def test_every_track_has_thirty_and_beyond_has_fifty(self):
-        for track in Track.objects.all():
+        for track in Track.objects.exclude(code="LAB"):
             assert track.missions.count() == (50 if track.after_archmage else 30)
 
     def test_running_it_again_changes_nothing_but_the_version(self, content):

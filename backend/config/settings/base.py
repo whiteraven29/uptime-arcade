@@ -109,6 +109,7 @@ REST_FRAMEWORK = {
         "auth": "10/min",  # section 17
         "login_account": "10/min",
         "username_check": "60/min",
+        "avatar": "10/min",
         "submit": "30/min",  # section 17
         "goal_check": "120/min",  # runs after each command in a terminal mission
     },

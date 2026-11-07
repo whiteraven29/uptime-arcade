@@ -21,7 +21,12 @@ export function CodeEditor({ value, onChange, readOnly, canRun, onRun, note, out
         <button className="btn go" type="button" disabled={!canRun} onClick={onRun}>Run tests</button>
         <span className="small">{note}</span>
       </div>
-      <pre className="code-out">{output}</pre>
+      <div className="code-out" role="log" aria-label="Test results">
+        {output.split('\n').map((line, i) => {
+          const kind = /^ok /.test(line) ? 'pass' : /^FAIL /.test(line) ? 'fail' : /Error|on line \d/.test(line) ? 'fail' : '';
+          return <div key={`${i}${line}`} className={`code-line ${kind}`}>{line}</div>;
+        })}
+      </div>
     </div>
   );
 }

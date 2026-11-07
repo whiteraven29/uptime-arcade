@@ -22,6 +22,8 @@ REWIND_REVEAL_AFTER = 3  # misses on one task before its answer is shown, so nob
 # Day boundaries follow the player's time zone, so moving it freely could fake an extra streak day.
 TIME_ZONE_CHANGE_HOURS = 24
 
+SYSTEM_AVATARS = 16
+
 STREAK_STEP = 0.05
 STREAK_MAX_STEPS = 10
 

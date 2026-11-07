@@ -18,6 +18,7 @@ difficulties:
   - code: brainfuck
     label: Brainfuck
     beyond_xp: 750
+# Seasons are content we publish. A track without one is season 1, and older seasons stay open for good.
 tracks:
   - code: SH
     name: Shell
@@ -39,6 +40,11 @@ tracks:
     name: Networking
     subtitle: From what an address is to fixing outages
     dir: networking
+  - code: LAB
+    name: NetLab
+    subtitle: Real routers and switches, in a lab you can break
+    dir: netlab
+    requires: net-11
   - code: BX
     name: Beyond
     subtitle: "After Archmage: from Easy to Brainfuck"

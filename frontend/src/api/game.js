@@ -15,6 +15,8 @@ export { S, VI, viSelection };
 /* ---------- what the server told us ---------- */
 export const TK = {};
 export const TRACKS = [];
+export const COMING = []; // tracks on the way, like NetLab, with what will open them
+export const TRACK_LOCKS = {};
 export let BEYOND = ['BX', 'Beyond', ''];
 export const CHAPTERS = {};
 export const TICKETS = [];
@@ -40,9 +42,10 @@ export const ui = {
   debrief: null,
   overlay: null, // {kind:'level', i} or {kind:'finale'}
   flash: null, // mission id that just unlocked
-  rw: { id: null, task: null, next: null, nextState: null, correct: 0, total: 5, xpOnClear: 0, fb: null, pick: [], busy: false },
+  rw: { id: null, task: null, correct: 0, total: 5, xpOnClear: 0, fb: null, pick: [], busy: false, answers: 0, lockUntil: 0 },
   py: { state: 'idle' },
   current: null, // the mission being played, with its workspace
+  openTrack: null, // the category open on the Missions screen
   briefings: {},
 };
 
@@ -123,7 +126,9 @@ export const oncallUnlocked = () => false;
 /* ---------- this device's virtual machine ---------- */
 const MACHINE = { cwd: HOME, overlay: {}, hist: [], viKeys: {}, viUsed: {}, net: { gw: '10.40.3.1' }, ranScript: false, code: {}, cmds: {}, len: 25 };
 const machineKey = () => `uptime-machine-${ui.account?.username}`;
+let practiceSaved = null; // while revisiting a mission, the real machine waits here
 function saveMachine() {
+  if (practiceSaved) return;
   const m = {};
   for (const k of Object.keys(MACHINE)) m[k] = S[k];
   try {
@@ -137,11 +142,21 @@ function loadMachine() {
   } catch { /* see saveMachine */ }
   Object.assign(S, structuredClone(MACHINE), saved);
 }
-function resetMachine() {
-  const { len } = S;
-  Object.assign(S, structuredClone(MACHINE), { len });
+
+/* A goal you've already met would pass the moment you typed anything, so revisiting one starts on a clean
+   machine. Your real one comes back untouched when you leave. */
+const PRACTICE_KEYS = ['overlay', 'cwd', 'net', 'viKeys', 'viUsed', 'ranScript', 'cmds'];
+function beginPractice() {
+  if (practiceSaved) return;
+  practiceSaved = Object.fromEntries(PRACTICE_KEYS.map((k) => [k, S[k]]));
+  Object.assign(S, { overlay: {}, cwd: HOME, net: { gw: '10.40.3.1' }, viKeys: {}, viUsed: {}, ranScript: false, cmds: {} });
   fs.reset(S.overlay);
-  saveMachine();
+}
+export function endPractice() {
+  if (!practiceSaved) return;
+  Object.assign(S, practiceSaved);
+  practiceSaved = null;
+  fs.reset(S.overlay);
 }
 
 /* ---------- loading from the server ---------- */
@@ -154,6 +169,7 @@ function applyPlayer(p) {
   S.bestStreak = p.best_streak;
   S.shields = p.shields;
   S.season = p.season;
+  if (ui.account) ui.account.avatar = p.avatar;
   S.peak = p.level.cleared;
   S.todayMin = p.today_minutes;
   S.todayDrifts = p.today_drifts;
@@ -175,8 +191,15 @@ function applyTracks(data) {
   DIFFICULTIES.push(...data.difficulties);
   TRACKS.length = 0;
   TICKETS.length = 0;
+  COMING.length = 0;
   ALL.clear();
+  S.season = data.season;
   for (const t of data.tracks) {
+    TRACK_LOCKS[t.code] = t.locked_because;
+    if (!t.missions.length) {
+      COMING.push({ code: t.code, name: t.name, subtitle: t.subtitle, lockedBecause: t.locked_because, requires: t.requires });
+      continue;
+    }
     if (t.after_archmage) BEYOND = [t.code, t.name, t.subtitle];
     else TRACKS.push([t.code, t.name, t.subtitle]);
     const chapters = [];
@@ -281,6 +304,25 @@ export async function deleteAccount(password) {
   signedOut();
   go('/register');
 }
+/* ---------- your picture ---------- */
+export async function chooseAvatar(index) {
+  const d = await patch('/auth/me/', { avatar_index: index });
+  ui.account = d.account;
+  bump();
+}
+export async function uploadAvatar(file) {
+  const form = new FormData();
+  form.append('picture', file);
+  const d = await post('/auth/avatar/', form);
+  ui.account = { ...ui.account, avatar: d.avatar };
+  bump();
+}
+export async function removeAvatar() {
+  const d = await del('/auth/avatar/');
+  ui.account = { ...ui.account, avatar: d.avatar };
+  bump();
+}
+
 export async function setTimeZone(time_zone) {
   try {
     const d = await patch('/auth/me/', { time_zone });
@@ -305,10 +347,10 @@ export function pr(t, c) {
 const termErr = (t) => pr(t, 'e');
 export const promptText = () => {
   const p = S.cwd === HOME ? '~' : S.cwd?.startsWith(HOME + '/') ? '~' + S.cwd.slice(HOME.length) : S.cwd;
-  return `ops@${HOST}:${p}$`;
+  return `ops@${HOST} ${p}`;
 };
 export function echoCmd(l) {
-  pushSpan(promptText() + ' ', 'pr');
+  pushSpan(promptText(), 'pr');
   pushSpan(l + '\n', 'cmd');
 }
 export function clearTerm() {
@@ -365,8 +407,10 @@ export async function enterMission(id) {
     return;
   }
   const play = await get(`/missions/${id}/play/`);
-  const t = { ...toPlayable(brief), ...toWorkspace(play), ready: true };
-  if (ui.current?.id !== id) {
+  const t = { ...toPlayable(brief), ...toWorkspace(play), ready: true, revisit: play.state === 'cleared' };
+  if (ui.current?.id !== id || !ui.current.ready) {
+    if (t.revisit && GOAL_CHECKS.has(t.check)) beginPractice();
+    else endPractice();
     S.cwd = HOME;
     restoreFixtures(play.workspace.fixtures);
   }
@@ -376,6 +420,7 @@ export async function enterMission(id) {
 }
 export const leaveCurrent = () => {
   ui.current = null;
+  endPractice();
 };
 const toPlayable = (b) => ({
   id: b.code, track: b.track, skill: b.skill, title: b.title, from: b.from_dept, difficulty: b.difficulty, xp: b.xp, check: b.check_type,
@@ -420,6 +465,13 @@ function meta(a) {
 }
 
 const commandsOn = (t) => S.cmds[t.id] || 0;
+function revisited(t, res) {
+  if (res.result !== 'pass') return false;
+  ui.current = { ...t, solved: true };
+  pr('Right again. Revisits pay no XP, so this one was just for you.', 'k');
+  toast('Solved again. No XP on a revisit.');
+  return true;
+}
 async function afterSolved(t, res) {
   ui.current = { ...t, solved: true };
   const d = await get(`/missions/${t.id}/debrief/`);
@@ -436,8 +488,11 @@ async function submitAnswer(value) {
   if (!value) return termErr('Usage: submit <answer>');
   try {
     const res = await post(`/missions/${t.id}/submit/`, { answer: value, commands: commandsOn(t) });
-    if (res.result === 'pass') await afterSolved(t, res);
-    else pr('Not that one. Check your work and try again.', 'e');
+    if (res.revisit && revisited(t, res)) return bump();
+    if (res.result === 'pass') {
+      pr(`Accepted: ${value}`, 'k');
+      await afterSolved(t, res);
+    } else pr('Not that one. Check your work and try again.', 'w');
   } catch (e) {
     termErr(e.message);
     if (e.code === 'no_active_session') await refreshPlayer();
@@ -462,7 +517,7 @@ export const closeDebrief = () => {
   bump();
 };
 export function leaveMission() {
-  ui.current = null;
+  leaveCurrent();
   go('/missions');
 }
 
@@ -489,7 +544,8 @@ export async function checkGoal() {
   try {
     const keys = t.file ? S.viKeys[t.file] || 0 : 0;
     const res = await post(`/missions/${t.id}/check/`, { state: machineState(), commands: commandsOn(t), keys });
-    if (res.result === 'pass') await afterSolved(t, res);
+    if (res.revisit) revisited(t, res);
+    else if (res.result === 'pass') await afterSolved(t, res);
   } catch (e) {
     if (e.code === 'no_active_session') await refreshPlayer();
     // Anything else, like a rate limit, just means the next command checks again.
@@ -518,22 +574,34 @@ export function runCommand(line) {
   const t = T();
   if (t && !t.solved) S.cmds[t.id] = commandsOn(t) + 1;
   const buf = [];
+  const errorsBefore = ui.term.filter((s) => s.c === 'e').length;
   sh.sink = buf;
   sh.errSink = null;
+  sh.code = 0;
   try {
     runLine(src);
   } catch (x) {
     termErr('sh: ' + x.message);
+    sh.code = 1;
   }
   sh.sink = null;
   pr(buf.join(''));
+  if (!VI.on) {
+    // A failed command should say how to find out more, not just that it failed.
+    const failed = ui.term.filter((s) => s.c === 'e').length > errorsBefore;
+    const code = failed && sh.code === 0 ? 1 : sh.code;
+    if (failed && MAN[toks[0]]) pr(`Need a reminder? Run: man ${toks[0]}`, 'd');
+    // grep finding nothing isn't a failure: it answered the question. So it's told apart from an error.
+    const nothingFound = !failed && code === 1 && !buf.join('');
+    pushSpan(nothingFound ? 'quiet' : String(code), 'st');
+    ui.termVersion++;
+  }
   saveMachine();
   bump();
   if (!VI.on) checkGoal();
 }
 
-/** Tab completion for the terminal. Returns the new value and caret, or null if nothing changed. */
-export function tabComplete(v, cur) {
+function completions(v, cur) {
   const before = v.slice(0, cur);
   const m = /(?:^|[\s|;&])((?:\\ |[^\s|;&])*)$/.exec(before);
   const word = (m ? m[1] : '').replace(/\\ /g, ' ');
@@ -552,6 +620,40 @@ export function tabComplete(v, cur) {
     });
     c = k.map((p) => dirS + p.slice(p.lastIndexOf('/') + 1) + (fs.get(p).t === 'd' ? '/' : ''));
   }
+  return { before, m, word, c };
+}
+/** The grey text after what you've typed: what Tab would add, when there's only one choice. */
+export function suggestion(v) {
+  if (!v || /\s$/.test(v) && !v.trim()) return '';
+  const { word, c } = completions(v, v.length);
+  return c.length === 1 && word && c[0].startsWith(word) ? c[0].slice(word.length) : '';
+}
+const GAME_HELP = {
+  help: 'Lists the tools on this box.',
+  man: 'Shows a short reference for a tool, as in: man grep',
+  clear: 'Clears the screen.',
+  brief: 'Shows the mission again.',
+  hint: 'Reveals a hint, which lowers what the mission pays.',
+  submit: 'Sends your answer to be checked.',
+  status: 'Shows your level and the session time left.',
+  exit: 'Use the Leave button instead.',
+};
+/** The line under the prompt: what the command you're typing does, or the keys when it's empty. */
+export function commandHelp(v) {
+  const word = v.trim().split(/\s+/)[0];
+  if (!word) return { kind: 'idle', text: 'Enter runs. Tab completes. Up and Down recall history. Ctrl+L clears.' };
+  if (GAME_HELP[word]) return { kind: 'known', text: GAME_HELP[word] };
+  if (MAN[word]) return { kind: 'known', text: MAN[word].split('\n')[0] };
+  if (COMMANDS[word] || word.includes('/') || word.includes('=')) return { kind: 'known', text: 'Enter runs it.' };
+  const close = [...Object.keys(COMMANDS), ...META].filter((x) => x.startsWith(word));
+  if (close.length) return { kind: 'typing', text: `Keep typing, or press Tab: ${close.slice(0, 5).join('  ')}` };
+  if (['for', 'while', 'if'].includes(word)) return { kind: 'known', text: MAN[word] ? MAN[word].split('\n')[0] : 'Enter runs it.' };
+  return { kind: 'unknown', text: `This box has no command called ${word}. Run help to see what it has.` };
+}
+
+/** Tab completion for the terminal. Returns the new value and caret, or null if nothing changed. */
+export function tabComplete(v, cur) {
+  const { before, m, word, c } = completions(v, cur);
   if (!c.length) return null;
   const esc = (s) => s.replace(/ /g, '\\ ');
   const rep = (x) => {
@@ -591,7 +693,8 @@ export function saveCode(t, src) {
 export async function reportPython(t, code, passed) {
   try {
     const res = await post(`/missions/${t.id}/submit/`, { code, passed });
-    if (res.result === 'pass') await afterSolved(t, res);
+    if (res.revisit) revisited(t, res);
+    else if (res.result === 'pass') await afterSolved(t, res);
   } catch (e) {
     complain(e);
     if (e.code === 'no_active_session') await refreshPlayer();
@@ -600,9 +703,9 @@ export async function reportPython(t, code, passed) {
 }
 
 /* ---------- rewind ---------- */
-const freshRewind = () => ({ id: null, task: null, next: null, nextState: null, correct: 0, total: 5, xpOnClear: 0, fb: null, pick: [], busy: false });
+const freshRewind = () => ({ id: null, task: null, correct: 0, total: 5, xpOnClear: 0, fb: null, pick: [], busy: false, answers: 0, lockUntil: 0 });
 export async function startRewind(id) {
-  if (ui.rw.id === id && (ui.rw.task || ui.rw.fb)) return;
+  if (ui.rw.id === id && ui.rw.task) return;
   ui.rw = { ...freshRewind(), id, loading: true };
   bump();
   try {
@@ -620,37 +723,36 @@ export function rewindHelp() {
   if (!t) return { hint: null, answer: null };
   return { hint: t.hint || null, answer: t.reveal === undefined ? null : Array.isArray(t.reveal) ? t.reveal.join('\n') : t.reveal };
 }
+/* The next question comes straight away, with how the last one went shown above it. A short pause before
+   answers count again stops a double click landing on a question you haven't read. */
+const READ_PAUSE = 350;
 export async function answerRewind(value) {
   const rw = ui.rw;
-  if (rw.busy) return;
+  if (rw.busy || Date.now() < rw.lockUntil) return;
   rw.busy = true;
+  const asked = rw.task?.q;
   try {
     const d = await post(`/missions/${rw.id}/rewind/answer/`, { value });
-    rw.fb = { ok: d.correct, hintNext: !!d.task?.hint };
     rw.correct = d.done;
-    rw.next = d.task;
-    rw.nextState = d;
+    rw.answers += 1;
+    if (d.state === 'cleared') {
+      const finished = byId(rw.id);
+      ui.rw = freshRewind();
+      ui.openTrack = finished?.track ?? ui.openTrack;
+      await refreshAll();
+      go('/missions');
+      applyEvents(d.events);
+      return;
+    }
+    rw.fb = { ok: d.correct, again: d.task?.q === asked, hint: !!d.task?.hint };
+    rw.task = d.task;
+    rw.lockUntil = Date.now() + READ_PAUSE;
   } catch (e) {
     complain(e);
     if (e.code === 'no_active_session') await refreshPlayer();
   }
   rw.pick = [];
   rw.busy = false;
-  bump();
-}
-export async function afterRewindStep() {
-  const rw = ui.rw;
-  if (rw.nextState?.state === 'cleared') {
-    const { id, nextState } = rw;
-    ui.rw = freshRewind();
-    await refreshAll();
-    go('/missions');
-    applyEvents(nextState.events, id);
-    return;
-  }
-  rw.fb = null;
-  rw.task = rw.next;
-  rw.next = null;
   bump();
 }
 export function pickOrder(o) {
@@ -800,19 +902,6 @@ export function tick() {
 }
 
 /* ---------- system ---------- */
-export async function newSeason() {
-  try {
-    await post('/seasons/new/');
-    resetMachine();
-    ui.rw = freshRewind();
-    ui.current = null;
-    await refreshAll();
-    toast(`Season ${S.season} started`);
-    go('/missions');
-  } catch (e) {
-    complain(e);
-  }
-}
 export async function toggleMute() {
   try {
     const d = await patch('/auth/me/', { sound_on: !!S.muted });

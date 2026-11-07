@@ -67,6 +67,10 @@ def load(root=None):
         if orders != list(range(1, len(rows) + 1)):
             problems.append(f"{track['dir']}: orders must run 1 to {len(rows)} with no gaps")
         missions += rows
+    known = {m["id"] for m in missions if isinstance(m, dict) and "id" in m}
+    for track in config["tracks"]:
+        if track.get("requires") and track["requires"] not in known:
+            problems.append(f"{track['code']}: requires {track['requires']}, which doesn't exist")
     fixtures = _yaml(root / "fixtures" / "fs" / "base.yaml")["files"]
     if problems:
         raise ContentError(problems)

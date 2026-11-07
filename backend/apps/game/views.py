@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-from django.db import transaction
 from django.db.models import Sum
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -40,7 +39,8 @@ def player(request):
         "best_streak": p.best_streak,
         "shields": p.shields,
         "multiplier": rules.multiplier(p.streak),
-        "season": p.season,
+        "season": services.current_season(),
+        "avatar": services.avatar_summary(p),
         "badges": UserBadge.objects.filter(player=p).count(),
     })
 
@@ -63,13 +63,3 @@ def rewards(request):
         "levels": [{"index": i + 1, "title": t, "cleared": n, "reached": i <= level} for i, (n, t) in enumerate(rules.LEVELS)],
         "badges": [{"code": c, "name": n, "description": d, "earned_at": earned.get(c)} for c, n, d in rules.BADGES],
     })
-
-
-@api_view(["POST"])
-def new_season(request):
-    """Section 6.9: resets mission progress only. XP, level (through peak), streak and badges stay."""
-    with transaction.atomic():
-        p = services.locked_player(request.user)
-        p.season += 1
-        p.save(update_fields=["season"])
-    return Response({"season": p.season, "events": [{"type": "new_season", "season": p.season}]})

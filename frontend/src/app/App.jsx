@@ -6,6 +6,7 @@ import { ensureAudio } from '../sound/cues.js';
 import { SceneBackdrop } from '../ui/SceneBackdrop.jsx';
 import { Toast } from '../ui/Toast.jsx';
 import { Logo } from '../ui/icons.jsx';
+import { Avatar } from '../ui/Avatar.jsx';
 import { Overlays } from './Overlays.jsx';
 import { DeckScreen } from '../features/deck/DeckScreen.jsx';
 import { FocusScreen } from '../features/focus/FocusScreen.jsx';
@@ -36,6 +37,10 @@ function TopBar() {
         <span className="chip">XP <b>{S.xp}</b></span>
         <span className="chip">Streak <b>{S.streak}d</b></span>
         <span className="chip-time">{running ? 'Session' : 'Play time'} <b>{clock}</b></span>
+        <Link className="me" to="/profile" title="Your profile">
+          <Avatar avatar={ui.account?.avatar} name={ui.account?.username} size={32} />
+          <b id="meName">{ui.account?.username}</b>
+        </Link>
       </div>
     </header>
   );
@@ -70,10 +75,11 @@ export function App() {
 
   return (
     <div onPointerDown={ensureAudio}>
-      <div className="frame" ref={frame} data-screen={pathname === '/' ? 'deck' : 'other'}>
+      <div className="frame" ref={frame} data-screen={ui.auth !== 'in' ? 'auth' : pathname === '/' ? 'deck' : 'other'}>
         <SceneBackdrop frameRef={frame} />
         <div className="scene-veil" />
         <div className="frame-scan" />
+        <div className="frame-edge" />
         {ui.auth === 'in' && <TopBar />}
         {ui.auth === 'checking' && <main><p className="splash">Connecting...</p></main>}
         {ui.auth === 'out' && (

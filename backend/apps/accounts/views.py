@@ -5,6 +5,7 @@ The access token comes back in the response and the browser keeps it in memory. 
 refresh token only ever travels in an HttpOnly, SameSite=Strict cookie, so a script on the page can't
 read it and another site can't send it."""
 import re
+import uuid
 from datetime import timedelta
 from zoneinfo import available_timezones
 
@@ -13,8 +14,10 @@ from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
+from django.http import Http404, HttpResponse
 from rest_framework import serializers, status
-from rest_framework.decorators import api_view, authentication_classes, permission_classes, throttle_classes
+from rest_framework.decorators import api_view, authentication_classes, parser_classes, permission_classes, throttle_classes
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
@@ -25,9 +28,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from apps.core import clock
 from apps.core.exceptions import GameError
 from apps.game import rules
-from apps.game.services import locked_player
+from apps.game.models import AvatarImage
+from apps.game.services import avatar_summary, locked_player
 
-from .throttles import AuthThrottle, LoginAccountThrottle, UsernameCheckThrottle
+from .avatars import MAX_BYTES, NotAnImage, reencode
+from .throttles import AuthThrottle, AvatarThrottle, LoginAccountThrottle, UsernameCheckThrottle
 
 User = get_user_model()
 
@@ -45,7 +50,7 @@ def _clear_cookie(response):
 
 def _account(user):
     p = user.player
-    return {"username": user.username, "email": user.email, "display_name": p.display_name, "time_zone": p.time_zone, "sound_on": p.sound_on}
+    return {"username": user.username, "email": user.email, "display_name": p.display_name, "time_zone": p.time_zone, "sound_on": p.sound_on, "avatar": avatar_summary(p)}
 
 
 USERNAME = re.compile(r"^[A-Za-z0-9_-]{3,20}$")
@@ -86,6 +91,7 @@ class Account(serializers.Serializer):
     display_name = serializers.CharField(max_length=40, required=False, allow_blank=True)
     time_zone = serializers.CharField(max_length=64, required=False, validators=[_valid_zone])
     sound_on = serializers.BooleanField(required=False)
+    avatar_index = serializers.IntegerField(required=False, min_value=0, max_value=rules.SYSTEM_AVATARS - 1)
 
 
 class DeleteAccount(serializers.Serializer):
@@ -205,6 +211,8 @@ def me(request):
                 setattr(player, field, value)
             if changes:
                 player.save(update_fields=list(changes))
+            if "avatar_index" in changes:
+                AvatarImage.objects.filter(player=player).delete()  # choosing a system avatar replaces a picture
         user.player = player
     elif request.method == "DELETE":
         # Section 17: account delete wipes everything. Asking for the password stops a stolen access
@@ -216,3 +224,44 @@ def me(request):
         user.delete()
         return _clear_cookie(Response(status=status.HTTP_204_NO_CONTENT))
     return Response({"account": _account(user)})
+
+
+@api_view(["POST", "DELETE"])
+@parser_classes([MultiPartParser])
+@throttle_classes([AvatarThrottle])
+def avatar(request):
+    player = request.user.player
+    if request.method == "DELETE":
+        AvatarImage.objects.filter(player=player).delete()
+        return Response({"avatar": avatar_summary(player)})
+    declared = request.META.get("CONTENT_LENGTH") or "0"
+    if not declared.isdigit() or int(declared) > MAX_BYTES:
+        raise GameError("picture_too_large", "That picture is too large. Try one under 3 MB.", status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+    upload = request.FILES.get("picture")
+    if upload is None:
+        raise GameError("picture_missing", "Choose a picture first.", status.HTTP_400_BAD_REQUEST)
+    if upload.size > MAX_BYTES:
+        raise GameError("picture_too_large", "That picture is too large. Try one under 3 MB.", status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+    try:
+        data = reencode(upload)
+    except NotAnImage as e:
+        raise GameError("not_a_picture", "That file isn't a PNG, JPEG, WebP or GIF picture.", status.HTTP_400_BAD_REQUEST) from e
+    AvatarImage.objects.update_or_create(player=player, defaults={"token": uuid.uuid4(), "data": data})
+    return Response({"avatar": avatar_summary(player)}, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([])
+def avatar_image(request, token):
+    """Public, because an img tag can't send a login, and the address can't be guessed. It only ever
+    serves our own re-encoded WebP, and the headers stop a browser treating it as anything else."""
+    row = AvatarImage.objects.filter(token=token).first()
+    if not row:
+        raise Http404
+    response = HttpResponse(bytes(row.data), content_type="image/webp")
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Content-Security-Policy"] = "default-src 'none'; sandbox"
+    response["Cache-Control"] = "public, max-age=31536000, immutable"  # a new upload gets a new address
+    return response

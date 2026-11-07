@@ -1,5 +1,5 @@
 import { Terminal } from '../../../../ui/Terminal.jsx';
-import { S, VI, bump, clearTerm, echoCmd, promptText, runCommand, sessionOn, tabComplete, ui } from '../../../../api/game.js';
+import { S, VI, bump, clearTerm, commandHelp, echoCmd, promptText, runCommand, sessionOn, suggestion, tabComplete, ui } from '../../../../api/game.js';
 
 export function TerminalWorkspace() {
   return (
@@ -19,6 +19,8 @@ export function TerminalWorkspace() {
         echoCmd(v + '^C');
         bump();
       }}
+      assist={commandHelp}
+      suggest={suggestion}
     />
   );
 }

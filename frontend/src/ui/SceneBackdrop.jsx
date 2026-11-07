@@ -3,10 +3,10 @@ import { paintScene } from './scene/paintScene.js';
 
 const MAX_DPR = 1.5;
 
-/* The landscape fills the whole window, and everything else is drawn into it (ADR 0003). */
+/* The data centre fills the whole window, and everything else is drawn into it (ADR 0003, 0008). */
 export function SceneBackdrop({ frameRef }) {
   const inner = useRef(null);
-  const lava = useRef(null);
+  const glow = useRef(null);
 
   useEffect(() => {
     let raf = 0;
@@ -24,9 +24,9 @@ export function SceneBackdrop({ frameRef }) {
       lastKey = key;
       c.width = W;
       c.height = H;
-      lava.current.width = W;
-      lava.current.height = H;
-      paintScene(c.getContext('2d'), lava.current.getContext('2d'), W, H);
+      glow.current.width = W;
+      glow.current.height = H;
+      paintScene(c.getContext('2d'), glow.current.getContext('2d'), W, H);
 
     };
     const schedule = () => {
@@ -50,7 +50,7 @@ export function SceneBackdrop({ frameRef }) {
   return (
     <div className="scene-inner" aria-hidden="true">
       <canvas ref={inner} className="scene-layer" />
-      <canvas ref={lava} className="scene-layer scene-lava" />
+      <canvas ref={glow} className="scene-layer scene-glow" />
     </div>
   );
 }

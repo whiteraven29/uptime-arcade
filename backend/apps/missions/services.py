@@ -5,7 +5,7 @@ the player's row lock first, so a double click or two tabs can't pay twice."""
 from django.db import transaction
 from rest_framework import serializers, status
 
-from apps.content.models import Mission
+from apps.content.models import Mission, Track
 from apps.core import clock
 from apps.core.exceptions import GameError
 from apps.focus.services import require_session
@@ -31,6 +31,27 @@ def beyond_open(player):
     return player.peak_cleared >= services.core_mission_count()
 
 
+def _requirement(player, track):
+    """The mission a track waits for, if it hasn't been cleared. Earlier seasons count, because nothing
+    a player has done is ever taken away."""
+    if not track.requires:
+        return None
+    needed = Mission.objects.filter(code=track.requires).first()
+    if needed and MissionProgress.objects.filter(player=player, mission=needed, state=State.CLEARED).exists():
+        return None
+    return needed
+
+
+def track_gate(player, track):
+    """Why a track is closed, or None if it's open (section 6.6)."""
+    if track.after_archmage and not beyond_open(player):
+        return "Reach Archmage to open these."
+    needed = _requirement(player, track)
+    if needed:
+        return f"Clear {needed.title} ({needed.code.upper()}) in {needed.track.name} first."
+    return None
+
+
 def progress_of(player, mission):
     return MissionProgress.objects.filter(player=player, mission=mission, season=player.season).first()
 
@@ -40,7 +61,7 @@ def state_of(player, mission):
     progress = progress_of(player, mission)
     if progress and progress.state != State.OPEN:
         return progress.state
-    if mission.track.after_archmage and not beyond_open(player):
+    if track_gate(player, mission.track):
         return "locked"
     previous = Mission.objects.filter(track=mission.track, order=mission.order - 1, status=Mission.Status.PUBLISHED).first()
     if previous:
@@ -51,29 +72,31 @@ def state_of(player, mission):
 
 
 def tracks_for(player):
-    """The whole map in one go, with one query for missions and one for progress."""
+    """The whole map in one go. Tracks with no missions yet still appear, with what opens them."""
     states = dict(MissionProgress.objects.filter(player=player, season=player.season).values_list("mission_id", "state"))
     answered = dict(RewindProgress.objects.filter(progress__player=player, progress__season=player.season).values_list("progress__mission_id", "correct"))
     missions = Mission.objects.filter(status=Mission.Status.PUBLISHED).select_related("track", "chapter").defer("answer_spec", "expect", "debrief", "rewind", "play", "hints", "lesson_text", "lesson_example", "brief", "goal", "teaches")
-    open_beyond = beyond_open(player)
-    grouped, previous = {}, {}
+    grouped = {}
+    for t in Track.objects.all():
+        gate = track_gate(player, t)
+        grouped[t.code] = {"code": t.code, "name": t.name, "subtitle": t.subtitle, "after_archmage": t.after_archmage, "season": t.season, "locked_because": gate, "requires": t.requires or None, "missions": []}
+    previous = {}
     for m in missions:
         code = m.track.code
         state = states.get(m.pk, State.OPEN)
         if state == State.OPEN:
             before = previous.get(code)
-            if (m.track.after_archmage and not open_beyond) or (before is not None and before != State.CLEARED):
+            if grouped[code]["locked_because"] or (before is not None and before != State.CLEARED):
                 state = "locked"
         previous[code] = state
-        track = grouped.setdefault(code, {"code": code, "name": m.track.name, "subtitle": m.track.subtitle, "after_archmage": m.track.after_archmage, "missions": []})
-        track["missions"].append({"code": m.code, "chapter": m.chapter.name, "order": m.order, "title": m.title, "difficulty": m.difficulty, "xp": m.xp, "state": str(state), "answered": answered.get(m.pk, 0)})
+        grouped[code]["missions"].append({"code": m.code, "chapter": m.chapter.name, "order": m.order, "title": m.title, "difficulty": m.difficulty, "xp": m.xp, "state": str(state), "answered": answered.get(m.pk, 0)})
     return list(grouped.values())
 
 
 def _require_playable(player, mission):
     state = state_of(player, mission)
     if state == "locked":
-        reason = "Reach Archmage to open these." if mission.track.after_archmage else "Clear the mission before this one first."
+        reason = track_gate(player, mission.track) or "Clear the mission before this one first."
         raise GameError("mission_locked", reason, status.HTTP_403_FORBIDDEN)
     return state
 
@@ -90,7 +113,7 @@ def reveal_hint(user, code):
     require_session(player)
     mission = get_mission(code)
     if _require_playable(player, mission) != State.OPEN:
-        raise GameError("already_solved", "This mission is already solved.")
+        raise GameError("already_solved", "Hints are free on a mission you've solved. They're all on the page.")
     progress = _progress_for_update(player, mission)
     if progress.hints_used >= len(mission.hints):
         raise GameError("no_more_hints", "No more hints here. Read the lesson again.")
@@ -141,11 +164,15 @@ def submit(user, code, data):
     player = services.locked_player(user)
     require_session(player)
     mission = get_mission(code)
-    if _require_playable(player, mission) != State.OPEN:
-        raise GameError("already_solved", "This mission is already solved.")
+    state = _require_playable(player, mission)
+    if state == State.SOLVED:
+        raise GameError("already_solved", "This mission is already solved. Its questions are waiting.")
     commands = _count(data.get("commands"), "commands")
     keys = _count(data.get("keys"), "keys")
     passed, record = _grade(mission, data)
+    if state == State.CLEARED:
+        # Revisiting: the answer is checked so you can practise, and nothing else changes.
+        return {"result": "pass" if passed else "fail", "revisit": True, "tries": 0, "events": []}
     progress = _progress_for_update(player, mission)
     if not passed and mission.check_type in GOAL_CHECKS:
         # Not there yet, which isn't a wrong answer. These run after every command, so they aren't kept.

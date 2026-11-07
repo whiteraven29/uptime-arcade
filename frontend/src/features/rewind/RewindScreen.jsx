@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { HudPanel } from '../../ui/HudPanel.jsx';
 import { DifficultyTag } from '../../ui/DifficultyTag.jsx';
-import { S, afterRewindStep, answerRewind, byId, mmss, openSession, pickOrder, rewindHelp, sessionOn, startRewind, stateOf, ui, unpickOrder } from '../../api/game.js';
+import { S, answerRewind, byId, mmss, openSession, pickOrder, rewindHelp, sessionOn, startRewind, stateOf, ui, unpickOrder } from '../../api/game.js';
 
 function FreeAnswer({ task }) {
   const [value, setValue] = useState('');
@@ -85,18 +85,17 @@ export function RewindScreen() {
   return (
     <section className="screen" aria-label="Rewind">
       <div className="narrow">
-        <HudPanel label={`Questions on: ${m.title}`}>
+        <HudPanel label={`Questions on: ${m.title}`} data-answers={rw.answers}>
           <p className="small">Answer all {total} to earn {rw.xpOnClear || m.xp} XP and unlock the next mission. A wrong answer costs nothing and comes back later.</p>
           <div className="pips" role="img" aria-label={`${rw.correct} of ${total} correct`}>
             {Array.from({ length: total }, (_, i) => <i key={i} className={i < rw.correct ? 'on' : ''} />)}
           </div>
-          {rw.fb ? (
-            <>
-              <h2 className={`title ${rw.fb.ok ? 'good' : 'bad'}`} style={{ fontSize: 26 }}>{rw.fb.ok ? 'Correct' : 'Not quite'}</h2>
-              {!rw.fb.ok && <p className="small">{rw.fb.hintNext ? 'Try again. You get a hint this time.' : 'No problem. This one comes back after the others, with a hint if you still need it.'}</p>}
-              <button className="btn go" type="button" id="rwNext" autoFocus onClick={afterRewindStep}>{rw.nextState?.state === 'cleared' ? 'Finish' : 'Next question'}</button>
-            </>
-          ) : !sessionOn() ? (
+          {rw.fb && (
+            <p key={rw.answers} className={`rw-result ${rw.fb.ok ? 'good' : 'bad'}`} role="status">
+              {rw.fb.ok ? 'Correct.' : rw.fb.again ? 'Not quite. Try it again.' : rw.fb.hint ? "Not quite. Here's a hint for this one." : 'Not quite. That one comes back after the others.'}
+            </p>
+          )}
+          {!sessionOn() ? (
             <>
               <p>These questions need an open session.</p>
               <div className="row">

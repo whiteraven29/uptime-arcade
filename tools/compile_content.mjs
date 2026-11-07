@@ -2,7 +2,7 @@
 /* Builds content/build/catalogue.json from the YAML, which is the only place missions are written.
    The browser game and the Node tools read this until M3 moves the game onto the API. It still holds
    the answers, so it must never be served once the API is in use (ADR 0005). */
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -51,7 +51,7 @@ const missions = [];
 const chapters = {};
 for (const t of tracks) {
   const dir = join('content/missions', t.dir);
-  const list = readdirSync(join(ROOT, dir)).filter((f) => f.endsWith('.yaml')).map((f) => read(join(dir, f))).sort((a, b) => a.order - b.order);
+  const list = (existsSync(join(ROOT, dir)) ? readdirSync(join(ROOT, dir)) : []).filter((f) => f.endsWith('.yaml')).map((f) => read(join(dir, f))).sort((a, b) => a.order - b.order);
   chapters[t.code] = [];
   list.forEach((m, i) => {
     if (chapters[t.code].at(-1)?.[0] !== m.chapter) chapters[t.code].push([m.chapter, i]);

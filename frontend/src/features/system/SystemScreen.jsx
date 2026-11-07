@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { HudPanel } from '../../ui/HudPanel.jsx';
-import { S, TICKETS, closeSession, deleteAccount, logout, newSeason, setTimeZone, toggleMute, ui } from '../../api/game.js';
+import { S, closeSession, deleteAccount, logout, setTimeZone, toggleMute, ui } from '../../api/game.js';
 
 function DeleteAccount() {
   const [open, setOpen] = useState(false);
@@ -35,7 +35,6 @@ function DeleteAccount() {
 }
 
 export function SystemScreen() {
-  const [confirming, setConfirming] = useState(false);
   const here = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const account = ui.account;
   return (
@@ -54,17 +53,8 @@ export function SystemScreen() {
         </HudPanel>
         <HudPanel className="stack" label="Session">
           <div className="row"><button className="btn" type="button" onClick={() => closeSession()}>Close session and bank time</button></div>
-          <p className="label" style={{ margin: '6px 0 0' }}>New season</p>
-          <p style={{ margin: 0 }} className="small">Replay all {TICKETS.length} missions. Your level, XP, streak and badges stay.</p>
-          <div className="row">
-            <button className="btn" type="button" onClick={() => setConfirming(true)}>Start new season</button>
-            {confirming && (
-              <>
-                <button className="btn warn" type="button" onClick={() => { setConfirming(false); newSeason(); }}>Yes, start it</button>
-                <button className="btn" type="button" onClick={() => setConfirming(false)}>Cancel</button>
-              </>
-            )}
-          </div>
+          <p className="label" style={{ margin: '6px 0 0' }}>Seasons</p>
+          <p style={{ margin: 0 }} className="small">You're in season {S.season}. New seasons bring new missions. Everything you've cleared stays cleared, and you can revisit any of it from Missions.</p>
         </HudPanel>
         <HudPanel label="About">
           <p style={{ margin: 0 }} className="small">Whiteraven is a fictional company. The terminal is simulated, and its files stay on this device. Your progress is kept on the server.</p>

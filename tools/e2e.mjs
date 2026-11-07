@@ -45,6 +45,13 @@ const typeCmd = async (c) => {
   await page.fill('#cmd', c);
   await page.press('#cmd', 'Enter');
 };
+/* The next question arrives by itself. Answers also pause briefly, so a double click can't skip one. */
+const answered = () => page.waitForTimeout(450);
+const openCategory = async (code) => {
+  const head = page.locator(`.tcard[data-track="${code}"] .tcard-head`);
+  if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
+  await page.waitForSelector(`.tcard[data-track="${code}"] .chapter`);
+};
 const answerTask = async (m) => {
   const q = await page.locator('.screen .title').first().innerText();
   const t = m.rewind.find((x) => x.q === q);
@@ -53,9 +60,7 @@ const answerTask = async (m) => {
     await page.fill('#rwInput', t.answer[0]);
     await page.press('#rwInput', 'Enter');
   } else for (const a of t.answer) await page.locator('.tok:not(.good)', { hasText: a }).first().click();
-  await page.waitForSelector('#rwNext');
-  await page.click('#rwNext');
-  await page.waitForTimeout(60);
+  await answered();
 };
 const USER = 'e2e_amina';
 const PASSWORD = 'correct horse battery';
@@ -172,7 +177,33 @@ try {
   await page.waitForFunction((b) => Number(document.querySelector('.chips').textContent.match(/XP\s*(\d+)/)[1]) > b, before);
   await page.waitForSelector('.tracks');
   ok('the last answer pays the whole mission', await xp() > before, `${before} to ${await xp()}`);
+  ok('its category stays open', await page.locator('.tcard.open[data-track="SH"]').count() === 1);
   ok('the next mission unlocks', await page.locator('.node[data-id="sh-02"].open').count() === 1);
+
+  // ---------- the terminal says what happened ----------
+  await page.goto(`${BASE}/missions/sh-02/play`);
+  await page.waitForSelector('#cmd');
+  await typeCmd('cat nope.txt');
+  await page.waitForSelector('.t-out.e');
+  ok('an error is shown as an error', (await page.locator('.t-out.e').last().innerText()).includes('No such file'));
+  ok('a failed command says how to find out more', (await page.locator('.term-out').innerText()).includes('man cat'));
+  ok('it reports how the command ended', (await page.locator('.t-status').last().innerText()).includes('exit 1'));
+  await typeCmd('grep zzzqq ~/README');
+  await page.waitForFunction(() => /nothing found/.test([...document.querySelectorAll('.t-status')].at(-1).textContent));
+  ok("grep finding nothing isn't shown as a failure", true);
+  await typeCmd('pwd');
+  await page.waitForFunction(() => /done/.test([...document.querySelectorAll('.t-status')].at(-1).textContent));
+  ok('a good command says done', true);
+  await page.fill('#cmd', 'banana');
+  ok('an unknown command is flagged as you type', (await page.locator('#cmdHelp').innerText()).includes('no command called banana'));
+  await page.fill('#cmd', 'gre');
+  ok('a grey suggestion shows what Tab would add', (await page.locator('.ghost').innerText()).endsWith('p'));
+  await page.press('#cmd', 'Tab');
+  ok('Tab accepts it', (await page.inputValue('#cmd')).startsWith('grep'));
+  await page.fill('#cmd', 'grep');
+  ok('the help line says what a command does', (await page.locator('#cmdHelp').innerText()).includes('PATTERN'));
+  await page.fill('#cmd', '');
+  await shot('terminal');
 
   // ---------- a goal the browser can't see ----------
   await page.goto(`${BASE}/missions/sh-02/play`);
@@ -240,17 +271,20 @@ try {
     } else {
       for (const a of [...t.answer].reverse()) await page.locator('.tok:not(.good)', { hasText: a }).first().click();
     }
-    await page.waitForSelector('#rwNext');
+    await answered();
   };
-  for (let i = 0; i < 4; i++) {
+  const firstQuestion = await page.locator('.screen .title').first().innerText();
+  await wrongAnswer();
+  ok('the next question arrives without clicking anything', (await page.locator('.screen .title').first().innerText()) !== firstQuestion && await page.locator('#rwNext').count() === 0);
+  ok('a wrong answer says so above the next question', (await page.locator('.rw-result').innerText()).includes('Not quite'));
+  let t = await page.locator('.screen').innerText();
+  ok('miss 1 shows no answer and no hint', !t.includes('The answer is') && !t.includes('Hint:'));
+  for (let i = 1; i < 4; i++) {
     await wrongAnswer();
-    const t = await page.locator('.screen').innerText();
+    t = await page.locator('.screen').innerText();
     ok(`miss ${i + 1} shows no answer and no hint`, !t.includes('The answer is') && !t.includes('Hint:'));
-    await page.click('#rwNext');
-    await page.waitForTimeout(40);
   }
   await wrongAnswer();
-  await page.click('#rwNext');
   await page.waitForSelector('.rw-help');
   ok('a hint appears once every question has been failed', (await page.locator('.rw-help').innerText()).includes('Hint:'));
   await shot('rewind-hint');
@@ -293,14 +327,70 @@ try {
   // ---------- staying and leaving ----------
   await page.goto(`${BASE}/missions`);
   await page.waitForSelector('.tracks');
-  ok('progress survives a reload', await page.locator('.node[data-id="sh-01"].clear').count() === 1);
-  ok('Beyond shows as locked', await page.locator('.node[data-id="bx-01"].locked').count() === 1);
-  ok('difficulty legend shows all five', (await page.locator('.diff-legend').innerText()).includes('Brainfuck'));
+  ok('categories start closed, so nothing is stacked', await page.locator('.tcard.open').count() === 0 && await page.locator('.node').count() === 0);
+  ok('each category shows what it holds', await page.locator('.tcard[data-track="SH"] .cycle-item').count() === 1);
+  const firstChapter = await page.locator('.tcard[data-track="NET"] .cycle-item').innerText();
+  await page.waitForFunction((text) => document.querySelector('.tcard[data-track="NET"] .cycle-item').textContent !== text, firstChapter, { timeout: 8000 });
+  ok('the chapters cycle by themselves', true);
   await shot('missions');
+  await openCategory('SH');
+  ok('opening a category shows its chapters', await page.locator('.tcard[data-track="SH"] .chapter').count() > 3);
+  ok('progress survives a reload', await page.locator('.node[data-id="sh-01"].clear').count() === 1);
+  const closedChapter = page.locator('.tcard[data-track="SH"] .chapter:not(.open) .chapter-head').first();
+  const before2 = await page.locator('.node').count();
+  await closedChapter.click();
+  ok('a chapter opens as a dropdown', await page.locator('.node').count() > before2);
+  await shot('missions-open');
+  await openCategory('BX');
+  ok('Beyond shows as locked', await page.locator('.node[data-id="bx-01"].locked').count() === 1);
+  ok('opening one category closes the other', await page.locator('.tcard.open').count() === 1);
+  ok('NetLab is listed as on its way, with what opens it', (await page.locator('.tcard[data-track="LAB"]').innerText()).includes('NET-11'));
+  ok('there is no way to reset a season', (await call('/seasons/new/', 'POST')).status === 404);
   setPeak(USER, 150);
   await page.reload();
   await page.waitForSelector('.tracks');
+  await openCategory('BX');
   ok('reaching Archmage opens Beyond', await page.locator('.node[data-id="bx-01"].open').count() === 1);
+
+  // ---------- revisiting ----------
+  await page.goto(`${BASE}/missions/sh-01`);
+  await page.waitForSelector('#revisit');
+  const xpBefore = await xp();
+  await page.click('#revisit');
+  await page.waitForSelector('#cmd');
+  ok('a cleared mission can be played again', await page.locator('.revisit-note').count() === 1);
+  await typeCmd('submit /nowhere');
+  await page.waitForFunction(() => /Not that one/.test(document.querySelector('.term-out').textContent));
+  await typeCmd('submit /home/ops');
+  await page.waitForFunction(() => /Right again/.test(document.querySelector('.term-out').textContent));
+  ok('revisiting pays no XP and shows no debrief', await xp() === xpBefore && await page.locator('.over').count() === 0);
+
+  // ---------- who you are ----------
+  ok('your username is at the top', (await page.locator('#meName').innerText()) === USER);
+  ok('you have a system avatar from the start', await page.locator('.me .avatar-art').count() === 1);
+  await page.click('.me');
+  await page.waitForSelector('.avatar-grid');
+  await shot('profile');
+  ok('there are sixteen to choose from', await page.locator('.avatar-pick').count() === 16);
+  await page.locator('.avatar-pick').nth(5).click();
+  await page.waitForSelector('.avatar-pick.on');
+  ok('choosing one marks it', await page.locator('.avatar-pick').nth(5).getAttribute('aria-checked') === 'true');
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFElEQVR4nGOMsjnBgA0wYRUdtBIAFV0BbnbDS4EAAAAASUVORK5CYII=', 'base64');
+  await page.setInputFiles('#avatarFile', { name: 'me.png', mimeType: 'image/png', buffer: png });
+  await page.waitForSelector('.me img');
+  ok('uploading a picture shows it at the top', true);
+  const loaded = await page.evaluate(async () => {
+    const src = document.querySelector('.me img').getAttribute('src');
+    const r = await fetch(src);
+    return { type: r.headers.get('content-type'), sniff: r.headers.get('x-content-type-options') };
+  });
+  ok('the picture is served as a safe image', loaded.type === 'image/webp' && loaded.sniff === 'nosniff');
+  await page.setInputFiles('#avatarFile', { name: 'evil.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>') });
+  await page.waitForFunction(() => /isn't a PNG/.test(document.querySelector('[role=status]').textContent));
+  ok('a script disguised as a picture is refused', true);
+  await page.reload();
+  await page.waitForSelector('.me img');
+  ok('the picture is still there after a reload', true);
   await page.goto(`${BASE}/rewards`);
   await page.waitForSelector('.badge');
   ok('rewards come from the server', (await page.locator('.badge').count()) === 30);
@@ -331,6 +421,13 @@ try {
   await page.click('#loginBtn');
   await page.waitForSelector('.deck');
   ok('logging back in works, and picks up where you left', await xp() > 37);
+
+  const calm = await browser.newContext({ viewport: { width: 1400, height: 880 }, reducedMotion: 'reduce' });
+  const still = await calm.newPage();
+  await still.goto(`${BASE}/login`);
+  await still.waitForSelector('#loginBtn');
+  ok('reduced motion stops the room breathing', await still.evaluate(() => getComputedStyle(document.querySelector('.scene-glow')).animationName) === 'none');
+  await calm.close();
 
   ok('the page made no outside requests', external.length === 0, external.slice(0, 2).join(' '));
   ok('no page errors', pageErrors.length === 0, pageErrors.slice(0, 3).join(' | '));

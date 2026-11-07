@@ -1,6 +1,6 @@
 # ADR 0001: A cinematic landscape behind the holographic HUD
 
-**Status:** accepted, 2026-11-07. The frame and panel shape were replaced by ADR 0003.
+**Status:** accepted, 2026-11-07. The frame and panel shape were replaced by ADR 0003, and the landscape by ADR 0008.
 
 ## Context
 

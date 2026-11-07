@@ -52,6 +52,12 @@ for (const [width, height] of [[1400, 880], [400, 860]]) {
   await open('/missions');
   await page.waitForSelector('.tracks');
   await shot('missions');
+  await page.click('.tcard[data-track="SH"] .tcard-head');
+  await page.waitForSelector('.chapter');
+  await shot('missions-open');
+  await open('/profile');
+  await page.waitForSelector('.avatar-grid');
+  await shot('profile');
   await open('/missions/sh-01');
   await page.waitForSelector('#launch');
   await shot('briefing');

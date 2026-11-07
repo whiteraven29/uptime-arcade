@@ -57,7 +57,11 @@ export function BriefingScreen() {
           {st === 'clear' ? (
             <>
               <Debrief id={m.id} />
-              <Link className="btn" to="/missions">Back to missions</Link>
+              <div className="row">
+                <Link className="btn go" id="revisit" to={`/missions/${m.id}/play`}>Play it again</Link>
+                <Link className="btn" to="/missions">Back to missions</Link>
+              </div>
+              <p className="small">Revisiting is practice: it uses play time and pays no XP.</p>
             </>
           ) : (
             <>

@@ -25,6 +25,7 @@ function SidePanel({ t }) {
     <HudPanel className="side" label={trackName(t.track)}>
       <h3>{t.title}</h3>
       {t.difficulty && <DifficultyTag code={t.difficulty} />}
+      {t.revisit && <p className="revisit-note">Revisiting. Hints are free and this pays no XP.</p>}
       <p>{t.brief}</p>
       <p className="obj">{t.goal}</p>
       {t.hintsShown.map((h, i) => <p key={h} className="hint-line">Hint {i + 1}: {h}</p>)}
@@ -32,7 +33,7 @@ function SidePanel({ t }) {
       <p className="small">{t.learn[0]}</p>
       <pre>{t.learn[1]}</pre>
       <div className="row">
-        <button className="btn" type="button" disabled={!sessionOn()} onClick={showHint}>Hint (-{HINT_COST} XP)</button>
+        {!t.revisit && <button className="btn" type="button" disabled={!sessionOn()} onClick={showHint}>Hint (-{HINT_COST} XP)</button>}
         <button className="btn" type="button" disabled={!sessionOn()} onClick={() => runCommand('help')}>Help</button>
         <button className="btn" type="button" onClick={leaveMission}>Leave</button>
       </div>
@@ -52,7 +53,14 @@ export function PlayArea({ t }) {
     <div className="play">
       <SidePanel t={t} />
       <HudPanel className="work">
-        <div className="work-bar"><span>{workspace === 'python' ? 'Python' : workspace === 'go' ? 'Go reader' : 'Terminal'}</span><b>wr-dev01</b></div>
+        <div className="work-bar">
+          <span className="work-title"><i className={`led${on ? ' on' : ''}`} aria-hidden="true" />{workspace === 'python' ? 'Python' : workspace === 'go' ? 'Go reader' : 'Terminal'}</span>
+          <span className="work-stats">
+            {t.par_kind === 'commands' && <span>Commands <b>{S.cmds?.[t.id] || 0}</b> / par {t.par_value}</span>}
+            {t.par_kind === 'keys' && <span>Keys par <b>{t.par_value}</b></span>}
+            {on && <span>Session <b>{mmss((S.sessionEndsAt - Date.now()) / 1000)}</b></span>}
+          </span>
+        </div>
         {workspace === 'python' && (t.ready ? <PythonWorkspace mission={t} /> : <div className="code-pane" />)}
         {workspace === 'go' && (t.ready ? <GoReader code={t.program} /> : <TerminalWorkspace />)}
         {workspace === 'terminal' && <TerminalWorkspace />}

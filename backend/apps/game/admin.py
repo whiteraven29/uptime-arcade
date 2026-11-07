@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Player, StreakDay, StreakReward, TimeLedger, UserBadge, XPLedger
+from .models import AvatarImage, Player, StreakDay, StreakReward, TimeLedger, UserBadge, XPLedger
 
 
 class ReadOnlyAdmin(admin.ModelAdmin):
@@ -32,6 +32,12 @@ class TimeLedgerAdmin(ReadOnlyAdmin):
 class XPLedgerAdmin(ReadOnlyAdmin):
     list_display = ("player", "delta", "reason", "multiplier", "created_at")
     list_filter = ("reason",)
+
+
+@admin.register(AvatarImage)
+class AvatarImageAdmin(ReadOnlyAdmin):
+    list_display = ("player", "token", "updated_at")
+    exclude = ("data",)
 
 
 admin.site.register(StreakDay, ReadOnlyAdmin)

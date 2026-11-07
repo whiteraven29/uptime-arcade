@@ -6,6 +6,7 @@ const { S, ui } = g;
 const json = (status, body) => ({ status, ok: status < 400, json: async () => body });
 
 const PLAYER = (over = {}) => ({
+  avatar: { kind: 'system', index: 3 },
   server_time: new Date().toISOString(), username: 'amina', display_name: 'Amina', sound_on: true, time_zone: 'Africa/Nairobi',
   today_minutes: 0, today_drifts: 0, focus_minutes: 0, blocks_finished: 0, xp: 0,
   level: { index: 1, title: 'Noob', cleared: 0, next_title: 'Initiate', next_at: 8 },
@@ -13,6 +14,7 @@ const PLAYER = (over = {}) => ({
 });
 const card = (code, order, state, extra = {}) => ({ code, chapter: 'Basics', order, title: `Mission ${code}`, difficulty: 'easy', xp: 100, state, answered: 0, ...extra });
 const TRACKS = (first = 'open') => ({
+  season: 1,
   difficulties: [{ code: 'easy', label: 'Easy' }, { code: 'brainfuck', label: 'Brainfuck' }],
   tracks: [
     { code: 'NET', name: 'Networking', subtitle: 's', after_archmage: false, missions: [card('net-01', 1, first), card('net-02', 2, first === 'cleared' ? 'open' : 'locked')] },
@@ -20,7 +22,7 @@ const TRACKS = (first = 'open') => ({
   ],
 });
 const REWARDS = { config: { earn_seconds: { 15: 300, 25: 480, 45: 900 }, goal_bonus_seconds: 120, bank_cap: 1800, hint_cost: 15, rewind_reveal_after: 3 }, streak: [{ days: 3, seconds: 300, xp: 50, shields: 0, claimed: false }], levels: [{ index: 1, title: 'Noob', cleared: 0, reached: true }, { index: 2, title: 'Initiate', cleared: 8, reached: false }, { index: 3, title: 'Apprentice', cleared: 19, reached: false }], badges: [{ code: 'first', name: 'First Clear', description: 'x', earned_at: null }] };
-const BRIEF = (code, check = 'answer') => ({ code, track: 'NET', skill: 'networking', title: 'T', from_dept: 'N', difficulty: 'easy', xp: 100, check_type: check, par_kind: check === 'fs' ? 'commands' : 'first-try', par_value: 1, lesson: { text: 'l', example: 'e' }, brief: 'b', goal: 'g', state: 'open' });
+const BRIEF = (code, check = 'answer') => ({ state: 'open', code, track: 'NET', skill: 'networking', title: 'T', from_dept: 'N', difficulty: 'easy', xp: 100, check_type: check, par_kind: check === 'fs' ? 'commands' : 'first-try', par_value: 1, lesson: { text: 'l', example: 'e' }, brief: 'b', goal: 'g' });
 const PLAY = (extra = {}) => ({ code: 'net-01', state: 'open', check_type: 'answer', workspace: {}, hints: [], hints_total: 2, ...extra });
 
 let routes;
@@ -174,7 +176,7 @@ describe('terminal goals', () => {
 });
 
 describe('the rewind', () => {
-  const task = (extra = {}) => ({ type: 'mc', level: 'easy', label: 'L', q: 'Q', options: ['a', 'b'], ...extra });
+  const task = (extra = {}) => ({ type: 'mc', level: 'easy', label: 'L', q: 'Q1', options: ['a', 'b'], ...extra });
   const begin = async (answers) => {
     server({
       'GET /missions/net-01/rewind/': () => json(200, { state: 'solved', correct: 0, total: 5, task: task(), xp_on_clear: 120 }),
@@ -184,12 +186,34 @@ describe('the rewind', () => {
     await g.startRewind('net-01');
   };
   it('never receives an answer with a task', async () => {
-    await begin(() => json(200, { correct: false, state: 'solved', done: 0, total: 5, task: task(), events: [] }));
+    await begin(() => json(200, { correct: false, state: 'solved', done: 0, total: 5, task: task({ q: 'Q2' }), events: [] }));
     expect(ui.rw.task.answer).toBeUndefined();
     expect(g.rewindHelp()).toEqual({ hint: null, answer: null });
   });
+  it('shows the next question straight away, with no extra step', async () => {
+    await begin(() => json(200, { correct: true, state: 'solved', done: 1, total: 5, task: task({ q: 'Q2' }), events: [] }));
+    await g.answerRewind('a');
+    expect(ui.rw.task.q).toBe('Q2');
+    expect(ui.rw.fb.ok).toBe(true);
+    expect(ui.rw.correct).toBe(1);
+  });
+  it('says when the same question has come straight back', async () => {
+    await begin(() => json(200, { correct: false, state: 'solved', done: 4, total: 5, task: task({ hint: 'h' }), events: [] }));
+    await g.answerRewind('b');
+    expect(ui.rw.fb).toEqual({ ok: false, again: true, hint: true });
+  });
+  it("doesn't let a double click answer the next question unread", async () => {
+    let n = 0;
+    await begin(() => {
+      n += 1;
+      return json(200, { correct: true, state: 'solved', done: n, total: 5, task: task({ q: `Q${n + 1}` }), events: [] });
+    });
+    await g.answerRewind('a');
+    await g.answerRewind('a');
+    expect(n).toBe(1);
+  });
   it('shows no XP or answer on a wrong attempt', async () => {
-    await begin(() => json(200, { correct: false, state: 'solved', done: 0, total: 5, task: task(), events: [] }));
+    await begin(() => json(200, { correct: false, state: 'solved', done: 0, total: 5, task: task({ q: 'Q2' }), events: [] }));
     await g.answerRewind('a');
     expect(ui.rw.fb.ok).toBe(false);
     expect(S.xp).toBe(0);
@@ -197,17 +221,84 @@ describe('the rewind', () => {
   it('shows the hint and answer only when the server sends them', async () => {
     await begin(() => json(200, { correct: false, state: 'solved', done: 0, total: 5, task: task({ hint: 'look here', reveal: 'a' }), events: [] }));
     await g.answerRewind('b');
-    expect(ui.rw.fb.hintNext).toBe(true);
-    await g.afterRewindStep();
+    expect(ui.rw.fb.hint).toBe(true);
     expect(g.rewindHelp()).toEqual({ hint: 'look here', answer: 'a' });
   });
-  it('plays the events the server sends when it finishes', async () => {
+  it('finishes by itself, plays the events and reopens the category', async () => {
+    const navigate = vi.fn();
+    g.setNavigator(navigate);
     await begin(() => json(200, { correct: true, state: 'cleared', done: 5, total: 5, task: null, xp: 120, events: [{ type: 'cleared', mission: 'net-01', xp: 120 }, { type: 'level_up', level: 2, title: 'Initiate' }, { type: 'unlocked', mission: 'net-02' }] }));
     await g.answerRewind('a');
-    await g.afterRewindStep();
+    expect(navigate).toHaveBeenCalledWith('/missions');
     expect(ui.overlay).toEqual({ kind: 'level', i: 1 });
     expect(ui.flash).toBe('net-02');
     expect(ui.toast).toContain('XP');
+    expect(ui.openTrack).toBe('NET');
+  });
+});
+
+describe('tracks that are on the way', () => {
+  it('keeps them out of the paths, and says what opens them', async () => {
+    const data = TRACKS();
+    data.season = 1;
+    data.tracks.push({ code: 'LAB', name: 'NetLab', subtitle: 'x', after_archmage: false, requires: 'net-11', locked_because: 'Clear net-11 first.', missions: [] });
+    server({ 'GET /tracks/': () => json(200, data) });
+    await g.boot();
+    expect(g.TRACKS.map((t) => t[0])).toEqual(['NET']);
+    expect(g.COMING[0]).toMatchObject({ code: 'LAB', lockedBecause: 'Clear net-11 first.' });
+    expect(g.TK.LAB).toBeUndefined();
+  });
+});
+
+describe('revisiting', () => {
+  const again = async (body) => {
+    server({
+      'GET /player/': () => json(200, openSessionPlayer()),
+      'GET /missions/net-01/': () => json(200, { ...BRIEF('net-01', 'fs'), state: 'cleared' }),
+      'GET /missions/net-01/play/': () => json(200, PLAY({ state: 'cleared', check_type: 'fs', hints: ['a', 'b'] })),
+      'POST /missions/net-01/check/': () => json(200, body),
+    });
+    g.leaveCurrent();
+    delete ui.briefings['net-01'];
+    await g.refreshPlayer();
+    S.overlay['/home/ops/mine.txt'] = { t: 'f', c: 'keep me', m: 420 };
+    await g.enterMission('net-01');
+  };
+  it('plays on a clean machine and gives yours back after', async () => {
+    await again({ result: 'fail', revisit: true, tries: 0, events: [] });
+    expect(ui.current.revisit).toBe(true);
+    expect(S.overlay['/home/ops/mine.txt']).toBeUndefined();
+    g.leaveCurrent();
+    expect(S.overlay['/home/ops/mine.txt'].c).toBe('keep me');
+  });
+  it('shows no debrief and pays nothing when solved again', async () => {
+    await again({ result: 'pass', revisit: true, tries: 0, events: [] });
+    g.runCommand('pwd');
+    await vi.waitFor(() => expect(ui.term.map((s) => s.t).join('')).toContain('Right again'));
+    expect(ui.debrief).toBeNull();
+    g.leaveCurrent();
+  });
+  it('has all its hints free', async () => {
+    await again({ result: 'fail', revisit: true, tries: 0, events: [] });
+    expect(ui.current.hintsShown).toEqual(['a', 'b']);
+    g.leaveCurrent();
+  });
+});
+
+describe('your picture', () => {
+  it('sends an upload as a file, with no JSON header', async () => {
+    server({ 'POST /auth/avatar/': () => json(201, { avatar: { kind: 'upload', url: '/api/v1/avatars/x.webp', index: 1 } }) });
+    let sent;
+    const inner = fetch;
+    vi.stubGlobal('fetch', vi.fn(async (url, opts) => {
+      sent = opts;
+      return json(201, { avatar: { kind: 'upload', url: '/api/v1/avatars/x.webp', index: 1 } });
+    }));
+    await g.uploadAvatar(new File(['x'], 'me.png', { type: 'image/png' }));
+    expect(sent.body).toBeInstanceOf(FormData);
+    expect(sent.headers['Content-Type']).toBeUndefined();
+    expect(ui.account.avatar.kind).toBe('upload');
+    vi.stubGlobal('fetch', inner);
   });
 });
 

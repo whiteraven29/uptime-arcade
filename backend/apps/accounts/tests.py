@@ -1,10 +1,17 @@
+import uuid
+from io import BytesIO
+
 import pytest
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from apps.game.models import Player, TimeLedger
+from apps.accounts.avatars import MAX_BYTES
+from apps.game import rules
+from apps.game.models import AvatarImage, Player, TimeLedger
 
 GOOD = {"username": "Sara_01", "email": "Sara@Example.test", "password": "correct horse battery"}
 COOKIE = settings.REFRESH_COOKIE["key"]
@@ -268,3 +275,153 @@ class TestAccount:
         assert client.get("/api/v1/player/").status_code == 200
         user.delete()
         assert client.get("/api/v1/player/").status_code == 401
+
+
+def picture(kind="PNG", size=(40, 30), **save):
+    image = Image.new("RGB", size, (200, 40, 90))
+    out = BytesIO()
+    image.save(out, format=kind, **save)
+    return out.getvalue()
+
+
+def upload(api, data, name="me.png", content_type="image/png"):
+    return api.post("/api/v1/auth/avatar/", {"picture": SimpleUploadedFile(name, data, content_type=content_type)}, format="multipart")
+
+
+def served(api):
+    return api.get("/api/v1/player/").json()["avatar"]
+
+
+class TestSystemAvatars:
+    def test_everyone_gets_one_automatically(self, api):
+        assert served(api)["kind"] == "system"
+        assert 0 <= served(api)["index"] < rules.SYSTEM_AVATARS
+
+    def test_the_same_username_always_gets_the_same_one(self):
+        a = get_user_model().objects.create_user(username="same_name", password="x" * 12).player.avatar_index
+        get_user_model().objects.filter(username="same_name").delete()
+        b = get_user_model().objects.create_user(username="same_name", password="x" * 12).player.avatar_index
+        assert a == b
+
+    def test_different_usernames_are_spread_out(self):
+        seen = {get_user_model().objects.create_user(username=f"spread{i}", password="x" * 12).player.avatar_index for i in range(40)}
+        assert len(seen) > 8
+
+    def test_can_be_changed(self, api):
+        assert api.patch("/api/v1/auth/me/", {"avatar_index": 5}, format="json").json()["account"]["avatar"] == {"kind": "system", "index": 5}
+
+    @pytest.mark.parametrize("bad", [-1, 16, 9999, "x"])
+    def test_only_real_ones_can_be_chosen(self, api, bad):
+        assert api.patch("/api/v1/auth/me/", {"avatar_index": bad}, format="json").status_code == 400
+
+
+class TestUploadedAvatars:
+    @pytest.mark.parametrize("kind", ["PNG", "JPEG", "WEBP", "GIF"])
+    def test_accepts_normal_pictures(self, api, kind):
+        response = upload(api, picture(kind))
+        assert response.status_code == 201
+        assert served(api)["kind"] == "upload"
+
+    def test_what_is_served_is_always_our_own_small_webp(self, api):
+        upload(api, picture("PNG", (800, 300)))
+        image = Image.open(BytesIO(bytes(AvatarImage.objects.get().data)))
+        assert image.format == "WEBP" and image.size == (256, 256)
+
+    def test_location_and_other_metadata_are_removed(self, api):
+        exif = Image.Exif()
+        exif[0x010F] = "SECRET-CAMERA-MAKER"
+        upload(api, picture("JPEG", exif=exif))
+        data = bytes(AvatarImage.objects.get().data)
+        assert b"SECRET-CAMERA-MAKER" not in data
+        assert not Image.open(BytesIO(data)).getexif()
+
+    @pytest.mark.parametrize("data,name,ctype", [
+        (b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', "x.svg", "image/svg+xml"),
+        (b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', "x.png", "image/png"),
+        (b"<html><script>alert(1)</script></html>", "x.png", "image/png"),
+        (b"MZ this is not a picture", "x.jpg", "image/jpeg"),
+        (b"", "x.png", "image/png"),
+    ])
+    def test_refuses_anything_that_isnt_a_real_picture(self, api, data, name, ctype):
+        response = upload(api, data, name, ctype)
+        assert response.status_code == 400
+        assert not AvatarImage.objects.exists()
+
+    def test_a_script_hidden_inside_a_picture_doesnt_survive(self, api):
+        upload(api, picture("PNG") + b"<script>alert(1)</script>")
+        assert b"<script>" not in bytes(AvatarImage.objects.get().data)
+
+    def test_a_cut_off_picture_is_refused(self, api):
+        assert upload(api, picture("PNG", (200, 200))[:60]).status_code == 400
+
+    def test_a_tiny_file_that_would_expand_to_gigabytes_is_refused(self, api):
+        huge = BytesIO()
+        Image.new("1", (9000, 9000)).save(huge, format="PNG")
+        response = upload(api, huge.getvalue())
+        assert response.status_code == 400
+        assert not AvatarImage.objects.exists()
+
+    def test_a_huge_file_is_refused(self, api):
+        response = upload(api, b"x" * (MAX_BYTES + 10))
+        assert response.status_code == 413
+
+    def test_needs_a_file(self, api):
+        assert api.post("/api/v1/auth/avatar/", {}, format="multipart").status_code == 400
+
+    def test_needs_a_login(self, anon):
+        assert anon.post("/api/v1/auth/avatar/", {"picture": SimpleUploadedFile("x.png", picture())}, format="multipart").status_code == 401
+
+    def test_is_rate_limited(self, api):
+        codes = [upload(api, picture()).status_code for _ in range(11)]
+        assert codes[9] == 201 and codes[10] == 429
+
+    def test_only_changes_your_own(self, api, other_api):
+        upload(api, picture())
+        mine = served(api)["url"]
+        upload(other_api, picture())
+        assert served(api)["url"] == mine
+        assert AvatarImage.objects.count() == 2
+
+    def test_each_upload_gets_a_new_address(self, api):
+        upload(api, picture())
+        first = served(api)["url"]
+        upload(api, picture())
+        assert served(api)["url"] != first
+        assert AvatarImage.objects.count() == 1
+
+    def test_can_go_back_to_a_system_avatar(self, api):
+        upload(api, picture())
+        assert api.delete("/api/v1/auth/avatar/").json()["avatar"]["kind"] == "system"
+        assert not AvatarImage.objects.exists()
+
+    def test_choosing_a_system_avatar_replaces_the_picture(self, api):
+        upload(api, picture())
+        api.patch("/api/v1/auth/me/", {"avatar_index": 3}, format="json")
+        assert not AvatarImage.objects.exists()
+
+    def test_deleting_the_account_deletes_the_picture(self, api):
+        upload(api, picture())
+        api.delete("/api/v1/auth/me/", {"password": "correct horse battery"}, format="json")
+        assert not AvatarImage.objects.exists()
+
+
+class TestServingAvatars:
+    def test_needs_no_login_but_has_safe_headers(self, api, anon):
+        upload(api, picture())
+        response = anon.get(served(api)["url"])
+        assert response.status_code == 200
+        assert response["Content-Type"] == "image/webp"
+        assert response["X-Content-Type-Options"] == "nosniff"
+        assert "sandbox" in response["Content-Security-Policy"]
+
+    def test_an_unknown_address_is_missing(self, anon):
+        assert anon.get(f"/api/v1/avatars/{uuid.uuid4()}.webp").status_code == 404
+
+    def test_the_old_address_stops_working_after_a_new_upload(self, api, anon):
+        upload(api, picture())
+        old = served(api)["url"]
+        upload(api, picture())
+        assert anon.get(old).status_code == 404
+
+    def test_addresses_cant_be_walked_through(self, anon):
+        assert anon.get("/api/v1/avatars/1.webp").status_code == 404

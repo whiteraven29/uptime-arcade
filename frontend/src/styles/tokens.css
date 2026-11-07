@@ -9,41 +9,81 @@
 :root {
   color-scheme: dark;
 
-  /* space */
-  --void: #030a13;
-  --glass: rgba(6, 20, 36, 0.68);
-  --glass-strong: rgba(3, 12, 24, 0.86);
-  --glass-sheen: rgba(150, 214, 255, 0.07);
+  /* space: near black with a little violet in it */
+  --void: #05040c;
+  --glass: rgba(14, 10, 34, 0.66);
+  --glass-strong: rgba(8, 6, 22, 0.88);
+  --glass-violet: rgba(70, 40, 130, 0.34);
 
   /* how the HUD sinks into the scene */
-  --veil: rgba(2, 8, 16, 0.78);
-  --veil-top: rgba(2, 8, 16, 0.5);
-  --rail: rgba(2, 8, 16, 0.84);
-  --pane: rgba(2, 9, 18, 0.93);
+  --veil: rgba(5, 4, 14, 0.8);
+  --veil-top: rgba(5, 4, 14, 0.46);
+  --rail: rgba(8, 6, 20, 0.84);
+  --tile: #0b0a1d; /* solid, because the gold edge is drawn behind it */
+  --pane: rgba(6, 5, 16, 0.94);
 
-  /* hologram */
-  --line: rgba(96, 214, 255, 0.34);
-  --line-soft: rgba(170, 214, 255, 0.16);
-  --holo: #62dcff;
-  --holo-soft: #a9ecff;
-  --iris: conic-gradient(from 210deg, #62dcff, #8f9bff, #e58aff, #ff9d7a, #ffd27a, #7af0c2, #62dcff);
+  /* the room */
+  --scene-rack: #0c0a1a;
+  --scene-rack-edge: #241f45;
+  --scene-floor: #07060f;
+
+  /* hologram: cyan first, with violet and magenta behind it */
+  --line: rgba(120, 190, 255, 0.34);
+  --line-soft: rgba(190, 180, 255, 0.16);
+  --line-gold: rgba(255, 200, 96, 0.55);
+  --holo: #4fd8ff;
+  --holo-soft: #b3edff;
+  --violet: #a66bff;
+  --magenta: #ff4fd8;
+  --iris: conic-gradient(from 210deg, #4fd8ff, #8f7bff, #ff4fd8, #ff8a5c, #ffc24d, #5ef0b0, #4fd8ff);
 
   /* type */
-  --text: #dcf4ff;
-  --dim: #8db3c8;
-  --on-accent: #031018;
-  --metal: linear-gradient(180deg, #ffffff 6%, #d6e9ff 36%, #8fb4e4 66%, #5f8cc8 100%);
+  --text: #e8f1ff;
+  --dim: #a0a9cc;
+  --on-accent: #070512;
+  --metal: linear-gradient(180deg, #ffffff 6%, #dfe6ff 36%, #a9b4ff 66%, #7f8ce8 100%);
+  --cta: #f4f7ff;
+  --coat-top: #5a6fb4;
+  --coat-mid: #1c1a45;
+  --coat-dark: #0a0818;
+  --coat-low: #5b1f7a;
 
-  /* lava: warm light from the ground, and everything that matters */
-  --amber: #ffb340;
-  --lava: #ff6a1f;
-  --lava-deep: #d22f08;
+  /* the terminal: soft, not pure white on not quite black, with no glow on text */
+  --term-bg: #0b0b1e;
+  --term-bar: #12112c;
+  --term-text: #dbe5f5;
+  --term-dim: #a6afd0;
+  --term-cmd: #f2f6ff;
+  --term-where: #7fdcff;
+  --term-error: #ff9dac;
+  --term-error-bg: rgba(255, 61, 90, 0.11);
+  --term-warn: #ffd27d;
+  --term-warn-bg: rgba(255, 194, 77, 0.09);
+  --term-ok: #8ff2c6;
+  --term-ok-bg: rgba(94, 240, 176, 0.09);
+
+  /* gold: frames, and everything that matters */
+  --amber: #ffc24d;
+  --lava: #ff7a3d;
+  --lava-deep: #d2240f;
+
+  /* state */
+  --ok: #5ef0b0;
+  --danger: #ff3d5a;
+
+  /* shape */
+  --radius: 14px;
+  --radius-frame: 22px;
+  --cut: 12px;
+
+  --font-ui: 'Oxanium', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
 
   /* emblems: each badge family has its own metal */
   --ember-hi: #ffd27a;
   --ember-lo: #d22f08;
   --holo-hi: #d6f6ff;
-  --holo-lo: #2b7fd0;
+  --holo-lo: #2b6fd8;
   --jade-hi: #c8ffe6;
   --jade-lo: #12946a;
   --violet-hi: #efc9ff;
@@ -57,11 +97,11 @@
   --emblem-core: #06121f;
 
   /* difficulty, from gentle to painful */
-  --diff-easy: #6bf0b2;
-  --diff-medium: #62dcff;
-  --diff-hard: #ffb340;
+  --diff-easy: #5ef0b0;
+  --diff-medium: #4fd8ff;
+  --diff-hard: #ffc24d;
   --diff-expert: #ff7a3d;
-  --diff-brainfuck: #ff4d6d;
+  --diff-brainfuck: #ff3d5a;
 
   /* state */
   --ok: #6bf0b2;

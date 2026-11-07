@@ -25,6 +25,10 @@ class Track(models.Model):
     subtitle = models.CharField(max_length=120, blank=True)
     order = models.PositiveIntegerField()
     after_archmage = models.BooleanField(default=False)
+    # Seasons are content we publish. Older ones stay open for good (ADR 0009).
+    season = models.PositiveIntegerField(default=1)
+    # A mission that must be cleared before this track opens, like NET-11 for NetLab (section 6.6).
+    requires = models.CharField(max_length=10, blank=True)
 
     class Meta:
         ordering = ["order"]

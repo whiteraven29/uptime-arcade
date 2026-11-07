@@ -1,6 +1,6 @@
 import hashlib
 
-from rest_framework.throttling import SimpleRateThrottle
+from rest_framework.throttling import SimpleRateThrottle, UserRateThrottle
 
 
 class AuthThrottle(SimpleRateThrottle):
@@ -23,6 +23,10 @@ class LoginAccountThrottle(SimpleRateThrottle):
             return None
         ident = hashlib.sha256(username.strip().lower().encode()).hexdigest()
         return self.cache_format % {"scope": self.scope, "ident": ident}
+
+
+class AvatarThrottle(UserRateThrottle):
+    scope = "avatar"
 
 
 class UsernameCheckThrottle(SimpleRateThrottle):

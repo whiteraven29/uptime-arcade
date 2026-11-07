@@ -40,7 +40,7 @@ function Finale() {
       <p className="label">All paths complete</p>
       <div className="name metal">Archmage</div>
       <p>You rose from Noob to Archmage at Whiteraven with {S.focusMin} minutes of real focus across {S.blocks} blocks.</p>
-      <p className="small">The Beyond missions are now open, from Easy to Brainfuck. You can also start a new season in System.</p>
+      <p className="small">The Beyond missions are now open, from Easy to Brainfuck. You can revisit anything you've cleared.</p>
       <div className="row"><button className="btn go" type="button" onClick={closeOverlay}>Continue</button></div>
     </Overlay>
   );

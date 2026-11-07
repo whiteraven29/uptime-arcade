@@ -98,9 +98,9 @@ flowchart LR
 
 ### 4.1 Direction
 
-The look is a **holographic operator HUD set in a cinematic landscape**. The HUD is like the heads-up display in a sci-fi suit or a starship bridge: glowing cyan lines, amber highlights for things that matter, and an animated reactor core at the centre of the home screen. It is drawn directly into a night world of jagged mountains, a still lake and a basalt plain split by lava. The scene runs to every edge of the window and is the surface everything sits on: there are no floating frames or boxed panels ([ADR 0003](adr/0003-scene-as-the-surface.md)). On the Deck, a hooded operator stands on the rock and projects the core into the sky.
+The look is a **holographic operator HUD inside a data centre**. Glowing cyan lines, gold frames and highlights for things that matter, and an animated reactor core at the centre of the home screen. It's drawn directly into an aisle of server racks and hologram panels showing real network maps, code and terminal output, with a network map on the far wall and a polished floor that reflects it all. The scene runs to every edge of the window ([ADR 0003](adr/0003-scene-as-the-surface.md), [ADR 0008](adr/0008-data-centre-and-terminal.md)). A hooded operator stands in the aisle and projects the core above them.
 
-Display titles are metallic with a slight chromatic split, edges are iridescent hairlines, and buttons are pills. The scene is painted in code from a seeded generator, so no image files ship. It's an original design for Whiteraven, so it uses no logos, characters or marks from any film, game or brand. See [ADR 0001](adr/0001-cinematic-holographic-look.md).
+Display titles are metallic with a slight chromatic split, buttons and tiles have cut corners, and the login and register cards are violet glass. The scene is painted in code from a seeded generator, so no image files ship. It's an original design for Whiteraven, so it uses no logos, characters or marks from any film, game or brand.
 
 The look is calm when idle and lights up on achievement. Animation is used for moments that matter, such as level-ups, unlocks and the timer, never as constant noise.
 
@@ -110,25 +110,22 @@ These are carried over from the current game and defined once in `frontend/src/s
 
 | Token | Value | Use |
 |---|---|---|
-| `--void` | `#030a13` | Page background |
-| `--veil` | `rgba(2,8,16,.78)` | Sinks the scene on reading screens, dark enough for 4.5:1 text over lava |
-| `--rail` | `rgba(2,8,16,.84)` | The Deck's side rails, which dissolve into the scene |
-| `--pane` | `rgba(2,9,18,.93)` | The workspace pane on Play |
-| `--glass-strong` | `rgba(3,12,24,.86)` | Inputs, code, overlays |
-| `--line` | `rgba(96,214,255,.34)` | Input borders, ring tracks |
-| `--line-soft` | `rgba(170,214,255,.16)` | Hairlines between sections |
-| `--holo` | `#62dcff` | Primary accent, active nav |
-| `--holo-soft` | `#a9ecff` | Secondary text accent, code |
-| `--iris` | conic gradient, cyan through violet and amber | Iridescent hairline under the top bar |
-| `--metal` | vertical gradient, white to steel blue | Metallic display titles |
-| `--text` | `#dcf4ff` | Body text |
-| `--dim` | `#8db3c8` | Secondary text |
-| `--amber` | `#ffb340` | Timer, objectives, rewards, warnings |
-| `--lava`, `--lava-deep` | `#ff6a1f`, `#d22f08` | Warm light from the ground |
-| `--ok` | `#6bf0b2` | Success, cleared |
-| `--danger` | `#ff5d6c` | Errors, failed checks |
-| `--on-accent` | `#031018` | Text on accent buttons |
-| `--ember-*`, `--jade-*`, `--holo-*`, `--violet-*`, `--gold-*` | two stops each | The metal of each badge family |
+| `--void` | `#05040c` | Page background |
+| `--veil`, `--rail`, `--tile`, `--pane` | near-black violets | Reading screens, Deck rows, solid tiles and the workspace |
+| `--glass-strong` | `rgba(8,6,22,.88)` | Inputs, code, overlays |
+| `--line`, `--line-soft` | translucent blue and lilac | Input borders, hairlines between sections |
+| `--line-gold` | `rgba(255,200,96,.55)` | Frames on tiles, plaques and the Deck |
+| `--holo`, `--holo-soft` | `#4fd8ff`, `#b3edff` | Primary accent, active nav, secondary text |
+| `--violet`, `--magenta` | `#a66bff`, `#ff4fd8` | The hologram's second colours |
+| `--metal` | vertical gradient, white to periwinkle | Metallic display titles |
+| `--text`, `--dim` | `#e8f1ff`, `#a0a9cc` | Body text, secondary text |
+| `--amber` | `#ffc24d` | Gold: timer, objectives, rewards, frames |
+| `--ok`, `--danger` | `#5ef0b0`, `#ff3d5a` | Success and cleared, errors and alerts |
+| `--cta`, `--on-accent` | `#f4f7ff`, `#070512` | The white button on login and register, text on accent buttons |
+| `--term-*` | soft off-whites on `#0b0b1e` | The terminal's own palette, tested at 7:1 or better |
+| `--scene-*`, `--coat-*` | dark violets | The room and the operator |
+| `--ember-*`, `--jade-*`, `--holo-*`, `--violet-*`, `--gold-*`, `--rank-*`, `--blood-*` | two stops each | The metal of each badge family |
+| `--diff-*` | green, cyan, gold, orange, red | Difficulty levels |
 
 | Role | Font | Fallback |
 |---|---|---|
@@ -141,8 +138,8 @@ Fonts are self-hosted from `frontend/public/fonts/`, so the game works offline.
 
 | Component | Description |
 |---|---|
-| `SceneBackdrop` | The painted landscape, filling the window. |
-| `OperatorFigure` | The player's silhouette on the Deck, with a projector beam and a floor plate. |
+| `SceneBackdrop` | The painted data centre, filling the window. |
+| `OperatorFigure` | The player's silhouette on the Deck and login, with a projector beam and a floor plate. |
 | `HudPanel` | A section with no box of its own, separated from its neighbours by a hairline. Optional title label in spaced uppercase. |
 | `CoreRing` | The reactor: an SVG with a rotating dashed outer ring, a counter-rotating inner ring, a pulsing glow, and an amber arc showing progress to the next level. Shows the level number and title in the centre. |
 | `TimerRing` | Big amber countdown with a circular progress arc, used on Focus. |
@@ -150,17 +147,18 @@ Fonts are self-hosted from `frontend/public/fonts/`, so the game works offline.
 | `Meter` | Thin glowing bar with a label and value. |
 | `Toast` | Bottom-centre amber notice that disappears after about 3.5 seconds. |
 | `Overlay` | Full-screen dimmed layer for debriefs, level-ups and the finale. |
-| `Terminal` | Monospace console with prompt, history, Tab completion and colour classes. |
+| `Terminal` | Monospace console. Each command is its own block with a result. Shows a grey suggestion and a help line while typing, and history and Tab completion. Text rules are in [ADR 0008](adr/0008-data-centre-and-terminal.md) and enforced by a test. |
 | `ViEditor` | Full-pane modal editor with cursor, status bar and key counter. |
 | `CodeEditor` | Python editor with a Run tests button and an output pane. |
 | `TopologyCanvas` | NetLab map with devices, cables, link lights and packet animation. |
 | `DeviceConsole` | A NetLab device CLI in a terminal, opened by clicking a device. |
 | `BadgeEmblem` | A hexagonal medal drawn in code with its own glyph for every badge, sharp at any size for the Rewards wall, toasts and share cards. Locked medals keep their shape in grey. |
-| `Badge`, `LadderRow`, `StatTile` | Rewards screen pieces. |
+| `Avatar` | A player's uploaded picture, or one of sixteen operators drawn in code. |
+| `Badge`, `LadderRow` | Rewards screen pieces. |
 
 ### 4.4 Motion and sound
 
-- **Idle:** the core rings rotate slowly (30 to 46 seconds per turn), the glow pulses every 3.2 seconds, and the lava's brightness breathes over 7 seconds.
+- **Idle:** the core rings rotate slowly (30 to 46 seconds per turn), the glow pulses every 3.2 seconds, and the room's lights breathe over 6 seconds. Nothing moves behind terminal text.
 - **Unlock:** the next node flashes from cyan to white to cyan, and a short rising chime plays.
 - **Level-up:** a full-screen overlay scales up the new title with a bright glow, and a three-note chord plays.
 - **Timer end:** a two-tone chime.
@@ -171,9 +169,9 @@ Fonts are self-hosted from `frontend/public/fonts/`, so the game works offline.
 ### 4.5 Layout rules
 
 - **Desktop:** the HUD fills the window with no page scroll, and only sections scroll. Reading screens sink the scene under one veil, and the Deck shows it at full strength.
-- **Under 1040px:** columns stack and the page scrolls over a fixed scene. Missions shows one track at a time, with buttons to switch.
+- **Under 1040px:** columns stack and the page scrolls over a fixed scene.
 - **Under 400px:** everything still works, though NetLab shows a "best on a larger screen" note and allows pinch zoom.
-- **Readability:** body text is at least 14px, and contrast is at least 4.5:1.
+- **Readability:** body text is at least 14px, and contrast is at least 4.5:1. Terminal text reaches 7:1, and has no glow, blur, animation or scanlines over it.
 
 ---
 
@@ -183,17 +181,17 @@ Each screen is its own route, and the top bar shows the logo, navigation, level,
 
 | Route | Screen | Purpose |
 |---|---|---|
-| `/` | **Deck** | The core ring with your level, streak, today's focus, lifetime focus, next objective and progress on each track |
+| `/` | **Deck** | The core ring with your level and clock, tiles for streak and focus, skill paths with their medals, and a strip with the next mission, level progress and badges |
 | `/focus` | **Focus** | Set a goal and length, check off "phone out of reach", see the running timer ring, log drifts, and claim when done |
-| `/missions` | **Missions** | Six track columns with chapters and nodes, plus the Operations board and an on-call banner when unlocked |
+| `/missions` | **Missions** | A card per category with progress, difficulty mix and its chapters cycling. Opening one reveals chapter dropdowns. Tracks on the way show what opens them |
 | `/missions/:slug` | **Briefing** | Lesson and example, mission brief, sender, worth and par, plus the Launch button |
 | `/missions/:slug/play` | **Play** | Mission panel on the left, workspace on the right (terminal, vi, Python, Go reader or NetLab) |
 | `/missions/:slug/rewind` | **Rewind** | Five tasks with progress pips and feedback |
 | `/ops` | **Operations** | Multi-skill missions with their prerequisites shown as linked track icons |
 | `/oncall` | **On-call** | Endless incident shifts, unlocked after all track missions are cleared. Arrives in M11 ([ADR 0007](adr/0007-the-game-runs-on-the-server.md)) |
 | `/rewards` | **Rewards** | Streak ladder, level ladder and badge grid |
-| `/profile` | **Profile** | Stats, history charts (focus minutes per day, XP per week), name |
-| `/system` | **System** | Account, time zone, sound, close session, new season, logout, delete account |
+| `/profile` | **Profile** | Your picture (sixteen operators, or upload your own) and stats. History charts arrive in M11. Your username and picture stay at the top right of every screen |
+| `/system` | **System** | Account, time zone, sound, close session, logout, delete account |
 | `/login`, `/register` | Auth | Styled in the HUD. Log in with a username, which shows available or taken as you type. Email stays private |
 
 **Locks:**
@@ -272,6 +270,7 @@ After a mission is solved, the player answers five questions about it, easiest f
 | 4 | Medium | Fill the gap | `sort -k6 ____ api.log`, answer `-n` |
 | 5 | Hard | From memory | What was the answer to this mission? |
 
+- **The next question** comes as soon as you answer, with how the last one went above it. There's nothing to click.
 - **Wrong answers** don't show the right one. The question moves to the end of the queue, and costs nothing.
 - **Hints** appear once every question still left has been failed at least once.
 - **The answer** shows after three misses on one question, so nobody gets stuck.
@@ -283,7 +282,7 @@ After a mission is solved, the player answers five questions about it, easiest f
 - **Tracks:** a mission opens when the previous mission in its track is cleared. The first mission of each track is open from the start.
 - **Operations:** each one lists prerequisite missions and opens when all of them are cleared.
 - **On-call:** opens when every track mission is cleared.
-- **NetLab:** its first mission needs Networking 11 (the local or gateway decision) to be cleared, because the lab assumes that idea.
+- **NetLab:** nothing in it opens until Networking 11 (the local or gateway decision) is cleared, because the lab assumes that idea. The gate is already live, through `requires` in `content/tracks.yaml`.
 
 ### 6.7 Daily streaks
 
@@ -324,8 +323,9 @@ Every badge has its own medal (`BadgeEmblem`), designed to look good on its own 
 
 ### 6.9 Seasons and on-call
 
-- **New season:** resets mission progress only. XP, level (via `peak`), streak and badges stay. The season number shows on Profile.
-- **On-call:** shifts have five generated incidents (subnet maths, log queries, Go and Python tracing, NetLab micro-faults). Generation uses a server-side seed, so answers are never sent to the browser.
+- **Seasons are content we publish.** A new season adds new missions. Players can't start or reset one, and nothing they've done is ever taken away ([ADR 0009](adr/0009-seasons-gates-and-profiles.md)).
+- **Revisiting:** every cleared mission stays open to play again as practice. It uses play time, pays no XP and changes nothing.
+- **On-call:** shifts have five generated incidents (subnet maths, log queries, Go and Python tracing, NetLab micro-faults). Generation uses a server-side seed, so answers are never sent to the browser. Arrives in M11.
 
 ### 6.10 New content after launch
 
@@ -1008,8 +1008,8 @@ erDiagram
 
 | Model | Key fields |
 |---|---|
-| `Player` | user (1:1), display_name, xp, peak_cleared, season, streak, best_streak, shields, last_streak_day, time_zone, time_zone_changed_at, sound_on, oncall_resolved |
-| `Track` | code (SH, VI, PY, GO, NET, LAB, OPS), name, subtitle, order |
+| `Player` | user (1:1), display_name, xp, peak_cleared, season, streak, best_streak, shields, last_streak_day, time_zone, time_zone_changed_at, sound_on, avatar_index, oncall_resolved |
+| `Track` | code (SH, VI, PY, GO, NET, LAB, OPS, BX), name, subtitle, order, after_archmage, season, requires |
 | `Chapter` | track, name, order |
 | `Mission` | code (sh-15), track, chapter, order, skill, title, from_dept, difficulty, check_type, xp, par_kind, par_value, lesson_text, lesson_example, brief, goal, hints (JSON), play (JSON), topology (FK), teaches (JSON), content_version, status (draft, published, retired). Server-only: answer_spec, expect, debrief and rewind (all JSON) |
 | `FixtureFile`, `ContentRelease` | path, content, mode; version, difficulties, mission_count |
@@ -1022,6 +1022,7 @@ erDiagram
 | `PlaySession` | user, opened_at, expires_at, closed_at, returned_seconds |
 | `TimeLedger` | user, delta_seconds, reason (focus, goal_bonus, streak, session_open, session_return, starter), ref_type, ref_id, created_at. **Bank = sum** |
 | `XPLedger` | user, delta, reason, multiplier, ref_type, ref_id, created_at. **XP = sum**, cached on Player |
+| `AvatarImage` | player (1:1), token, data, updated_at. Always our own re-encoded WebP |
 | `StreakDay` | user, date. Unique together |
 | `StreakReward` | user, milestone, claimed_at |
 | `UserBadge` | player, code, earned_at. The list of badges is in `rules.py` |
@@ -1040,9 +1041,11 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 |---|---|---|
 | GET | `auth/username/?name=` | Whether a username is available (public, rate limited). Nothing ever says whether an email is in use |
 | POST | `auth/register/`, `auth/login/`, `auth/refresh/`, `auth/logout/` | Auth (public), by username. The refresh token is only ever in an HttpOnly cookie |
-| GET, PATCH, DELETE | `auth/me/` | Account. Delete needs the password and wipes everything |
+| GET, PATCH, DELETE | `auth/me/` | Account, including which system avatar. Delete needs the password and wipes everything |
+| POST, DELETE | `auth/avatar/` | Upload or remove a picture. It's always re-encoded ([ADR 0009](adr/0009-seasons-gates-and-profiles.md)) |
+| GET | `avatars/{token}.webp` | A picture, at an unguessable address (public) |
 | GET | `player/` | Level, XP, bank, session, running block, streak, shields, focus totals, badges summary and `server_time` |
-| GET | `tracks/` | Tracks, chapters and missions with the player's state per mission |
+| GET | `tracks/` | Tracks, including those on the way, with what opens them, and missions with the player's state |
 | GET | `missions/{code}/` | Briefing: lesson, brief, goal, par, worth, state |
 | GET | `missions/{code}/play/` | Play payload: fixtures, starter, topology, hints already revealed. **Needs a session** |
 | POST | `missions/{code}/hint/` | Reveal the next hint, lowering what the mission will pay. **Session** |
@@ -1063,7 +1066,6 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 | POST | `oncall/shifts/` | Start a shift |
 | GET | `oncall/shifts/current/` | Current incident without its answer |
 | POST | `oncall/shifts/current/answer/` | Answer the current incident |
-| POST | `seasons/new/` | Start a new season |
 | GET | `export/`, POST `import/` | Bring progress from the offline game |
 | GET | `fixtures/` | The starting file tree, with its content version |
 | GET | `health/` | Public health check |
