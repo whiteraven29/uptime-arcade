@@ -1,0 +1,202 @@
+id: lab-20
+track: LAB
+skill: networking
+chapter: The edge
+order: 20
+title: The backup link
+from: IT Manager
+difficulty: hard
+check: net
+requires: net-38
+par:
+  kind: commands
+  value: 14
+lesson:
+  text: Two internet links protect you if one fails. Add the main default route normally, and the backup with a higher administrative distance on the end of the ip route line, such as 200. The backup route stays out of the table until the main one disappears, which is called a floating static route.
+  example: |-
+    ip route 0.0.0.0 0.0.0.0 192.0.2.1
+    ip route 0.0.0.0 0.0.0.0 192.0.2.1 200
+brief: Your fibre link to ISP-A goes down twice a month. A cheap backup link to ISP-B has been installed. Traffic should use ISP-A while it's up and move to ISP-B by itself when it isn't.
+goal: Traffic uses ISP-A, and moves to ISP-B when ISP-A's link is cut.
+hints:
+- Two default routes, with no number on the main one.
+- Put 200 at the end of the route via 192.0.2.1.
+debrief:
+  why: A route with a worse distance waits in reserve and takes over only when the better one has gone. It takes one line, and the failover is automatic.
+  solution: |-
+    [EDGE]
+    enable
+    configure terminal
+    ip route 0.0.0.0 0.0.0.0 203.0.113.1
+    ip route 0.0.0.0 0.0.0.0 192.0.2.1 200
+    end
+    show ip route
+  job: This is the cheapest high availability there is, and it's how most small offices survive a dead link.
+teaches:
+- administrative distance
+- floating static
+lab:
+  devices:
+  - name: PC-1
+    kind: pc
+    x: 10
+    y: 50
+    config: |-
+      ip addr add 10.40.20.10/24 dev eth0
+      ip route add default via 10.40.20.1
+  - name: EDGE
+    kind: router
+    x: 35
+    y: 50
+    config: |-
+      interface Gi0/0
+       ip address 10.40.20.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 203.0.113.2 255.255.255.0
+       no shutdown
+      interface Gi0/2
+       ip address 192.0.2.2 255.255.255.0
+       no shutdown
+  - name: ISP-A
+    kind: router
+    x: 62
+    y: 20
+    locked: true
+    config: |-
+      interface Gi0/0
+       ip address 203.0.113.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 198.51.100.1 255.255.255.0
+       no shutdown
+      ip route 10.40.20.0 255.255.255.0 203.0.113.2
+  - name: ISP-B
+    kind: router
+    x: 62
+    y: 80
+    locked: true
+    config: |-
+      interface Gi0/0
+       ip address 192.0.2.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 198.51.101.1 255.255.255.0
+       no shutdown
+      ip route 10.40.20.0 255.255.255.0 192.0.2.2
+  - name: SITE-A
+    kind: server
+    x: 90
+    y: 20
+    config: |-
+      ip addr add 198.51.100.10/24 dev eth0
+      ip route add default via 198.51.100.1
+      service http start
+  - name: SITE-B
+    kind: server
+    x: 90
+    y: 80
+    config: |-
+      ip addr add 198.51.101.10/24 dev eth0
+      ip route add default via 198.51.101.1
+      service http start
+  cables:
+  - - PC-1
+    - eth0
+    - EDGE
+    - Gi0/0
+  - - EDGE
+    - Gi0/1
+    - ISP-A
+    - Gi0/0
+  - - EDGE
+    - Gi0/2
+    - ISP-B
+    - Gi0/0
+  - - SITE-A
+    - eth0
+    - ISP-A
+    - Gi0/1
+  - - SITE-B
+    - eth0
+    - ISP-B
+    - Gi0/1
+expect:
+- label: The default route uses ISP-A
+  route:
+    device: EDGE
+    to: 8.8.8.8
+    via: 203.0.113.1
+- label: With ISP-A cut, it uses ISP-B
+  survives:
+    cut:
+    - device: EDGE
+      port: Gi0/1
+    then:
+    - route:
+        device: EDGE
+        to: 8.8.8.8
+        via: 192.0.2.1
+- label: Sites beyond ISP-B are reachable during the cut
+  survives:
+    cut:
+    - device: EDGE
+      port: Gi0/1
+    then:
+    - reach:
+        from: PC-1
+        to: 198.51.101.10
+        proto: tcp
+        port: 80
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What keeps the backup route out of use while the main link is up?
+  options:
+  - Its higher administrative distance
+  - It's shut down
+  - DNS
+  - A VLAN
+  answer: Its higher administrative distance
+  hint: Distance.
+- type: text
+  level: medium
+  label: The name
+  q: What is a backup static route with a high distance called? Two words.
+  answer:
+  - floating static
+  hint: It floats.
+- type: mc
+  level: medium
+  label: Comparing
+  q: 'Which route wins: distance 1 or distance 200?'
+  options:
+  - Distance 1
+  - Distance 200
+  - Both
+  - Neither
+  answer: Distance 1
+  hint: Lowest.
+- type: mc
+  level: medium
+  label: When
+  q: What makes the backup route come into use?
+  options:
+  - The main route leaves the table when its link goes down
+  - Someone types a command
+  - A timer at midnight
+  - DNS failure
+  answer: The main route leaves the table when its link goes down
+  hint: Automatic.
+- type: mc
+  level: hard
+  label: Limits
+  q: What failure can a floating static alone not notice?
+  options:
+  - A fault further along the ISP's network while your link stays up
+  - Your own cable being cut
+  - The port being shut down
+  - The router losing power
+  answer: A fault further along the ISP's network while your link stays up
+  hint: It only sees the local link.

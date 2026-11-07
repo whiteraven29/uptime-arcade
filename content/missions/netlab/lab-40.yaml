@@ -1,0 +1,192 @@
+id: lab-40
+track: LAB
+skill: networking
+chapter: Wireless
+order: 32
+title: 'Fault: connected, but no internet'
+from: Service Desk
+difficulty: hard
+check: net
+requires: net-47
+par:
+  kind: commands
+  value: 24
+lesson:
+  text: '"It says connected but nothing works" is the classic Wi-Fi ticket. Being connected only proves the radio side works. Start with wifi status, then check what''s behind it: which VLAN the SSID maps to, with show running-config on the access point, whether the trunk carries that VLAN, with show interfaces trunk, and whether the client got an address and a gateway.'
+  example: |-
+    wifi status
+    ip addr
+    show running-config
+    show interfaces trunk
+brief: 'Ticket: "Laptops show connected to STAFF but can''t reach anything since last night''s change." The access point and the switch were both touched. LAPTOP-1 gets its address by DHCP from R1. Find what''s wrong and fix it.'
+goal: LAPTOP-1 gets an address and reaches the file server.
+hints:
+- The laptop really is connected, so look behind the radio.
+- 'There are two faults: the VLAN STAFF maps to, and what the trunk to AP-1 allows.'
+debrief:
+  why: 'There were two faults, and neither was on the air: the SSID mapped to the wrong VLAN, and the trunk didn''t carry the right one. Connected only ever means the radio worked.'
+  solution: |-
+    [LAPTOP-1]
+    wifi status
+    ip addr
+    [AP-1]
+    enable
+    show running-config
+    configure terminal
+    dot11 ssid STAFF
+    vlan 10
+    end
+    [SW1]
+    enable
+    show interfaces trunk
+    configure terminal
+    interface Gi0/1
+    switchport trunk allowed vlan add 10
+    end
+    [LAPTOP-1]
+    dhclient wlan0
+    ping 10.70.10.9
+  job: Separating "the radio is fine" from "the network behind it isn't" solves most Wi-Fi tickets.
+teaches:
+- wifi status
+lab:
+  devices:
+  - name: LAPTOP-1
+    kind: laptop
+    x: 15
+    y: 75
+    config: |-
+      wifi connect STAFF Wh1teraven-Staff
+      dhclient wlan0
+  - name: AP-1
+    kind: ap
+    x: 25
+    y: 40
+    config: |-
+      vlan 11
+      dot11 ssid STAFF
+       vlan 11
+       authentication wpa2 Wh1teraven-Staff
+      interface Do0
+       channel 6
+       ssid STAFF
+       no shutdown
+      interface Gi0/1
+       switchport mode trunk
+  - name: SW1
+    kind: switch
+    x: 55
+    y: 40
+    ports: 8
+    config: |-
+      vlan 10
+       name STAFF
+      interface Gi0/1
+       switchport mode trunk
+       switchport trunk allowed vlan 20
+      interface Gi0/2
+       switchport access vlan 10
+      interface Gi0/8
+       switchport mode trunk
+  - name: FILES
+    kind: server
+    x: 85
+    y: 40
+    config: |-
+      ip addr add 10.70.10.9/24 dev eth0
+      ip route add default via 10.70.10.1
+      service smb start
+  - name: R1
+    kind: router
+    x: 55
+    y: 88
+    config: |-
+      interface Gi0/0
+       no shutdown
+      interface Gi0/0.10
+       encapsulation dot1q 10
+       ip address 10.70.10.1 255.255.255.0
+      ip dhcp excluded-address 10.70.10.1 10.70.10.20
+      ip dhcp pool STAFF
+       network 10.70.10.0 255.255.255.0
+       default-router 10.70.10.1
+  cables:
+  - - AP-1
+    - Gi0/1
+    - SW1
+    - Gi0/1
+  - - FILES
+    - eth0
+    - SW1
+    - Gi0/2
+  - - R1
+    - Gi0/0
+    - SW1
+    - Gi0/8
+expect:
+- label: LAPTOP-1 is on STAFF
+  wifi_assoc:
+    host: LAPTOP-1
+    ssid: STAFF
+- label: LAPTOP-1 got an address by DHCP
+  dhcp:
+    host: LAPTOP-1
+    in: 10.70.10.0/24
+- label: LAPTOP-1 reaches the file server
+  reach:
+    from: LAPTOP-1
+    to: FILES
+    proto: tcp
+    port: 445
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does "connected" prove?
+  options:
+  - Only that the radio link and password worked
+  - That the internet works
+  - That DNS works
+  - That the VLAN is right
+  answer: Only that the radio link and password worked
+  hint: Just the first hop.
+- type: mc
+  level: medium
+  label: The faults
+  q: Which two things were wrong?
+  options:
+  - The SSID's VLAN and the trunk's allowed list
+  - The channel and the password
+  - The DNS and the gateway
+  - The hostname and the description
+  answer: The SSID's VLAN and the trunk's allowed list
+  hint: Behind the radio.
+- type: text
+  level: medium
+  label: Asking
+  q: Which tool asks for an address again on the laptop?
+  answer:
+  - dhclient
+  hint: DHCP client.
+- type: mc
+  level: medium
+  label: Symptom
+  q: A Wi-Fi client has no address. What does that point to?
+  options:
+  - It can't reach DHCP, so look at its VLAN path
+  - The password is wrong
+  - The channel overlaps
+  - The SSID is hidden
+  answer: It can't reach DHCP, so look at its VLAN path
+  hint: It did connect.
+- type: mc
+  level: hard
+  label: Prevention
+  q: How would you catch this right after the change?
+  options:
+  - Test from a real client, all the way through
+  - Check the SSID appears
+  - Reboot the access point
+  - Ask a user tomorrow
+  answer: Test from a real client, all the way through
+  hint: End to end.

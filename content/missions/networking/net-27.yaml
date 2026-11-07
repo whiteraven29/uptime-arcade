@@ -2,7 +2,7 @@ id: net-27
 track: NET
 skill: networking
 chapter: Edge
-order: 27
+order: 37
 title: TLS at a glance
 from: SRE
 difficulty: hard

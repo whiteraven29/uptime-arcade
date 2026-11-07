@@ -1,0 +1,87 @@
+id: net-43
+track: NET
+skill: networking
+chapter: Security
+order: 42
+title: Firewalls and zones
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'A router''s access list looks at each packet alone. A stateful firewall remembers connections: it lets an answer back in because it saw the question go out. Interfaces get a security level from 0 to 100. Traffic may start from a higher level to a lower one, and going the other way needs an explicit rule. A typical design has inside at 100, outside at 0, and a DMZ at 50 for servers the public can reach, so a hacked web server still can''t start connections to the inside.'
+  example: |-
+    inside   100  staff
+    dmz       50  public servers
+    outside    0  internet
+brief: Using the levels in the example, can the DMZ start a connection to inside without a rule? Answer yes or no.
+goal: 'Run: submit <answer>'
+hints:
+- Compare 50 and 100.
+- Starting upward needs a rule.
+debrief:
+  why: State means replies come back on their own, and levels mean less-trusted zones can't start anything towards more-trusted ones. The DMZ exists to contain the servers most likely to be attacked.
+  solution: submit no
+  job: This three-zone layout is at the edge of most company networks.
+teaches:
+- stateful
+- security level
+- DMZ
+answer:
+  accept:
+  - 'no'
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What can a stateful firewall do that a plain access list can't?
+  options:
+  - Let replies back because it remembers the connection
+  - Assign addresses
+  - Learn MACs
+  - Route between VLANs
+  answer: Let replies back because it remembers the connection
+  hint: It remembers.
+- type: mc
+  level: easy
+  label: Levels
+  q: Which direction is allowed by default?
+  options:
+  - From higher security to lower
+  - From lower security to higher
+  - Neither ever
+  - Both always
+  answer: From higher security to lower
+  hint: Trusted to less trusted.
+- type: mc
+  level: medium
+  label: Design
+  q: Why put the public web server in a DMZ?
+  options:
+  - If it's hacked, it still can't start connections to the inside
+  - It runs faster there
+  - It needs no address there
+  - It avoids DNS
+  answer: If it's hacked, it still can't start connections to the inside
+  hint: Think about containment.
+- type: text
+  level: medium
+  label: The term
+  q: What is the zone for public-facing servers called? Three letters.
+  answer:
+  - DMZ
+  hint: The lesson names it.
+- type: mc
+  level: hard
+  label: At work
+  q: The public can't reach the web server in the DMZ. What does the firewall need?
+  options:
+  - A rule on the outside interface permitting it
+  - A lower level on inside
+  - A new VLAN
+  - A DNS server
+  answer: A rule on the outside interface permitting it
+  hint: Outside is level 0.

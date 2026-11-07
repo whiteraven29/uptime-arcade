@@ -2,7 +2,7 @@ id: net-19
 track: NET
 skill: networking
 chapter: Routing
-order: 19
+order: 25
 title: Read a routing table
 from: Network
 difficulty: medium

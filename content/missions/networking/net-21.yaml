@@ -2,7 +2,7 @@ id: net-21
 track: NET
 skill: networking
 chapter: Tools
-order: 21
+order: 31
 title: Read ping
 from: SRE
 difficulty: hard

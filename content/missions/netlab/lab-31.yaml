@@ -1,0 +1,240 @@
+id: lab-31
+track: LAB
+skill: networking
+chapter: VPNs
+order: 41
+title: Encrypt the link
+from: Security
+difficulty: expert
+check: net
+requires: net-46
+par:
+  kind: commands
+  value: 47
+lesson:
+  text: 'An IPsec VPN takes several parts, and they all have to match on both sides. Phase 1: crypto isakmp policy sets encryption, hash, authentication pre-share and group, and crypto isakmp key sets the shared secret for the peer. Phase 2: crypto ipsec transform-set names how to protect data. An access-list picks the traffic, and each side''s list must mirror the other''s. crypto map ties together set peer, set transform-set and match address, and goes on the outside interface. Check with show crypto isakmp sa, where QM_IDLE means phase 1 is up.'
+  example: |-
+    crypto isakmp policy 10
+     encryption aes 256
+     hash sha256
+     authentication pre-share
+     group 14
+    crypto isakmp key S3cret address 203.0.113.2
+    crypto ipsec transform-set TS esp-aes 256 esp-sha256-hmac
+    access-list 101 permit ip 10.71.0.0 0.0.0.255 10.72.0.0 0.0.0.255
+    crypto map VPN 10 ipsec-isakmp
+     set peer 203.0.113.2
+     set transform-set TS
+     match address 101
+    interface Gi0/1
+     crypto map VPN
+brief: Legal says traffic between HQ (10.41.0.0/24) and the branch (10.42.0.0/24) must be encrypted. Build a site-to-site IPsec VPN between 203.0.113.2 and 198.51.100.2. Use AES 256, SHA-256, group 14 and a pre-shared key.
+goal: The VPN is up, and PC-HQ reaches SRV-BR with the traffic encrypted.
+hints:
+- Build everything on R-HQ first, then mirror it on R-BR with the peer and the ACL swapped.
+- show crypto isakmp sa says why it isn't up.
+debrief:
+  why: Phase 1 sets up trust, phase 2 protects the data, the ACL picks the traffic, and the map applies it all to an interface. Mirror the ACL, and match everything else exactly.
+  solution: |-
+    [R-HQ]
+    enable
+    configure terminal
+    crypto isakmp policy 10
+    encryption aes 256
+    hash sha256
+    authentication pre-share
+    group 14
+    exit
+    crypto isakmp key Wh1teraven-VPN address 198.51.100.2
+    crypto ipsec transform-set TS esp-aes 256 esp-sha256-hmac
+    access-list 101 permit ip 10.41.0.0 0.0.0.255 10.42.0.0 0.0.0.255
+    crypto map VPN 10 ipsec-isakmp
+    set peer 198.51.100.2
+    set transform-set TS
+    match address 101
+    exit
+    interface Gi0/1
+    crypto map VPN
+    end
+    [R-BR]
+    enable
+    configure terminal
+    crypto isakmp policy 10
+    encryption aes 256
+    hash sha256
+    authentication pre-share
+    group 14
+    exit
+    crypto isakmp key Wh1teraven-VPN address 203.0.113.2
+    crypto ipsec transform-set TS esp-aes 256 esp-sha256-hmac
+    access-list 101 permit ip 10.42.0.0 0.0.0.255 10.41.0.0 0.0.0.255
+    crypto map VPN 10 ipsec-isakmp
+    set peer 203.0.113.2
+    set transform-set TS
+    match address 101
+    exit
+    interface Gi0/1
+    crypto map VPN
+    end
+    show crypto isakmp sa
+  job: Site-to-site VPNs connect most branches, and you'll build and debug a lot of them.
+teaches:
+- crypto isakmp policy
+- encryption
+- hash
+- authentication pre-share
+- group
+- crypto isakmp key
+- crypto ipsec transform-set
+- crypto map
+- set peer
+- set transform-set
+- match address
+- show crypto isakmp sa
+lab:
+  devices:
+  - name: PC-HQ
+    kind: pc
+    x: 8
+    y: 70
+    config: |-
+      ip addr add 10.41.0.10/24 dev eth0
+      ip route add default via 10.41.0.1
+  - name: R-HQ
+    kind: router
+    x: 30
+    y: 40
+    config: |-
+      interface Gi0/0
+       ip address 10.41.0.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 203.0.113.2 255.255.255.0
+       no shutdown
+      ip route 0.0.0.0 0.0.0.0 203.0.113.1
+  - name: ISP
+    kind: router
+    x: 50
+    y: 12
+    locked: true
+    config: |-
+      interface Gi0/0
+       ip address 203.0.113.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 198.51.100.1 255.255.255.0
+       no shutdown
+  - name: R-BR
+    kind: router
+    x: 70
+    y: 40
+    config: |-
+      interface Gi0/0
+       ip address 10.42.0.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 198.51.100.2 255.255.255.0
+       no shutdown
+      ip route 0.0.0.0 0.0.0.0 198.51.100.1
+  - name: SRV-BR
+    kind: server
+    x: 92
+    y: 70
+    config: |-
+      ip addr add 10.42.0.10/24 dev eth0
+      ip route add default via 10.42.0.1
+      service http start
+  cables:
+  - - PC-HQ
+    - eth0
+    - R-HQ
+    - Gi0/0
+  - - R-HQ
+    - Gi0/1
+    - ISP
+    - Gi0/0
+  - - R-BR
+    - Gi0/1
+    - ISP
+    - Gi0/1
+  - - SRV-BR
+    - eth0
+    - R-BR
+    - Gi0/0
+expect:
+- label: The VPN is up at HQ
+  vpn_up:
+    device: R-HQ
+    peer: 198.51.100.2
+- label: The VPN is up at the branch
+  vpn_up:
+    device: R-BR
+    peer: 203.0.113.2
+- label: PC-HQ reaches SRV-BR, encrypted
+  encrypted:
+    from: PC-HQ
+    to: SRV-BR
+    proto: tcp
+    port: 80
+- label: A strong cipher is in use
+  config:
+    device: R-HQ
+    contains: encryption aes 256
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does the crypto ACL decide?
+  options:
+  - Which traffic gets encrypted
+  - Who can log in
+  - Which VLAN is used
+  - The DNS server
+  answer: Which traffic gets encrypted
+  hint: Interesting traffic.
+- type: mc
+  level: medium
+  label: Mirror
+  q: HQ permits 10.41.0.0 to 10.42.0.0. What must the branch permit?
+  options:
+  - 10.42.0.0 to 10.41.0.0
+  - 10.41.0.0 to 10.42.0.0
+  - any any
+  - Nothing
+  answer: 10.42.0.0 to 10.41.0.0
+  hint: Swap them.
+- type: text
+  level: medium
+  label: Up
+  q: Which state in show crypto isakmp sa means phase 1 worked?
+  answer:
+  - QM_IDLE
+  hint: Starts with QM.
+- type: order
+  level: hard
+  label: Order them
+  q: Put these in order.
+  scrambled:
+  - Crypto ACL
+  - ISAKMP policy and key
+  - Crypto map
+  - Apply the map to the interface
+  - Transform set
+  answer:
+  - ISAKMP policy and key
+  - Transform set
+  - Crypto ACL
+  - Crypto map
+  - Apply the map to the interface
+  hint: The map uses the others.
+- type: mc
+  level: hard
+  label: Where
+  q: Which interface does the crypto map go on?
+  options:
+  - The outside interface, facing the internet
+  - The LAN interface
+  - A loopback
+  - All of them
+  answer: The outside interface, facing the internet
+  hint: Where traffic leaves.

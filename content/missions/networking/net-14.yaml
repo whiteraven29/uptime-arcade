@@ -2,7 +2,7 @@ id: net-14
 track: NET
 skill: networking
 chapter: Transport
-order: 14
+order: 19
 title: TCP or UDP?
 from: Network
 difficulty: medium

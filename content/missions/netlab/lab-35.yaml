@@ -1,0 +1,198 @@
+id: lab-35
+track: LAB
+skill: networking
+chapter: Wireless
+order: 27
+title: The first access point
+from: Facilities
+difficulty: hard
+check: net
+requires: net-47
+par:
+  kind: commands
+  value: 27
+lesson:
+  text: 'Set up a network with dot11 ssid and a name. Inside it, vlan says where its clients go and authentication wpa2 sets the password. Then turn on a radio: interface Dot11Radio0 is 2.4 GHz and Dot11Radio1 is 5 GHz. Give it a channel, put the network on it with ssid, and finish with no shutdown. The cable to the switch has to be a trunk, using switchport mode trunk. On a laptop, wifi scan shows what''s around, and wifi connect joins, with the password after the name. Check with show dot11 associations.'
+  example: |-
+    dot11 ssid OFFICE
+     vlan 10
+     authentication wpa2 S0me-Long-Phrase
+    interface Dot11Radio0
+     channel 1
+     ssid OFFICE
+     no shutdown
+brief: The new office has no Wi-Fi. AP-1 is cabled to SW1. Create a network called STAFF in VLAN 10 with the password Wh1teraven-Staff, on channel 6 of the 2.4 GHz radio. Then join it from LAPTOP-1, which already has an address, and check it reaches the file server. Its cable to SW1's Gi0/1 isn't in yet.
+goal: LAPTOP-1 is on STAFF and reaches the file server.
+hints:
+- 'On AP-1: dot11 ssid STAFF, then vlan 10 and the password.'
+- Don't forget the radio's no shutdown, or that AP-1's Gi0/1 needs to be a trunk.
+debrief:
+  why: 'An SSID is a VLAN on the air: the radio carries the clients and the trunk carries the VLAN. Once that''s clear, Wi-Fi is mostly the switching you already know.'
+  solution: |-
+    [cable] AP-1 Gi0/1 SW1 Gi0/1
+    [AP-1]
+    enable
+    configure terminal
+    dot11 ssid STAFF
+    vlan 10
+    authentication wpa2 Wh1teraven-Staff
+    exit
+    interface Dot11Radio0
+    channel 6
+    ssid STAFF
+    no shutdown
+    exit
+    interface Gi0/1
+    switchport mode trunk
+    end
+    show dot11 associations
+    [LAPTOP-1]
+    wifi scan
+    wifi connect STAFF Wh1teraven-Staff
+  job: This is the core of every access point install, whatever the brand.
+teaches:
+- dot11 ssid
+- authentication wpa2
+- Dot11Radio0
+- channel
+- ssid
+- wifi scan
+- wifi connect
+- show dot11 associations
+lab:
+  devices:
+  - name: LAPTOP-1
+    kind: laptop
+    x: 15
+    y: 75
+    config: |-
+      ip addr add 10.70.10.50/24 dev wlan0
+      ip route add default via 10.70.10.1
+  - name: AP-1
+    kind: ap
+    x: 25
+    y: 40
+    config: ''
+  - name: SW1
+    kind: switch
+    x: 55
+    y: 40
+    ports: 8
+    config: |-
+      vlan 10
+       name STAFF
+      vlan 20
+       name GUEST
+      interface Gi0/1
+       switchport mode trunk
+      interface Gi0/2
+       switchport access vlan 10
+      interface Gi0/8
+       switchport mode trunk
+  - name: FILES
+    kind: server
+    x: 85
+    y: 40
+    config: |-
+      ip addr add 10.70.10.9/24 dev eth0
+      ip route add default via 10.70.10.1
+      service smb start
+  - name: R1
+    kind: router
+    x: 55
+    y: 88
+    config: |-
+      interface Gi0/0
+       no shutdown
+      interface Gi0/0.10
+       encapsulation dot1q 10
+       ip address 10.70.10.1 255.255.255.0
+      interface Gi0/0.20
+       encapsulation dot1q 20
+       ip address 10.70.20.1 255.255.255.0
+  cables:
+  - - FILES
+    - eth0
+    - SW1
+    - Gi0/2
+  - - R1
+    - Gi0/0
+    - SW1
+    - Gi0/8
+  cabling: true
+expect:
+- label: LAPTOP-1 is on STAFF
+  wifi_assoc:
+    host: LAPTOP-1
+    ssid: STAFF
+- label: STAFF is protected with WPA2
+  config:
+    device: AP-1
+    contains: authentication wpa2 Wh1teraven-Staff
+- label: LAPTOP-1 reaches the file server
+  reach:
+    from: LAPTOP-1
+    to: FILES
+    proto: tcp
+    port: 445
+- label: The radio is on channel 6
+  config:
+    device: AP-1
+    interface: Do0
+    contains: channel 6
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Where does a client on STAFF end up on the wired network?
+  options:
+  - In VLAN 10
+  - In every VLAN
+  - In VLAN 1 always
+  - Nowhere
+  answer: In VLAN 10
+  hint: The SSID maps to it.
+- type: text
+  level: medium
+  label: The command
+  q: Which laptop command shows the networks nearby? Two words.
+  answer:
+  - wifi scan
+  hint: wifi something.
+- type: mc
+  level: medium
+  label: Radios
+  q: Which radio is Dot11Radio0 in this lab?
+  options:
+  - 2.4 GHz
+  - 5 GHz
+  - 6 GHz
+  - Bluetooth
+  answer: 2.4 GHz
+  hint: The other is 5 GHz.
+- type: order
+  level: medium
+  label: Order them
+  q: Put these in order on the access point.
+  scrambled:
+  - ssid STAFF
+  - dot11 ssid STAFF
+  - no shutdown
+  - interface Dot11Radio0
+  answer:
+  - dot11 ssid STAFF
+  - interface Dot11Radio0
+  - ssid STAFF
+  - no shutdown
+  hint: The network has to exist first.
+- type: mc
+  level: hard
+  label: Diagnosis
+  q: A laptop joins the network and can't reach anything. What's the likely cause?
+  options:
+  - The VLAN isn't carried on the access point's uplink
+  - The password is wrong
+  - The radio is off
+  - The SSID is too long
+  answer: The VLAN isn't carried on the access point's uplink
+  hint: It did join.

@@ -178,7 +178,7 @@ class TestBeyond:
 
     def test_opens_at_archmage_one_at_a_time(self, playing):
         p = playing.user.player
-        p.peak_cleared = 150
+        p.peak_cleared = 213
         p.save()
         assert playing.get(url("bx-01")).status_code == 200
         assert playing.get(url("bx-02")).status_code == 403
@@ -193,11 +193,11 @@ class TestBeyond:
 
     def test_doesnt_count_towards_levels(self, playing):
         p = playing.user.player
-        p.peak_cleared = 150
+        p.peak_cleared = 213
         p.save()
         clear(playing, "bx-01")
         p.refresh_from_db()
-        assert p.peak_cleared == 150
+        assert p.peak_cleared == 213
 
     def test_every_core_track_gets_harder_and_only_beyond_reaches_brainfuck(self):
         core = set(Mission.objects.filter(track__after_archmage=False).values_list("difficulty", flat=True))
@@ -205,7 +205,7 @@ class TestBeyond:
 
     def test_clearing_a_tier_earns_its_badge(self, playing):
         p = playing.user.player
-        p.peak_cleared = 150
+        p.peak_cleared = 213
         p.save()
         last = None
         for m in Mission.objects.filter(track__code="BX", difficulty="easy").order_by("order"):
@@ -414,10 +414,11 @@ class TestAnswersStayOnTheServer:
 
     def test_every_briefing_and_play_payload(self, api, clock):
         p = api.user.player
-        p.peak_cleared = 150
+        p.peak_cleared = 213
         p.save()
         top_up(p)
         open_session(api.user)
+        MissionProgress.objects.create(player=p, mission=mission("net-05"), season=p.season, state="cleared")  # opens the first lab
         for m in Mission.objects.filter(order=1).select_related("track"):
             for tail in ("", "play/"):
                 response = api.get(url(m.code, tail))
@@ -452,11 +453,11 @@ class TestAnswersStayOnTheServer:
 
 class TestPlayerStateGoals:
     def test_all_real_goals_pass_with_a_state_that_meets_them(self):
-        for m in Mission.objects.exclude(expect=[]):
+        for m in Mission.objects.exclude(expect=[]).exclude(check_type="net"):
             assert goals_met(m.expect, _state_meeting(m)), m.code
 
     def test_an_empty_state_meets_no_mission_that_changes_anything(self):
-        for m in Mission.objects.exclude(expect=[]):
+        for m in Mission.objects.exclude(expect=[]).exclude(check_type="net"):
             needs_change = any(next(iter(r)) in ("file_exists", "file_equals", "cwd_is", "gateway_is", "script_ran", "vi_saved") for r in m.expect)
             if needs_change and m.code not in ("sh-07", "sh-18"):
                 assert not goals_met(m.expect, {}), m.code
@@ -542,7 +543,7 @@ class TestServerAgreesWithTheEngines:
 
     def test_every_goal_mission_passes_with_its_real_final_state(self):
         states = self.states()
-        for m in Mission.objects.exclude(expect=[]):
+        for m in Mission.objects.exclude(expect=[]).exclude(check_type="net"):
             assert m.code in states, m.code
             body = PlayerState(data=states[m.code])
             assert body.is_valid(), (m.code, body.errors)
@@ -550,6 +551,7 @@ class TestServerAgreesWithTheEngines:
 
     def test_the_final_state_fits_in_one_request(self):
         for code, state in self.states().items():
+            # Labs are proven against the real grader, in apps/netlab/tests.py.
             assert len(json.dumps({"state": state})) < settings.DATA_UPLOAD_MAX_MEMORY_SIZE, code
 
 
@@ -593,12 +595,12 @@ class TestRateLimit:
 class TestProgressEvents:
     def test_level_up_comes_with_its_badge(self, playing):
         p = playing.user.player
-        p.peak_cleared = 7
+        p.peak_cleared = 9
         p.save()
         body = clear(playing, "net-01").json()
-        # One cleared this season, so peak stays at 7: a season can't inflate your count.
+        # One cleared this season, so peak stays at 9: a season can't inflate your count.
         assert all(e["type"] != "level_up" for e in body["events"])
-        for code in ("net-02", "net-03", "net-04", "net-05", "net-06", "net-07", "net-08"):
+        for code in ("net-02", "net-03", "net-04", "net-05", "net-06", "net-07", "net-08", "net-09", "net-10"):
             body = clear(playing, code).json()
         assert {"type": "level_up", "level": 2, "title": "Initiate"} in body["events"]
         assert {"type": "badge", "code": "lv2", "name": "Initiate"} in body["events"]
@@ -635,6 +637,38 @@ class TestSeasons:
         assert api.get("/api/v1/player/").json()["season"] == 2
 
 
+class TestFreeReplays:
+    def replayable(self, api):
+        p = api.user.player
+        MissionProgress.objects.create(player=p, mission=mission("net-01"), season=p.season, state="cleared")
+        return p
+
+    def test_need_no_session_and_no_play_time(self, api, clock):
+        p = self.replayable(api)
+        services.add_time(p, -p.bank(), TimeLedger.Reason.SESSION_OPEN)
+        assert api.get(url("net-01", "play/")).status_code == 200
+        body = api.post(url("net-01", "submit/"), {"answer": "32"}, format="json").json()
+        assert body["revisit"] is True and body["result"] == "pass"
+
+    def test_cost_nothing_and_add_nothing(self, api, clock):
+        p = self.replayable(api)
+        before = (p.bank(), p.xp, p.peak_cleared, Submission.objects.count())
+        api.post(url("net-01", "submit/"), {"answer": "32"}, format="json")
+        api.post(url("net-01", "submit/"), {"answer": "nope"}, format="json")
+        p.refresh_from_db()
+        assert (p.bank(), p.xp, p.peak_cleared, Submission.objects.count()) == before
+        assert MissionProgress.objects.get(player=p, mission=mission("net-01")).tries == 0
+
+    def test_wait_for_a_focus_block_to_end(self, api, clock):
+        self.replayable(api)
+        api.post("/api/v1/focus/blocks/", {"goal": "x", "minutes": 25}, format="json")
+        for response in (api.get(url("net-01", "play/")), api.post(url("net-01", "submit/"), {"answer": "32"}, format="json")):
+            assert response.status_code == 409 and response.json()["error"]["code"] == "block_in_progress"
+
+    def test_an_unfinished_mission_still_needs_a_session(self, api, clock):
+        assert api.get(url("net-01", "play/")).status_code == 409
+
+
 class TestRevisiting:
     def test_a_cleared_mission_can_be_read_and_played(self, playing):
         clear(playing, "net-01")
@@ -660,13 +694,6 @@ class TestRevisiting:
         row = MissionProgress.objects.get(mission__code="net-01")
         assert row.state == "cleared" and row.xp_awarded == paid
 
-    def test_it_still_needs_play_time(self, api, clock):
-        top_up(api.user.player)
-        open_session(api.user)
-        clear(api, "net-01")
-        clock.advance(days=2)
-        assert solve(api, "net-01").status_code == 409
-
     def test_goal_missions_can_be_revisited_too(self, playing):
         clear(playing, "sh-01")
         cache.clear()
@@ -678,49 +705,48 @@ class TestRevisiting:
 class TestNetLabGate:
     """NetLab has no missions yet, but its gate is live, so the day they arrive they're already locked."""
 
-    def lab_mission(self):
-        base = Mission.objects.get(code="net-01")
-        lab = Track.objects.get(code="LAB")
-        chapter = Chapter.objects.create(track=lab, name="First lab", order=1)
-        return Mission.objects.create(code="lab-01", track=lab, chapter=chapter, order=1, skill="networking", title="First lab", from_dept="Network", difficulty="easy", check_type="answer", xp=100, par_kind="first-try", par_value=1, lesson_text="x", lesson_example="x", brief="x", goal="x", hints=["h"], answer_spec={"accept": ["1"]}, rewind=base.rewind, debrief=base.debrief)
-
     def test_the_track_is_listed_with_what_opens_it(self, api):
         lab = next(t for t in api.get("/api/v1/tracks/").json()["tracks"] if t["code"] == "LAB")
-        assert lab["missions"] == []
-        assert lab["requires"] == "net-11"
-        assert "NET-11" in lab["locked_because"]
+        assert lab["requires"] == "net-05"
+        assert "NET-05" in lab["locked_because"]
+        assert all(m["state"] == "locked" for m in lab["missions"])
 
-    def test_a_lab_mission_stays_locked_before_the_requirement(self, playing):
-        self.lab_mission()
+    def test_a_lab_stays_locked_before_its_mission(self, playing):
         response = playing.get(url("lab-01"))
         assert response.status_code == 403
-        assert "NET-11" in response.json()["error"]["message"]
-        assert playing.post(url("lab-01", "submit/"), {"answer": "1"}, format="json").status_code == 403
-        tracks = {t["code"]: t["missions"] for t in playing.get("/api/v1/tracks/").json()["tracks"]}
-        assert tracks["LAB"][0]["state"] == "locked"
+        assert "NET-05" in response.json()["error"]["message"]
+        assert playing.post(url("lab-01", "submit/"), {"state": {}}, format="json").status_code == 403
 
-    def test_clearing_networking_up_to_that_point_opens_it(self, playing):
-        self.lab_mission()
-        for i in range(1, 11):
+    def test_clearing_the_mission_it_needs_opens_it(self, playing):
+        for i in range(1, 5):
             clear(playing, f"net-{i:02d}")
         assert playing.get(url("lab-01")).status_code == 403  # one short
-        clear(playing, "net-11")
+        clear(playing, "net-05")
         assert playing.get(url("lab-01")).status_code == 200
         lab = next(t for t in playing.get("/api/v1/tracks/").json()["tracks"] if t["code"] == "LAB")
         assert lab["locked_because"] is None
         assert lab["missions"][0]["state"] == "open"
 
     def test_the_gate_cant_be_skipped_by_another_track(self, playing):
-        self.lab_mission()
         clear(playing, "sh-01")
         assert playing.get(url("lab-01")).status_code == 403
+
+    def test_each_lab_names_the_mission_that_opens_it(self, api):
+        p = api.user.player
+        MissionProgress.objects.create(player=p, mission=mission("net-05"), season=p.season, state="cleared")
+        labs = next(t for t in api.get("/api/v1/tracks/").json()["tracks"] if t["code"] == "LAB")["missions"]
+        byid = {m["code"]: m for m in labs}
+        assert byid["lab-01"]["locked_because"] is None
+        assert "NET-31" in byid["lab-02"]["locked_because"]  # How a switch learns
+        assert "NET-46" in byid["lab-31"]["locked_because"]  # IPsec
+        assert byid["lab-02"]["state"] == "locked"
 
     def test_content_cant_name_a_requirement_that_doesnt_exist(self, tmp_path):
         import shutil
 
         root = tmp_path / "content"
         shutil.copytree(settings.CONTENT_DIR, root, ignore=shutil.ignore_patterns("build"))
-        text = (root / "tracks.yaml").read_text().replace("requires: net-11", "requires: net-99")
+        text = (root / "tracks.yaml").read_text().replace("requires: net-05", "requires: net-99")
         (root / "tracks.yaml").write_text(text)
         with pytest.raises(ContentError) as e:
             load(root)

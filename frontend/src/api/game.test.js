@@ -221,6 +221,40 @@ describe('the rewind', () => {
     expect(ui.rw.fb.ok).toBe(false);
     expect(S.xp).toBe(0);
   });
+  describe('a new lab opening', () => {
+    const preview = { devices: [{ name: 'PC-1', kind: 'pc', x: 10, y: 10 }], cables: [] };
+    const finish = (events) => begin(() => json(200, { correct: true, state: 'cleared', done: 5, total: 5, task: null, xp: 120, events })).then(() => g.answerRewind('a'));
+    it('gets its own moment, with what was just earned', async () => {
+      await finish([{ type: 'cleared', mission: 'net-01', xp: 120 }, { type: 'unlocked', mission: 'net-02', preview }]);
+      expect(ui.overlay).toEqual({ kind: 'unlock', mission: 'net-02', preview, xp: 120 });
+      g.closeOverlay();
+      expect(ui.overlay).toBeNull();
+    });
+    it('waits its turn behind a level-up', async () => {
+      await finish([{ type: 'cleared', mission: 'net-01', xp: 120 }, { type: 'level_up', level: 2, title: 'Initiate' }, { type: 'unlocked', mission: 'net-02', preview }]);
+      expect(ui.overlay.kind).toBe('level');
+      g.closeOverlay();
+      expect(ui.overlay.kind).toBe('unlock');
+    });
+    it('a mission with no preview stays a quiet toast', async () => {
+      await finish([{ type: 'unlocked', mission: 'net-02' }]);
+      expect(ui.overlay).toBeNull();
+      expect(ui.flash).toBe('net-02');
+    });
+    it('says what a lab is still waiting for', async () => {
+      ui.flash = null;
+      await finish([{ type: 'lab_waiting', mission: 'net-02', needs: 'net-31', needs_title: 'How a switch learns' }]);
+      expect(ui.flash).not.toBe('net-02');
+      expect(ui.toast).toContain('How a switch learns (NET-31)');
+    });
+    it('later goes back to that track, with the new one popping in', async () => {
+      await finish([{ type: 'unlocked', mission: 'net-02', preview }]);
+      g.leaveReveal('net-02');
+      expect(ui.overlay).toBeNull();
+      expect(ui.openTrack).toBe('NET');
+      expect(ui.flash).toBe('net-02');
+    });
+  });
   it('shows the hint and answer only when the server sends them', async () => {
     await begin(() => json(200, { correct: false, state: 'solved', done: 0, total: 5, task: task({ hint: 'look here', reveal: 'a' }), events: [] }));
     await g.answerRewind('b');
@@ -302,6 +336,165 @@ describe('your picture', () => {
     expect(sent.headers['Content-Type']).toBeUndefined();
     expect(ui.account.avatar.kind).toBe('upload');
     vi.stubGlobal('fetch', inner);
+  });
+});
+
+describe('NetLab', () => {
+  const LAB = { devices: [{ name: 'PC-1', kind: 'pc', x: 20, y: 50 }, { name: 'PC-2', kind: 'pc', x: 80, y: 50 }, { name: 'ISP', kind: 'router', x: 50, y: 10, locked: true }], cables: [['PC-1', 'eth0', 'PC-2', 'eth0']] };
+  const BRIEF_LAB = { ...BRIEF('lab-01', 'net'), track: 'LAB' };
+  const labServer = (extra = {}) => {
+    server({
+      'GET /player/': () => json(200, openSessionPlayer()),
+      'GET /missions/lab-01/': () => json(200, BRIEF_LAB),
+      'GET /missions/lab-01/play/': () => json(200, { code: 'lab-01', state: 'open', check_type: 'net', workspace: { lab: LAB, goals: ['They can ping'] }, hints: [], hints_total: 2 }),
+      'GET /netlab/lab-01/state/': () => json(200, { state: null }),
+      ...extra,
+    });
+    return g.refreshPlayer().then(() => g.enterMission('lab-01'));
+  };
+  it('opens consoles for your devices only', async () => {
+    await labServer();
+    expect(ui.lab.device).toBe('PC-1');
+    expect(Object.keys(ui.lab.consoles)).toEqual(['PC-1', 'PC-2']);
+    g.leaveCurrent();
+  });
+  it('runs commands here, straight away, with nothing sent', async () => {
+    await labServer();
+    const before = calls.length;
+    g.labRun('ip addr add 10.0.0.1/24 dev eth0');
+    expect(ui.lab.lab.configOf('PC-1')).toContain('10.0.0.1/24');
+    expect(calls.length).toBe(before);
+    expect(S.cmds['lab-01']).toBeGreaterThan(0);
+    g.leaveCurrent();
+  });
+  it('sends only the configs and a command count to be checked', async () => {
+    await labServer({ 'POST /missions/lab-01/submit/': () => json(200, { result: 'fail', tries: 0, events: [], goals: [{ label: 'They can ping', ok: false, why: 'No' }] }) });
+    g.labRun('ip addr add 10.0.0.1/24 dev eth0');
+    await g.labCheck();
+    const body = calls.find((c) => c.key === 'POST /missions/lab-01/submit/').body;
+    expect(Object.keys(body).sort()).toEqual(['commands', 'state']);
+    expect(Object.keys(body.state.devices).sort()).toEqual(['PC-1', 'PC-2']); // not the ISP
+    expect(ui.lab.results[0].why).toBe('No');
+    g.leaveCurrent();
+  });
+  it('picks up where you left off', async () => {
+    await labServer({ 'GET /netlab/lab-01/state/': () => json(200, { state: { devices: { 'PC-1': { running: 'ip addr add 10.9.9.9/24 dev eth0', startup: '' } } } }) });
+    expect(ui.lab.lab.configOf('PC-1')).toContain('10.9.9.9/24');
+    g.leaveCurrent();
+  });
+  it('saves shortly after a change, and at once on leaving', async () => {
+    await labServer({ 'PUT /netlab/lab-01/state/': () => json(200, { saved: true }) });
+    g.labRun('ip addr add 10.0.0.1/24 dev eth0');
+    expect(calls.some((c) => c.key === 'PUT /netlab/lab-01/state/')).toBe(false);
+    g.leaveCurrent();
+    expect(calls.some((c) => c.key === 'PUT /netlab/lab-01/state/')).toBe(true);
+  });
+  it('resets to the start and forgets the save', async () => {
+    await labServer({ 'DELETE /netlab/lab-01/state/': () => json(204, {}) });
+    g.labRun('ip addr add 10.0.0.1/24 dev eth0');
+    await g.labReset();
+    expect(ui.lab.lab.configOf('PC-1')).not.toContain('10.0.0.1');
+    expect(calls.some((c) => c.key === 'DELETE /netlab/lab-01/state/')).toBe(true);
+    g.leaveCurrent();
+  });
+  it('a replay needs no session, and pauses a running one', async () => {
+    let player = openSessionPlayer();
+    const data = TRACKS('cleared');
+    server({
+      'GET /player/': () => json(200, player),
+      'GET /tracks/': () => json(200, data),
+      'POST /sessions/close/': () => { player = PLAYER({ session: null, bank_seconds: 280 }); return json(200, { returned_seconds: 280, bank_seconds: 280, events: [] }); },
+      'GET /missions/net-01/play/': () => json(200, { ...PLAY(), state: 'cleared' }),
+    });
+    await g.boot();
+    await g.refreshPlayer();
+    expect(g.sessionOn()).toBe(true);
+    await g.enterMission('net-01');
+    expect(calls.some((c) => c.key === 'POST /sessions/close/')).toBe(true);
+    expect(g.sessionOn()).toBe(false);
+    expect(ui.current.revisit).toBe(true);
+    expect(g.canPlay()).toBe(true);
+    g.leaveCurrent();
+  });
+  it('a replay still waits for a focus block', async () => {
+    const data = TRACKS('cleared');
+    const future = new Date(Date.now() + 600000).toISOString();
+    server({ 'GET /player/': () => json(200, PLAYER({ block: { id: 7, goal: 'x', minutes: 25, kind: 'plan', started_at: future, ends_at: future, claim_by: future, drifts: 0, presence: 'waiting', check_expires_at: null } })), 'GET /tracks/': () => json(200, data) });
+    await g.boot();
+    await g.refreshPlayer();
+    await g.enterMission('net-01');
+    expect(ui.current.ready).toBe(false);
+    expect(g.canPlay()).toBe(false);
+    expect(calls.some((c) => c.key === 'GET /missions/net-01/play/')).toBe(false);
+    g.leaveCurrent();
+  });
+  it('a drill loads what the server broke, and only says what when asked', async () => {
+    await labServer({ 'POST /netlab/lab-01/drill/': () => json(201, { state: { devices: { 'PC-1': { running: 'ip addr add 10.1.1.1/24 dev eth0', startup: '' } } }, count: 2 }), 'GET /netlab/lab-01/drill/': () => json(200, { faults: [{ device: 'PC-1', explain: 'PC-1: its address changed' }] }) });
+    await g.labStartDrill(2);
+    expect(ui.lab.lab.configOf('PC-1')).toContain('10.1.1.1/24');
+    expect(ui.lab.drill).toMatchObject({ count: 2, faults: null });
+    await g.labRevealDrill();
+    expect(ui.lab.drill.faults[0].explain).toMatch(/address/);
+    g.leaveCurrent();
+  });
+  it('a replay can pass and still be played again', async () => {
+    await labServer({ 'POST /missions/lab-01/submit/': () => json(200, { result: 'pass', revisit: true, tries: 0, events: [], goals: [{ label: 'They can ping', ok: true, why: '' }] }) });
+    await g.labCheck();
+    expect(ui.current.solved).toBeFalsy();
+    expect(ui.debrief).toBeNull();
+    g.leaveCurrent();
+  });
+  describe('the sandbox', () => {
+    const open = (extra = {}) => {
+      server({ 'GET /netlab/sandbox/': () => json(200, { topology: null, state: null }), 'PUT /netlab/sandbox/': () => json(200, { saved: true }), 'DELETE /netlab/sandbox/': () => json(204, {}), ...extra });
+      return g.enterSandbox();
+    };
+    it('starts empty and adds devices with their own names', async () => {
+      await open();
+      g.sandboxAdd('pc');
+      g.sandboxAdd('pc');
+      g.sandboxAdd('ap');
+      expect([...ui.lab.lab.devices.keys()]).toEqual(['PC-1', 'PC-2', 'AP-1']);
+      expect(ui.lab.device).toBe('AP-1');
+      g.leaveCurrent();
+    });
+    it('needs no session to use a console', async () => {
+      await open();
+      g.sandboxAdd('pc');
+      g.labRun('ip addr add 10.0.0.1/24 dev eth0');
+      expect(ui.lab.lab.configOf('PC-1')).toContain('10.0.0.1/24');
+      g.leaveCurrent();
+    });
+    it('saves only what each device is made of', async () => {
+      await open();
+      g.sandboxAdd('router');
+      g.leaveCurrent();
+      const body = calls.find((c) => c.key === 'PUT /netlab/sandbox/').body;
+      expect(Object.keys(body.topology.devices[0]).sort()).toEqual(['kind', 'name', 'x', 'y']);
+    });
+    it('breaks something once two machines are talking, and tells you what if you ask', async () => {
+      await open();
+      g.sandboxAdd('pc');
+      g.sandboxBreak();
+      expect(ui.lab.message).toMatch(/talking/);
+      g.sandboxAdd('pc');
+      ui.lab.lab.plug('PC-1', 'eth0', 'PC-2', 'eth0');
+      ui.lab.lab.run('PC-1', 'ip addr add 10.0.0.1/24 dev eth0');
+      ui.lab.lab.run('PC-2', 'ip addr add 10.0.0.2/24 dev eth0');
+      g.sandboxBreak();
+      expect(ui.lab.faults).toHaveLength(1);
+      g.sandboxTest();
+      expect(ui.lab.tests.some((r) => !r.ok)).toBe(true);
+      expect(ui.lab.showFaults).toBe(false);
+      g.leaveCurrent();
+    });
+  });
+  it('keeps a track card\'s reason for being shut', async () => {
+    const data = TRACKS();
+    data.tracks[0].missions[1].locked_because = 'Clear VLANs (NET-33) in Networking first.';
+    server({ 'GET /tracks/': () => json(200, data) });
+    await g.boot();
+    expect(g.byId('net-02').lockedBecause).toContain('NET-33');
   });
 });
 

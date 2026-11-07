@@ -5,12 +5,13 @@ the player's row lock first, so a double click or two tabs can't pay twice."""
 from django.db import transaction
 from rest_framework import serializers, status
 
-from apps.content.models import Mission, Track
+from apps.content.models import Mission, MissionPrereq, Track
 from apps.core import clock
 from apps.core.exceptions import GameError
-from apps.focus.services import require_session
+from apps.focus.services import current_block, require_session
 from apps.game import rules, services
 from apps.game.models import XPLedger
+from apps.netlab import grader
 
 from . import grading
 from .models import MissionProgress, RewindProgress, Submission
@@ -18,6 +19,7 @@ from .models import MissionProgress, RewindProgress, Submission
 State = MissionProgress.State
 ANSWER_CHECKS = ("answer", "go-out", "go-fix")
 GOAL_CHECKS = ("fs", "vi")
+NET_CHECK = "net"
 
 
 def get_mission(code):
@@ -52,6 +54,21 @@ def track_gate(player, track):
     return None
 
 
+def _needs_first(mission, title, code, track):
+    return f"Clear {title} ({code.upper()}) in {track} first."
+
+
+def mission_gate(player, mission):
+    """Why this one mission is closed, or None. A lab opens from the mission that teaches it (ADR 0011). Earlier
+    seasons count here too."""
+    missing = MissionPrereq.objects.filter(mission=mission).exclude(
+        requires__in=MissionProgress.objects.filter(player=player, state=State.CLEARED).values("mission")
+    ).select_related("requires__track").first()
+    if not missing:
+        return None
+    return _needs_first(mission, missing.requires.title, missing.requires.code, missing.requires.track.name)
+
+
 def progress_of(player, mission):
     return MissionProgress.objects.filter(player=player, mission=mission, season=player.season).first()
 
@@ -61,7 +78,7 @@ def state_of(player, mission):
     progress = progress_of(player, mission)
     if progress and progress.state != State.OPEN:
         return progress.state
-    if track_gate(player, mission.track):
+    if track_gate(player, mission.track) or mission_gate(player, mission):
         return "locked"
     previous = Mission.objects.filter(track=mission.track, order=mission.order - 1, status=Mission.Status.PUBLISHED).first()
     if previous:
@@ -81,24 +98,42 @@ def tracks_for(player):
         gate = track_gate(player, t)
         grouped[t.code] = {"code": t.code, "name": t.name, "subtitle": t.subtitle, "after_archmage": t.after_archmage, "season": t.season, "locked_because": gate, "requires": t.requires or None, "missions": []}
     previous = {}
+    ever_cleared = set(MissionProgress.objects.filter(player=player, state=State.CLEARED).values_list("mission_id", flat=True))
+    prereqs = {}
+    for row in MissionPrereq.objects.select_related("requires__track"):
+        if row.requires_id not in ever_cleared:
+            prereqs.setdefault(row.mission_id, row.requires)
     for m in missions:
         code = m.track.code
         state = states.get(m.pk, State.OPEN)
+        waiting = None
         if state == State.OPEN:
             before = previous.get(code)
-            if grouped[code]["locked_because"] or (before is not None and before != State.CLEARED):
+            needed = prereqs.get(m.pk)
+            if needed:
+                waiting = _needs_first(m, needed.title, needed.code, needed.track.name)
+            if grouped[code]["locked_because"] or waiting or (before is not None and before != State.CLEARED):
                 state = "locked"
         previous[code] = state
-        grouped[code]["missions"].append({"code": m.code, "chapter": m.chapter.name, "order": m.order, "title": m.title, "difficulty": m.difficulty, "xp": m.xp, "state": str(state), "answered": answered.get(m.pk, 0)})
+        grouped[code]["missions"].append({"code": m.code, "chapter": m.chapter.name, "order": m.order, "title": m.title, "difficulty": m.difficulty, "xp": m.xp, "state": str(state), "locked_because": waiting, "answered": answered.get(m.pk, 0)})
     return list(grouped.values())
 
 
 def _require_playable(player, mission):
     state = state_of(player, mission)
     if state == "locked":
-        reason = track_gate(player, mission.track) or "Clear the mission before this one first."
+        reason = track_gate(player, mission.track) or mission_gate(player, mission) or "Clear the mission before this one first."
         raise GameError("mission_locked", reason, status.HTTP_403_FORBIDDEN)
     return state
+
+
+def require_play(player, state):
+    """A replay of something cleared costs nothing and earns nothing, so it needs no session (ADR 0012). It still
+    waits for a focus block to end, or a player could practise through the time that block is earning."""
+    if state != State.CLEARED:
+        require_session(player)
+    elif current_block(player):
+        raise GameError("block_in_progress", "Replays wait until your focus block is over.")
 
 
 def _progress_for_update(player, mission):
@@ -110,10 +145,10 @@ def _progress_for_update(player, mission):
 def reveal_hint(user, code):
     """Costs XP from what the mission is worth when it's finally paid."""
     player = services.locked_player(user)
-    require_session(player)
     mission = get_mission(code)
     if _require_playable(player, mission) != State.OPEN:
         raise GameError("already_solved", "Hints are free on a mission you've solved. They're all on the page.")
+    require_session(player)
     progress = _progress_for_update(player, mission)
     if progress.hints_used >= len(mission.hints):
         raise GameError("no_more_hints", "No more hints here. Read the lesson again.")
@@ -142,6 +177,10 @@ def _grade(mission, data):
         body = grading.PlayerState(data=data.get("state") or {})
         body.is_valid(raise_exception=True)
         return grading.goals_met(mission.expect, body.validated_data), {}
+    if mission.check_type == NET_CHECK:
+        lab = mission.play["lab"]
+        goals = grader.grade(lab, mission.expect, grader.clean_state(data.get("state"), lab))
+        return all(g["ok"] for g in goals), {"goals": goals}
     code = data.get("code")
     passed = data.get("passed")
     if not isinstance(code, str) or len(code) > grading.MAX_CODE or not isinstance(passed, bool):
@@ -162,21 +201,23 @@ def _par_bonus(mission, progress, commands, keys):
 @transaction.atomic
 def submit(user, code, data):
     player = services.locked_player(user)
-    require_session(player)
     mission = get_mission(code)
     state = _require_playable(player, mission)
+    require_play(player, state)
     if state == State.SOLVED:
         raise GameError("already_solved", "This mission is already solved. Its questions are waiting.")
     commands = _count(data.get("commands"), "commands")
     keys = _count(data.get("keys"), "keys")
     passed, record = _grade(mission, data)
+    # A lab says how each goal went, in words. It's what a player learns from.
+    goals = {"goals": record.pop("goals")} if "goals" in record else {}
     if state == State.CLEARED:
         # Revisiting: the answer is checked so you can practise, and nothing else changes.
-        return {"result": "pass" if passed else "fail", "revisit": True, "tries": 0, "events": []}
+        return {"result": "pass" if passed else "fail", "revisit": True, "tries": 0, "events": [], **goals}
     progress = _progress_for_update(player, mission)
-    if not passed and mission.check_type in GOAL_CHECKS:
+    if not passed and (mission.check_type in GOAL_CHECKS or mission.check_type == NET_CHECK):
         # Not there yet, which isn't a wrong answer. These run after every command, so they aren't kept.
-        return {"result": "fail", "tries": progress.tries, "events": []}
+        return {"result": "fail", "tries": progress.tries, "events": [], **goals}
     progress.tries += 1
     progress.commands = commands
     progress.keys = keys
@@ -191,7 +232,7 @@ def submit(user, code, data):
     progress.worth = rules.mission_worth(mission.xp, progress.par_bonus, progress.hints_used)
     progress.save()
     RewindProgress.objects.get_or_create(progress=progress, defaults={"queue": list(range(len(mission.rewind)))})
-    return {"result": "pass", "tries": progress.tries, "par_bonus": progress.par_bonus, "xp_on_clear": progress.worth, "events": [{"type": "solved", "mission": mission.code}]}
+    return {"result": "pass", "tries": progress.tries, "par_bonus": progress.par_bonus, "xp_on_clear": progress.worth, "events": [{"type": "solved", "mission": mission.code}], **goals}
 
 
 def check_goal(user, code, data):
@@ -261,6 +302,37 @@ def _cleared_core(player):
     return MissionProgress.objects.filter(player=player, season=player.season, state=State.CLEARED, mission__track__after_archmage=False).count()
 
 
+def _lab_preview(mission):
+    """Enough to draw a lab's network as it opens. Every field is named, so a lab's starting config stays out of it."""
+    lab = (mission.play or {}).get("lab")
+    if not lab:
+        return {}
+    devices = [{"name": d["name"], "kind": d["kind"], "x": d["x"], "y": d["y"]} for d in lab["devices"]]
+    cables = [[c[0], c[2]] for c in lab["cables"]]
+    return {"preview": {"devices": devices, "cables": cables}}
+
+
+def _unlock_events(player, mission):
+    """Only what really just opened. A lab can open from the lab before it or from the mission it needs, whichever
+    comes last, so both are asked, and the answer comes from the same rules that decide who can play."""
+    following = Mission.objects.filter(track=mission.track, order=mission.order + 1, status=Mission.Status.PUBLISHED).first()
+    gated = [row.mission for row in MissionPrereq.objects.filter(requires=mission).select_related("mission__track")]
+    events, seen = [], set()
+    for candidate in ([following] if following else []) + gated:
+        if candidate.code in seen or candidate.status != Mission.Status.PUBLISHED:
+            continue
+        seen.add(candidate.code)
+        if state_of(player, candidate) == State.OPEN:
+            events.append({"type": "unlocked", "mission": candidate.code, **_lab_preview(candidate)})
+    if following and following.code not in {e["mission"] for e in events}:
+        missing = MissionPrereq.objects.filter(mission=following).exclude(
+            requires__in=MissionProgress.objects.filter(player=player, state=State.CLEARED).values("mission")
+        ).select_related("requires").first()
+        if missing:
+            events.append({"type": "lab_waiting", "mission": following.code, "needs": missing.requires.code, "needs_title": missing.requires.title})
+    return events
+
+
 def _clear(player, mission, progress):
     """The whole task is finished. This is the only place a mission pays XP."""
     now = clock.now()
@@ -277,9 +349,7 @@ def _clear(player, mission, progress):
         after = rules.level_index(player.peak_cleared)
         if after != before:
             events.append({"type": "level_up", "level": after + 1, "title": rules.LEVELS[after][1]})
-    following = Mission.objects.filter(track=mission.track, order=mission.order + 1, status=Mission.Status.PUBLISHED).first()
-    if following:
-        events.append({"type": "unlocked", "mission": following.code})
+    events += _unlock_events(player, mission)
     events += services.award_badges(player)
     return xp, events
 

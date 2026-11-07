@@ -1,0 +1,147 @@
+id: lab-13
+track: LAB
+skill: networking
+chapter: VLANs
+order: 13
+title: Route on the switch
+from: Network
+difficulty: medium
+check: net
+requires: net-37
+par:
+  kind: commands
+  value: 17
+lesson:
+  text: A layer 3 switch can route for itself. Create an SVI with interface vlan and the number, give it the gateway address, then turn on ip routing. Until you do, the switch keeps VLANs apart and won't move traffic between them.
+  example: |-
+    interface vlan 10
+     ip address 10.70.10.1 255.255.255.0
+    ip routing
+brief: The office has outgrown its router on a stick, and a new layer 3 switch has arrived. Make it the gateway for VLAN 10 and VLAN 20, at 10.40.10.1 and 10.40.20.1.
+goal: Staff can reach the file server through CORE.
+hints:
+- interface vlan 10, then its address. Same for 20.
+- Don't forget ip routing in config mode.
+debrief:
+  why: An SVI is a gateway living inside the switch, and ip routing connects them. Traffic between VLANs no longer has to go to a router and back.
+  solution: |-
+    [CORE]
+    enable
+    configure terminal
+    interface vlan 10
+    ip address 10.40.10.1 255.255.255.0
+    interface vlan 20
+    ip address 10.40.20.1 255.255.255.0
+    exit
+    ip routing
+    end
+  job: Most campus cores work this way, because it's fast and needs no extra box.
+teaches:
+- interface vlan
+- ip routing
+lab:
+  devices:
+  - name: STAFF-1
+    kind: pc
+    x: 20
+    y: 75
+    config: |-
+      ip addr add 10.40.10.10/24 dev eth0
+      ip route add default via 10.40.10.1
+  - name: CORE
+    kind: l3switch
+    x: 50
+    y: 30
+    ports: 8
+    config: |-
+      vlan 10
+      vlan 20
+      interface Gi0/1
+       switchport access vlan 10
+      interface Gi0/2
+       switchport access vlan 20
+  - name: FILES
+    kind: server
+    x: 80
+    y: 75
+    config: |-
+      ip addr add 10.40.20.10/24 dev eth0
+      ip route add default via 10.40.20.1
+  cables:
+  - - STAFF-1
+    - eth0
+    - CORE
+    - Gi0/1
+  - - FILES
+    - eth0
+    - CORE
+    - Gi0/2
+expect:
+- label: Routing is on
+  config:
+    device: CORE
+    contains: ip routing
+- label: VLAN 10 has its gateway
+  iface_up:
+    device: CORE
+    interface: Vlan10
+- label: VLAN 20 has its gateway
+  iface_up:
+    device: CORE
+    interface: Vlan20
+- label: Staff can reach the file server
+  reach:
+    from: STAFF-1
+    to: FILES
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What is an SVI?
+  options:
+  - A virtual interface for a VLAN, which can hold its gateway address
+  - A kind of cable
+  - A DNS record
+  - A VPN
+  answer: A virtual interface for a VLAN, which can hold its gateway address
+  hint: It lives in the switch.
+- type: text
+  level: medium
+  label: The command
+  q: Which two words turn on routing on a layer 3 switch?
+  answer:
+  - ip routing
+  hint: Lesson.
+- type: mc
+  level: medium
+  label: What it fixes
+  q: Both SVIs have addresses, and pings between VLANs fail with "isn't routing". What's missing?
+  options:
+  - ip routing
+  - A trunk
+  - A hostname
+  - A DNS server
+  answer: ip routing
+  hint: Read the reason.
+- type: mc
+  level: medium
+  label: Compare
+  q: What does this do better than a router on a stick?
+  options:
+  - Routes inside the switch, without one cable as a bottleneck
+  - Uses fewer VLANs
+  - Needs no addresses
+  - Encrypts traffic
+  answer: Routes inside the switch, without one cable as a bottleneck
+  hint: No trip up and down.
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Why would an SVI stay down even with an address?
+  options:
+  - No active port is in that VLAN
+  - It's missing a hostname
+  - DNS is down
+  - The VLAN has a name
+  answer: No active port is in that VLAN
+  hint: It needs a live port.

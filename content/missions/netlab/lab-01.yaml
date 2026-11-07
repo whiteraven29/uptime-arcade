@@ -1,0 +1,114 @@
+id: lab-01
+track: LAB
+skill: networking
+chapter: First day
+order: 1
+title: Two PCs, one cable
+from: Facilities
+difficulty: easy
+check: net
+requires: net-05
+par:
+  kind: commands
+  value: 11
+lesson:
+  text: A network starts with a cable and two addresses. Plug the two machines together, then give each one an address on the same subnet with ip addr. A /24 means the first three octets have to match. Then ping tells you whether they can hear each other. In this lab, drag a cable from one port to another on the map to plug in, and click a device to open its console.
+  example: |-
+    ip addr add 10.70.1.1/24 dev eth0
+    ping 10.70.1.2
+brief: Two new PCs have arrived for the training room, and nothing is plugged in. Connect them and give them addresses in 10.40.1.0/24.
+goal: PC-1 and PC-2 can ping each other.
+hints:
+- Drag a cable from the port under PC-1 to the port under PC-2.
+- Try ip addr add 10.40.1.1/24 dev eth0 on PC-1 and .2 on PC-2.
+debrief:
+  why: A link needs a physical connection and two addresses on the same subnet. With those, no router is needed.
+  solution: |-
+    [cable] PC-1 eth0 PC-2 eth0
+    [PC-1]
+    ip addr add 10.40.1.1/24 dev eth0
+    [PC-2]
+    ip addr add 10.40.1.2/24 dev eth0
+    ping 10.40.1.1
+  job: 'It''s the first test of any new kit: is it plugged in, does it have an address, can it ping?'
+teaches:
+- ip addr
+- ping
+- cable
+lab:
+  devices:
+  - name: PC-1
+    kind: pc
+    x: 20
+    y: 50
+    config: ''
+  - name: PC-2
+    kind: pc
+    x: 80
+    y: 50
+    config: ''
+  cables: []
+  cabling: true
+expect:
+- label: PC-1 can ping PC-2
+  reach:
+    from: PC-1
+    to: PC-2
+- label: PC-2 can ping PC-1
+  reach:
+    from: PC-2
+    to: PC-1
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What did the two PCs need to reach each other?
+  options:
+  - A cable and addresses on the same subnet
+  - A router and DNS
+  - Only a cable
+  - Only addresses
+  answer: A cable and addresses on the same subnet
+  hint: Two things.
+- type: mc
+  level: easy
+  label: Addresses
+  q: Which address could sit beside 10.40.1.1/24?
+  options:
+  - 10.40.1.2
+  - 10.40.2.1
+  - 10.41.1.1
+  - 192.168.1.1
+  answer: 10.40.1.2
+  hint: The first three octets match.
+- type: text
+  level: medium
+  label: The command
+  q: Which tool checks whether one machine can reach another?
+  answer:
+  - ping
+  hint: One word, four letters.
+- type: order
+  level: medium
+  label: Order them
+  q: Put these steps in order.
+  scrambled:
+  - Ping across
+  - Plug in the cable
+  - Give each PC an address
+  answer:
+  - Plug in the cable
+  - Give each PC an address
+  - Ping across
+  hint: Physical first.
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Both PCs have addresses, and ping says 100% packet loss. What do you check first?
+  options:
+  - Whether the cable is in
+  - Whether DNS is running
+  - The hostname
+  - The router
+  answer: Whether the cable is in
+  hint: Start at the bottom.

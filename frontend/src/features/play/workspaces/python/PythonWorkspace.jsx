@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { CodeEditor } from '../../../../ui/CodeEditor.jsx';
-import { S, bump, reportPython, saveCode, sessionOn, ui } from '../../../../api/game.js';
+import { S, bump, reportPython, saveCode, canPlay, ui } from '../../../../api/game.js';
 import { loadPython, runTests } from './runner.js';
 
 export function PythonWorkspace({ mission }) {
-  const on = sessionOn();
+  const on = canPlay();
   const [code, setCode] = useState(S.code[mission.id] ?? mission.starter);
   const [output, setOutput] = useState('');
   useEffect(() => {
@@ -25,7 +25,7 @@ export function PythonWorkspace({ mission }) {
         saveCode(mission, v);
       }}
       onRun={async () => {
-        if (!sessionOn()) return;
+        if (!canPlay()) return;
         saveCode(mission, code);
         setOutput('Running...');
         const r = await runTests(mission, code);

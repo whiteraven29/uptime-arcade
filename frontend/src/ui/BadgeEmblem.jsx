@@ -6,7 +6,7 @@ const FAMILY = {
   firstblock: 'ember', clean10: 'ember', hours10: 'ember', hours100: 'ember',
   week: 'jade', month: 'jade', centurion: 'jade',
   first: 'holo', par50: 'holo', nohints: 'holo', night: 'violet',
-  tSH: 'violet', tVI: 'violet', tPY: 'violet', tGO: 'violet', tNET: 'violet',
+  tSH: 'violet', tVI: 'violet', tPY: 'violet', tGO: 'violet', tNET: 'violet', tLAB: 'violet',
   arch: 'gold',
   lv2: 'rank', lv3: 'rank', lv4: 'rank', lv5: 'rank', lv6: 'rank', lv7: 'rank', lv8: 'rank', lv9: 'rank',
   bx1: 'jade', bx2: 'holo', bx3: 'ember', bx4: 'gold', bx5: 'blood',
@@ -114,6 +114,13 @@ const GLYPH = {
     <g stroke="currentColor" strokeWidth="2.5">
       <path fill="none" d="M60 36 38 76H82ZM60 36V58M38 76 60 58 82 76" />
       {[[60, 36], [38, 76], [82, 76], [60, 58]].map(([x, y]) => <circle key={`${x}${y}`} cx={x} cy={y} r={x === 60 && y === 58 ? 4 : 6} fill="currentColor" />)}
+    </g>
+  ),
+  tLAB: (
+    <g stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <rect x="32" y="34" width="56" height="16" rx="3" fill="currentColor" fillOpacity="0.18" />
+      <rect x="32" y="70" width="56" height="16" rx="3" fill="currentColor" fillOpacity="0.18" />
+      <path fill="none" d="M60 50V70M42 42H48M42 78H48M72 42H78M72 78H78" />
     </g>
   ),
   par50: (

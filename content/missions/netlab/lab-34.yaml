@@ -1,0 +1,252 @@
+id: lab-34
+track: LAB
+skill: networking
+chapter: Capstones
+order: 44
+title: Blackout
+from: Incident Commander
+difficulty: expert
+check: net
+requires: net-30
+par:
+  kind: commands
+  value: 60
+lesson:
+  text: 'A big outage is usually several small faults. Don''t guess. Start from one user, and go up the ladder: can they reach their gateway? Past it? By name? Each failing ping says why. Fix one thing, test again, and keep notes. You have every tool from this track, including show running-config on any device.'
+  example: |-
+    1. Reach the gateway?
+    2. Reach past it?
+    3. Reach by name?
+    4. Fix one thing, then test again.
+brief: It's 2am, and a late-night change has taken down the Nairobi office. PC-1 can't reach the internet, and the site portal.corp.test won't open. Nobody remembers what was changed. There are several faults on the network. Find them and bring the office back.
+goal: 'The office is back: PC-1 reaches the internet and the portal by name.'
+hints:
+- 'Start at PC-1: ping 10.60.10.1, and read why it fails.'
+- 'There are four faults: a trunk, a default route, a NAT access list, and a DNS record.'
+debrief:
+  why: There were four separate faults, and each one hid the next. Working up the ladder from the user finds them in order, while guessing can't.
+  solution: |-
+    [PC-1]
+    ping 10.60.10.1
+    [SW1]
+    enable
+    show interfaces trunk
+    configure terminal
+    interface Gi0/8
+    switchport trunk allowed vlan add 10
+    end
+    copy running-config startup-config
+    [R1]
+    enable
+    show running-config
+    configure terminal
+    no ip route 0.0.0.0 0.0.0.0 203.0.113.9
+    ip route 0.0.0.0 0.0.0.0 203.0.113.1
+    no access-list 1
+    access-list 1 permit 10.60.0.0 0.0.255.255
+    end
+    copy running-config startup-config
+    [DNS-1]
+    dns del portal.corp.test
+    dns add portal.corp.test A 10.60.20.80
+    [PC-1]
+    curl portal.corp.test
+    curl 198.51.100.10
+  job: Calm, ordered troubleshooting is what people remember you for at 2am.
+teaches:
+- capstone
+lab:
+  devices:
+  - name: PC-1
+    kind: pc
+    x: 8
+    y: 75
+    config: |-
+      ip addr add 10.60.10.10/24 dev eth0
+      ip route add default via 10.60.10.1
+      nameserver 10.60.20.53
+  - name: SW1
+    kind: switch
+    x: 28
+    y: 55
+    ports: 8
+    config: |-
+      vlan 10
+      vlan 20
+      interface Gi0/1
+       switchport access vlan 10
+      interface Gi0/2
+       switchport access vlan 20
+      interface Gi0/3
+       switchport access vlan 20
+      interface Gi0/8
+       switchport mode trunk
+       switchport trunk allowed vlan 20
+  - name: DNS-1
+    kind: server
+    x: 18
+    y: 95
+    config: |-
+      ip addr add 10.60.20.53/24 dev eth0
+      ip route add default via 10.60.20.1
+      service dns start
+      dns add portal.corp.test A 10.60.20.8
+  - name: PORTAL
+    kind: server
+    x: 40
+    y: 95
+    config: |-
+      ip addr add 10.60.20.80/24 dev eth0
+      ip route add default via 10.60.20.1
+      service http start
+  - name: R1
+    kind: router
+    x: 46
+    y: 25
+    config: |-
+      interface Gi0/0
+       no shutdown
+      interface Gi0/0.10
+       encapsulation dot1q 10
+       ip address 10.60.10.1 255.255.255.0
+       ip nat inside
+      interface Gi0/0.20
+       encapsulation dot1q 20
+       ip address 10.60.20.1 255.255.255.0
+       ip nat inside
+      interface Gi0/1
+       ip address 203.0.113.2 255.255.255.0
+       ip nat outside
+       no shutdown
+      ip route 0.0.0.0 0.0.0.0 203.0.113.9
+      access-list 1 permit 10.60.0.0 0.0.0.255
+      ip nat inside source list 1 interface Gi0/1 overload
+  - name: ISP
+    kind: router
+    x: 72
+    y: 25
+    locked: true
+    config: |-
+      interface Gi0/0
+       ip address 203.0.113.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 198.51.100.1 255.255.255.0
+       no shutdown
+  - name: INTERNET
+    kind: server
+    x: 92
+    y: 25
+    locked: true
+    config: |-
+      ip addr add 198.51.100.10/24 dev eth0
+      ip route add default via 198.51.100.1
+      service http start
+  cables:
+  - - PC-1
+    - eth0
+    - SW1
+    - Gi0/1
+  - - DNS-1
+    - eth0
+    - SW1
+    - Gi0/2
+  - - PORTAL
+    - eth0
+    - SW1
+    - Gi0/3
+  - - R1
+    - Gi0/0
+    - SW1
+    - Gi0/8
+  - - R1
+    - Gi0/1
+    - ISP
+    - Gi0/0
+  - - INTERNET
+    - eth0
+    - ISP
+    - Gi0/1
+expect:
+- label: PC-1 reaches its gateway
+  reach:
+    from: PC-1
+    to: 10.60.10.1
+- label: PC-1 resolves the portal correctly
+  dns:
+    from: PC-1
+    name: portal.corp.test
+    answer: 10.60.20.80
+- label: PC-1 opens the portal by name
+  reach:
+    from: PC-1
+    to: portal.corp.test
+    proto: tcp
+    port: 80
+- label: PC-1 reaches the internet
+  reach:
+    from: PC-1
+    to: INTERNET
+    proto: tcp
+    port: 80
+- label: R1 survives a reload
+  saved:
+    device: R1
+- label: SW1 survives a reload
+  saved:
+    device: SW1
+rewind:
+- type: mc
+  level: easy
+  label: The method
+  q: Where does the ladder start?
+  options:
+  - With one user, reaching their gateway
+  - At the internet
+  - At the DNS server
+  - By reloading everything
+  answer: With one user, reaching their gateway
+  hint: Start close.
+- type: order
+  level: medium
+  label: Order them
+  q: Put the ladder in order.
+  scrambled:
+  - Reach by name
+  - Reach the gateway
+  - Reach past the gateway
+  answer:
+  - Reach the gateway
+  - Reach past the gateway
+  - Reach by name
+  hint: Inside out.
+- type: mc
+  level: medium
+  label: Discipline
+  q: Why fix one thing and test before the next?
+  options:
+  - So you know what fixed it, and don't add new faults
+  - It's required by the router
+  - It saves electricity
+  - The ISP asks for it
+  answer: So you know what fixed it, and don't add new faults
+  hint: One change at a time.
+- type: text
+  level: medium
+  label: Finish
+  q: What must you do last, or the fixes vanish at the next restart? One word.
+  answer:
+  - save
+  - copy
+  hint: copy running-config...
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Why did fixing the trunk not bring the internet back?
+  options:
+  - Other faults further along were hidden until then
+  - It wasn't a fault at all
+  - The trunk needed a reload
+  - The PC needed a new MAC
+  answer: Other faults further along were hidden until then
+  hint: Each hid the next.

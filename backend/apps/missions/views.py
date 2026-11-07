@@ -4,7 +4,6 @@ from rest_framework.response import Response
 
 from apps.content.models import ContentRelease
 from apps.content.serializers import MissionBriefingSerializer
-from apps.focus.services import require_session
 from apps.game.services import current_season
 
 from . import services
@@ -38,9 +37,9 @@ def briefing(request, code):
 @api_view(["GET"])
 def play(request, code):
     player = request.user.player
-    require_session(player)
     mission = services.get_mission(code)
     state = services._require_playable(player, mission)
+    services.require_play(player, state)
     progress = services.progress_of(player, mission)
     used = progress.hints_used if progress else 0
     if state == "cleared":

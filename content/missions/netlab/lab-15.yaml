@@ -1,0 +1,144 @@
+id: lab-15
+track: LAB
+skill: networking
+chapter: Services
+order: 15
+title: Relay across routers
+from: Service Desk
+difficulty: medium
+check: net
+requires: net-36
+par:
+  kind: commands
+  value: 14
+lesson:
+  text: Keep DHCP in one place and let routers relay. On the interface facing the clients, ip helper-address names the server. The server needs a pool for the client's subnet and a route back to it. If it fails, dhclient and show ip dhcp binding tell you what happened.
+  example: |-
+    interface Gi0/0
+     ip helper-address 10.70.99.1
+brief: Company policy is one central DHCP server. The floor network is 10.40.15.0/24 behind R-FLOOR, and R-CORE at 10.40.99.1 runs DHCP and already has the pool. Floor PCs are getting nothing.
+goal: PC-1 gets its address from the central server.
+hints:
+- The helper goes on the interface facing the PCs.
+- Then run dhclient eth0 on PC-1.
+debrief:
+  why: A DHCP broadcast stops at the first router, so that router relays it as unicast, and tells the server which subnet it came from.
+  solution: |-
+    [R-FLOOR]
+    enable
+    configure terminal
+    interface Gi0/0
+    ip helper-address 10.40.99.1
+    end
+    [PC-1]
+    dhclient eth0
+  job: 'One server, many floors: the relay is why central DHCP works.'
+teaches:
+- ip helper-address
+lab:
+  devices:
+  - name: PC-1
+    kind: pc
+    x: 12
+    y: 50
+    config: ''
+  - name: R-FLOOR
+    kind: router
+    x: 45
+    y: 50
+    config: |-
+      interface Gi0/0
+       ip address 10.40.15.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 10.40.99.2 255.255.255.0
+       no shutdown
+      ip route 0.0.0.0 0.0.0.0 10.40.99.1
+  - name: R-CORE
+    kind: router
+    x: 80
+    y: 50
+    config: |-
+      interface Gi0/0
+       ip address 10.40.99.1 255.255.255.0
+       no shutdown
+      ip dhcp excluded-address 10.40.15.1
+      ip dhcp pool FLOOR
+       network 10.40.15.0 255.255.255.0
+       default-router 10.40.15.1
+      ip route 10.40.15.0 255.255.255.0 10.40.99.2
+  cables:
+  - - PC-1
+    - eth0
+    - R-FLOOR
+    - Gi0/0
+  - - R-FLOOR
+    - Gi0/1
+    - R-CORE
+    - Gi0/0
+expect:
+- label: PC-1 got an address from the central pool
+  dhcp:
+    host: PC-1
+    in: 10.40.15.0/24
+- label: PC-1 can reach the central server
+  reach:
+    from: PC-1
+    to: 10.40.99.1
+- label: R-FLOOR is relaying
+  config:
+    device: R-FLOOR
+    interface: Gi0/0
+    contains: ip helper-address 10.40.99.1
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does a relay do?
+  options:
+  - Passes DHCP broadcasts on to a server as normal packets
+  - Hands out addresses itself
+  - Blocks DHCP
+  - Renames clients
+  answer: Passes DHCP broadcasts on to a server as normal packets
+  hint: It relays.
+- type: mc
+  level: medium
+  label: Where
+  q: Which interface gets ip helper-address?
+  options:
+  - The one facing the clients
+  - The one facing the server
+  - Both
+  - The loopback
+  answer: The one facing the clients
+  hint: Where the broadcast arrives.
+- type: text
+  level: medium
+  label: The command
+  q: Name the relay command, without its address.
+  answer:
+  - ip helper-address
+  hint: Starts with ip.
+- type: mc
+  level: medium
+  label: Pools
+  q: How does the server pick the pool?
+  options:
+  - The relay tells it the client's subnet
+  - It asks the client
+  - It goes through them in order
+  - It uses VLAN names
+  answer: The relay tells it the client's subnet
+  hint: From the relay.
+- type: mc
+  level: hard
+  label: Diagnosis
+  q: The helper is set, and clients still get nothing. The server has no route back to the floor. What happens?
+  options:
+  - The server's reply can't get back to the relay
+  - The floor switch reboots
+  - Clients get a random address
+  - Nothing changes, it works anyway
+  answer: The server's reply can't get back to the relay
+  hint: Replies are packets too.

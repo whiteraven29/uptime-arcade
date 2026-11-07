@@ -1,0 +1,127 @@
+id: lab-02
+track: LAB
+skill: networking
+chapter: First day
+order: 2
+title: The switch learns
+from: Facilities
+difficulty: easy
+check: net
+requires: net-31
+par:
+  kind: commands
+  value: 14
+lesson:
+  text: 'Now the PCs are on a switch. It starts with an empty MAC table and fills it from traffic. Devices like switches have a console: type enable to go to privileged mode, then show mac address-table to read what it has learned. Before any traffic the table is empty. Send a ping and look again.'
+  example: |-
+    enable
+    show mac address-table
+brief: Someone wants to know which port each desk uses. PC-1 is ready, but PC-2 still needs its address, 10.40.2.2/24. Then make the switch learn both machines by sending traffic, and read the table. Plug PC-2 into Gi0/5 first.
+goal: The switch has learned which port each PC is on.
+hints:
+- Ping from PC-1 to 10.40.2.2.
+- 'Then on SW1: enable, then show mac address-table.'
+debrief:
+  why: A switch needs no configuration to start learning. Traffic teaches it, and the MAC table records what it saw.
+  solution: |-
+    [cable] PC-2 eth0 SW1 Gi0/5
+    [PC-2]
+    ip addr add 10.40.2.2/24 dev eth0
+    [PC-1]
+    ping 10.40.2.2
+    [SW1]
+    enable
+    show mac address-table
+  job: Tracing a machine to a port this way is everyday work on any support desk.
+teaches:
+- enable
+- show mac address-table
+lab:
+  devices:
+  - name: PC-1
+    kind: pc
+    x: 20
+    y: 70
+    config: ip addr add 10.40.2.1/24 dev eth0
+  - name: PC-2
+    kind: pc
+    x: 80
+    y: 70
+    config: ''
+  - name: SW1
+    kind: switch
+    x: 50
+    y: 30
+    ports: 8
+    config: ''
+  cables:
+  - - PC-1
+    - eth0
+    - SW1
+    - Gi0/1
+  cabling: true
+expect:
+- label: The PCs can ping each other through the switch
+  reach:
+    from: PC-1
+    to: PC-2
+- label: SW1 knows PC-1 is on Gi0/1
+  mac_on:
+    device: SW1
+    port: Gi0/1
+- label: SW1 knows PC-2 is on Gi0/5
+  mac_on:
+    device: SW1
+    port: Gi0/5
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What fills a switch's MAC table?
+  options:
+  - Traffic passing through it
+  - A file you load
+  - The router
+  - DNS
+  answer: Traffic passing through it
+  hint: It learns.
+- type: mc
+  level: easy
+  label: Modes
+  q: 'Which command gets you to the # prompt?'
+  options:
+  - enable
+  - show
+  - ping
+  - login
+  answer: enable
+  hint: You typed it first.
+- type: text
+  level: medium
+  label: The command
+  q: Which show command lists what a switch has learned? Leave out the word show.
+  answer:
+  - mac address-table
+  hint: mac something.
+- type: mc
+  level: medium
+  label: Reading it
+  q: The table shows a MAC on Gi0/5. What does that tell you?
+  options:
+  - That machine is reached through port Gi0/5
+  - That machine is in VLAN 5
+  - That port is broken
+  - It has 5 addresses
+  answer: That machine is reached through port Gi0/5
+  hint: Port column.
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Before any traffic, why is the table empty?
+  options:
+  - The switch only learns from frames it sees
+  - It's broken
+  - It needs a password
+  - It's waiting for DNS
+  answer: The switch only learns from frames it sees
+  hint: Where does it learn from?

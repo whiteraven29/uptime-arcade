@@ -14,6 +14,7 @@ import { ALL_MISSIONS, BEYOND, TK, TRACKS } from '../content/index.mjs';
 import { S } from '../engines/host.js';
 import { evalExpect } from '../engines/fs/expect.js';
 import { buildProgram, configureSkulpt, judge } from '../frontend/src/features/play/workspaces/python/program.js';
+import { createLab, gradeLab } from '../engines/netsim/index.js';
 import { machineState, pressKeys, resetMachine, run, startMission } from './machine.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -78,10 +79,45 @@ function checkRewind(t) {
 resetMachine();
 const solved = {};
 
+/* A lab is proven three ways: it isn't already solved, its solution solves it with no errors from any device,
+   and the server's grader, working only from the saved configs, agrees. */
+function playLab(t) {
+  const id = t.id;
+  const failing = gradeLab(t.lab, null, t.expect).filter((g) => !g.ok);
+  if (!failing.length) fail(id, 'every goal already passes before any work is done');
+  const lab = createLab(t.lab);
+  let device = null;
+  let commands = 0;
+  for (const line of t.sol.split('\n')) {
+    const cable = /^\[cable\] (\S+) (\S+) (\S+) (\S+)$/.exec(line);
+    const switched = /^\[(\S+)\]$/.exec(line);
+    if (cable) {
+      const err = lab.plug(cable[1], cable[2], cable[3], cable[4]);
+      if (err) fail(id, `${line}: ${err}`);
+    } else if (switched) {
+      device = switched[1];
+      if (!lab.devices.has(device)) fail(id, `no device ${device}`);
+    } else if (line) {
+      commands++;
+      const out = lab.run(device, line);
+      if (/^\s*\^|^% |command not found|Usage:/m.test(out)) fail(id, `${device}: ${line}: ${out.slice(0, 160)}`);
+    }
+  }
+  if (commands > t.par) fail(id, `par ${t.par} took ${commands}`);
+  for (const g of lab.check(t.expect)) if (!g.ok) fail(id, `after the solution, "${g.label}" fails: ${g.why}`);
+  const state = lab.serialize();
+  // The MAC table comes from traffic, so the server's check sends traffic first, the same as this one.
+  for (const g of gradeLab(t.lab, state, t.expect)) if (!g.ok) fail(id, `from saved configs, "${g.label}" fails: ${g.why}`);
+  const again = createLab(t.lab, state).serialize();
+  if (JSON.stringify(again) !== JSON.stringify(state)) fail(id, 'saving and loading the configs changed them');
+  solved[id] = { kind: 'net', state };
+}
+
 async function play(t) {
   const id = t.id;
-  startMission(t);
   checkRewind(t);
+  if (t.kind === 'net') return playLab(t);
+  startMission(t);
   if (t.kind === 'py') {
     if (hasPython) {
       try {

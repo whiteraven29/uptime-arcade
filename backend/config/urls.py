@@ -14,4 +14,5 @@ urlpatterns = [
     path("api/v1/", include("apps.focus.urls")),
     path("api/v1/", include("apps.content.urls")),
     path("api/v1/", include("apps.missions.urls")),
+    path("api/v1/", include("apps.netlab.urls")),
 ]

@@ -1,0 +1,145 @@
+id: lab-05
+track: LAB
+skill: networking
+chapter: Console
+order: 5
+title: Make it stick
+from: Operations
+difficulty: easy
+check: net
+requires: net-32
+par:
+  kind: commands
+  value: 14
+lesson:
+  text: Your changes go into the running-config straight away, but a restart loads the startup-config. So after a change, copy running-config startup-config saves it. The reload command restarts the device, which is how you prove the change survives. Compare them with show running-config and show startup-config.
+  example: |-
+    copy running-config startup-config
+    reload
+brief: 'R1 is about to be restarted for maintenance, and its address on Gi0/0 is wrong: it should be 10.40.5.1/24. Fix that and save, so the router survives the restart.'
+goal: R1 survives a reload with both links working.
+hints:
+- Fix the address on Gi0/0 first.
+- Then copy running-config startup-config.
+debrief:
+  why: Running is now and startup is after a restart. If they differ, a reboot is a surprise, so saving is part of finishing a change.
+  solution: |-
+    [R1]
+    enable
+    configure terminal
+    interface Gi0/0
+    ip address 10.40.5.1 255.255.255.0
+    end
+    copy running-config startup-config
+  job: Change checklists end with "saved and tested" because of faults that wait for the next reboot.
+teaches:
+- copy running-config
+- reload
+- show running-config
+- show startup-config
+lab:
+  devices:
+  - name: PC-1
+    kind: pc
+    x: 15
+    y: 50
+    config: |-
+      ip addr add 10.40.5.10/24 dev eth0
+      ip route add default via 10.40.5.1
+  - name: R1
+    kind: router
+    x: 50
+    y: 50
+    config: |-
+      interface Gi0/0
+       ip address 10.40.5.9 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 10.40.6.1 255.255.255.0
+       no shutdown
+  - name: SRV-1
+    kind: server
+    x: 85
+    y: 50
+    config: |-
+      ip addr add 10.40.6.10/24 dev eth0
+      ip route add default via 10.40.6.1
+  cables:
+  - - PC-1
+    - eth0
+    - R1
+    - Gi0/0
+  - - SRV-1
+    - eth0
+    - R1
+    - Gi0/1
+expect:
+- label: PC-1 can reach its gateway
+  reach:
+    from: PC-1
+    to: 10.40.5.1
+- label: R1's changes are saved
+  saved:
+    device: R1
+- label: It all still works after a reload
+  after_reload:
+    devices:
+    - R1
+    then:
+    - reach:
+        from: PC-1
+        to: SRV-1
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does a restart load?
+  options:
+  - The startup-config
+  - The running-config
+  - Nothing
+  - The last show output
+  answer: The startup-config
+  hint: The saved one.
+- type: text
+  level: easy
+  label: The command
+  q: Which command restarts a device?
+  answer:
+  - reload
+  hint: One word.
+- type: order
+  level: medium
+  label: Order them
+  q: Put these in the order of a safe change.
+  scrambled:
+  - copy running-config startup-config
+  - Make the change
+  - Test it
+  answer:
+  - Make the change
+  - Test it
+  - copy running-config startup-config
+  hint: Save what works.
+- type: mc
+  level: medium
+  label: Compare
+  q: How can you see whether there are unsaved changes?
+  options:
+  - Compare show running-config with show startup-config
+  - Ping the router
+  - Look at the MAC table
+  - Ask DNS
+  answer: Compare show running-config with show startup-config
+  hint: Two configs.
+- type: mc
+  level: hard
+  label: Why it matters
+  q: Why might you not save straight away during a risky change?
+  options:
+  - If it goes wrong, a reload brings back the last good config
+  - Saving is slow
+  - Saving deletes the running-config
+  - Saving needs a reboot
+  answer: If it goes wrong, a reload brings back the last good config
+  hint: Startup is a safety net.

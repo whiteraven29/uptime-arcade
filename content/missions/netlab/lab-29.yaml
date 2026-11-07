@@ -1,0 +1,214 @@
+id: lab-29
+track: LAB
+skill: networking
+chapter: Dynamic routing
+order: 39
+title: Prefer the fibre, survive the cut
+from: Network
+difficulty: expert
+check: net
+requires: net-40
+par:
+  kind: commands
+  value: 19
+lesson:
+  text: 'OSPF takes the lowest total cost. Every link in this lab costs 1, unless you change it with ip ospf cost on the interface. Raising it on a slow link keeps traffic off until it''s the only way. To check, read show ip route, and cut a link to test failover: in a real change window, you''d do exactly that.'
+  example: |-
+    interface Gi0/2
+     ip ospf cost 100
+brief: R1's direct link to R3, on Gi0/2, is a slow microwave link. The fibre path through R2 should carry traffic, and the microwave should only be used if the fibre path fails. Change the cost at both ends of the slow link.
+goal: Traffic prefers the fibre path, and falls back to the slow link if the fibre is cut.
+hints:
+- The slow link is R1 Gi0/2 and R3 Gi0/1.
+- ip ospf cost 100 on each.
+debrief:
+  why: Cost is chosen per direction, so set it at both ends or traffic goes one way and returns another. The backup needs no other setup, because OSPF recalculates by itself.
+  solution: |-
+    [R1]
+    enable
+    configure terminal
+    interface Gi0/2
+    ip ospf cost 100
+    end
+    show ip route
+    [R3]
+    enable
+    configure terminal
+    interface Gi0/1
+    ip ospf cost 100
+    end
+  job: This is how engineers keep expensive or slow links as backups without losing them.
+teaches:
+- ip ospf cost
+lab:
+  devices:
+  - name: PC-A
+    kind: pc
+    x: 8
+    y: 80
+    config: |-
+      ip addr add 10.1.1.10/24 dev eth0
+      ip route add default via 10.1.1.1
+  - name: R1
+    kind: router
+    x: 28
+    y: 50
+    config: |-
+      interface Lo0
+       ip address 1.1.1.1 255.255.255.255
+      interface Gi0/0
+       ip address 10.1.1.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 10.0.12.1 255.255.255.0
+       no shutdown
+      interface Gi0/2
+       ip address 10.0.13.1 255.255.255.0
+       no shutdown
+      router ospf 1
+       router-id 1.1.1.1
+       network 10.0.0.0 0.255.255.255 area 0
+       passive-interface Gi0/0
+  - name: R2
+    kind: router
+    x: 50
+    y: 15
+    config: |-
+      interface Lo0
+       ip address 2.2.2.2 255.255.255.255
+      interface Gi0/1
+       ip address 10.0.12.2 255.255.255.0
+       no shutdown
+      interface Gi0/2
+       ip address 10.0.23.2 255.255.255.0
+       no shutdown
+      router ospf 1
+       router-id 2.2.2.2
+       network 10.0.0.0 0.255.255.255 area 0
+  - name: R3
+    kind: router
+    x: 72
+    y: 50
+    config: |-
+      interface Lo0
+       ip address 3.3.3.3 255.255.255.255
+      interface Gi0/0
+       ip address 10.3.3.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 10.0.13.3 255.255.255.0
+       no shutdown
+      interface Gi0/2
+       ip address 10.0.23.3 255.255.255.0
+       no shutdown
+      router ospf 1
+       router-id 3.3.3.3
+       network 10.0.0.0 0.255.255.255 area 0
+       passive-interface Gi0/0
+  - name: SRV-C
+    kind: server
+    x: 92
+    y: 80
+    config: |-
+      ip addr add 10.3.3.10/24 dev eth0
+      ip route add default via 10.3.3.1
+      service http start
+  cables:
+  - - PC-A
+    - eth0
+    - R1
+    - Gi0/0
+  - - R1
+    - Gi0/1
+    - R2
+    - Gi0/1
+  - - R1
+    - Gi0/2
+    - R3
+    - Gi0/1
+  - - R2
+    - Gi0/2
+    - R3
+    - Gi0/2
+  - - SRV-C
+    - eth0
+    - R3
+    - Gi0/0
+expect:
+- label: R1 uses the fibre path through R2
+  route:
+    device: R1
+    to: 10.3.3.10
+    via: 10.0.12.2
+- label: R3 uses the fibre path back
+  route:
+    device: R3
+    to: 10.1.1.10
+    via: 10.0.23.2
+- label: With the fibre cut, R1 falls back to the slow link
+  survives:
+    cut:
+    - device: R1
+      port: Gi0/1
+    then:
+    - route:
+        device: R1
+        to: 10.3.3.10
+        via: 10.0.13.3
+    - reach:
+        from: PC-A
+        to: SRV-C
+        proto: tcp
+        port: 80
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Which way does OSPF send traffic?
+  options:
+  - The lowest total cost
+  - The fewest cables always
+  - Alphabetically
+  - The highest cost
+  answer: The lowest total cost
+  hint: Add it up.
+- type: mc
+  level: medium
+  label: Both ends
+  q: Why change the cost on both ends?
+  options:
+  - Each direction is decided separately
+  - It's a typing exercise
+  - One end would crash
+  - Costs must total 100
+  answer: Each direction is decided separately
+  hint: Return path.
+- type: text
+  level: medium
+  label: Work it out
+  q: A path crosses links costing 1 and 1. The direct link costs 100. Which total does OSPF choose?
+  answer:
+  - '2'
+  hint: 1 + 1.
+- type: mc
+  level: medium
+  label: The cut
+  q: What must you do on the routers for failover?
+  options:
+  - 'Nothing: they recalculate by themselves'
+  - Reload
+  - Type each new route
+  - Change the cost back
+  answer: 'Nothing: they recalculate by themselves'
+  hint: Automatic.
+- type: mc
+  level: hard
+  label: Symmetry
+  q: You only raised the cost at one end. What would users notice?
+  options:
+  - Traffic goes one way and comes back another, which is hard to debug
+  - Nothing could ever go wrong
+  - All VLANs drop
+  - DNS fails
+  answer: Traffic goes one way and comes back another, which is hard to debug
+  hint: Asymmetric paths.

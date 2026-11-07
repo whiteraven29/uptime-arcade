@@ -1,0 +1,211 @@
+id: lab-37
+track: LAB
+skill: networking
+chapter: Wireless
+order: 29
+title: Stop the interference
+from: Service Desk
+difficulty: hard
+check: net
+requires: net-47
+par:
+  kind: commands
+  value: 19
+lesson:
+  text: 'When Wi-Fi is slow, look at the air. On an access point, show dot11 neighbors lists the others it can hear, and warns about overlaps. Change a radio with channel on its interface. On 2.4 GHz use only 1, 6 and 11. Then check that coverage holds up: if one access point dies, its clients should roam to the next one by themselves.'
+  example: |-
+    show dot11 neighbors
+    interface Dot11Radio0
+     channel 11
+brief: 'Ticket: "The Wi-Fi on the second floor crawls every afternoon." Three access points cover the floor, and someone set them all up the same way. Fix the channel plan so no neighbours overlap. LAPTOP-1 should keep working if AP-2 fails.'
+goal: No access points interfere, and LAPTOP-1 roams if AP-2 goes down.
+hints:
+- show dot11 neighbors on any of them says what overlaps.
+- Leave AP-2 on 6, and move AP-1 to 1 and AP-3 to 11.
+debrief:
+  why: Three channels that don't overlap are enough for most floors, as long as neighbours differ. And because every access point offers the same SSID, a client just moves when one fails.
+  solution: |-
+    [AP-1]
+    enable
+    show dot11 neighbors
+    configure terminal
+    interface Dot11Radio0
+    channel 1
+    end
+    [AP-3]
+    enable
+    configure terminal
+    interface Dot11Radio0
+    channel 11
+    end
+  job: Channel plans and coverage overlap are what a Wi-Fi survey is really about.
+teaches:
+- show dot11 neighbors
+lab:
+  devices:
+  - name: LAPTOP-1
+    kind: laptop
+    x: 48
+    y: 80
+    config: |-
+      wifi connect STAFF Wh1teraven-Staff
+      ip addr add 10.70.10.50/24 dev wlan0
+      ip route add default via 10.70.10.1
+  - name: AP-1
+    kind: ap
+    x: 22
+    y: 50
+    config: |-
+      vlan 10
+      dot11 ssid STAFF
+       vlan 10
+       authentication wpa2 Wh1teraven-Staff
+      interface Do0
+       channel 6
+       ssid STAFF
+       no shutdown
+      interface Gi0/1
+       switchport mode trunk
+  - name: AP-2
+    kind: ap
+    x: 50
+    y: 50
+    config: |-
+      vlan 10
+      dot11 ssid STAFF
+       vlan 10
+       authentication wpa2 Wh1teraven-Staff
+      interface Do0
+       channel 6
+       ssid STAFF
+       no shutdown
+      interface Gi0/1
+       switchport mode trunk
+  - name: AP-3
+    kind: ap
+    x: 78
+    y: 50
+    config: |-
+      vlan 10
+      dot11 ssid STAFF
+       vlan 10
+       authentication wpa2 Wh1teraven-Staff
+      interface Do0
+       channel 6
+       ssid STAFF
+       no shutdown
+      interface Gi0/1
+       switchport mode trunk
+  - name: SW1
+    kind: switch
+    x: 50
+    y: 12
+    ports: 8
+    config: |-
+      vlan 10
+       name STAFF
+      vlan 20
+       name GUEST
+      interface Gi0/1
+       switchport mode trunk
+      interface Gi0/2
+       switchport mode trunk
+      interface Gi0/3
+       switchport mode trunk
+      interface Gi0/4
+       switchport access vlan 10
+  - name: FILES
+    kind: server
+    x: 85
+    y: 12
+    config: |-
+      ip addr add 10.70.10.9/24 dev eth0
+      ip route add default via 10.70.10.1
+  cables:
+  - - AP-1
+    - Gi0/1
+    - SW1
+    - Gi0/1
+  - - AP-2
+    - Gi0/1
+    - SW1
+    - Gi0/2
+  - - AP-3
+    - Gi0/1
+    - SW1
+    - Gi0/3
+  - - FILES
+    - eth0
+    - SW1
+    - Gi0/4
+expect:
+- label: No neighbouring access points overlap
+  wifi_clean: {}
+- label: LAPTOP-1 is connected through AP-2
+  wifi_assoc:
+    host: LAPTOP-1
+    ap: AP-2
+- label: If AP-2 fails, LAPTOP-1 roams and keeps working
+  survives:
+    shut:
+    - device: AP-2
+      interface: Do0
+    then:
+    - wifi_assoc:
+        host: LAPTOP-1
+        ssid: STAFF
+    - reach:
+        from: LAPTOP-1
+        to: FILES
+rewind:
+- type: mc
+  level: easy
+  label: The fault
+  q: Why was the Wi-Fi slow?
+  options:
+  - All the access points were on one channel
+  - The password was too long
+  - The trunk was wrong
+  - DNS was down
+  answer: All the access points were on one channel
+  hint: Read the neighbours.
+- type: text
+  level: medium
+  label: Plan it
+  q: 'Which channel completes this plan: 1, 6 and what?'
+  answer:
+  - '11'
+  hint: The last of the three.
+- type: mc
+  level: medium
+  label: Check it
+  q: Are channels 1 and 3 safe as neighbours?
+  options:
+  - No, they overlap
+  - Yes, they differ
+  - Only at night
+  - Only on WPA3
+  answer: No, they overlap
+  hint: Five apart, at least.
+- type: mc
+  level: medium
+  label: Roaming
+  q: What lets a client move to another access point by itself?
+  options:
+  - They offer the same SSID and password
+  - A new VLAN
+  - A reload
+  - A special cable
+  answer: They offer the same SSID and password
+  hint: Same network name.
+- type: mc
+  level: hard
+  label: Design
+  q: Why let coverage overlap, if overlap sounds bad?
+  options:
+  - Radio coverage should overlap so clients can roam, while channels stay different
+  - It saves power
+  - It stops interference on its own
+  - It removes the need for a trunk
+  answer: Radio coverage should overlap so clients can roam, while channels stay different
+  hint: Coverage isn't channels.

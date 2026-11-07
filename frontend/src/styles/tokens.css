@@ -108,6 +108,17 @@
   --chart-grid: rgba(190, 180, 255, 0.14);
   --chart-track: rgba(42, 168, 128, 0.18);
 
+  /* NetLab's map: link state always comes with a label or a legend, never colour alone */
+  --lab-up: #5ef0b0;
+  --lab-down: #ff5d6c;
+  --lab-blocked: #ffc24d;
+  --lab-wifi: #b08cff;
+  --lab-negotiating: #ffc24d;
+  --lab-socket: #070b18;
+  --lab-sealed: #d9b8ff;
+  --lab-icon-fill: #101a33;
+  --lab-select: #b3edff;
+
   /* difficulty, from gentle to painful */
   --diff-easy: #5ef0b0;
   --diff-medium: #4fd8ff;

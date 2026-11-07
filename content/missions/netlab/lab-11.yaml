@@ -1,0 +1,157 @@
+id: lab-11
+track: LAB
+skill: networking
+chapter: VLANs
+order: 11
+title: Choose the root bridge
+from: Network
+difficulty: medium
+check: net
+requires: net-35
+par:
+  kind: commands
+  value: 13
+lesson:
+  text: 'With spare links, spanning tree blocks some ports so there are no loops. By default the root is chosen by luck: lowest MAC. You choose it with spanning-tree vlan 1 root primary on the switch that should be at the centre. In this simulator there''s one tree for all VLANs. Check with show spanning-tree. Links to end devices can use spanning-tree portfast so they don''t have to wait.'
+  example: |-
+    spanning-tree vlan 1 root primary
+    show spanning-tree
+brief: Three switches form a triangle so the office survives a cut. Right now ACCESS-2, a closet switch, is the root because someone left it with a low priority. CORE should be the root, because most traffic flows through it. Make it so, and check the office survives losing the CORE to ACCESS-1 link.
+goal: CORE is the root bridge, and PC-1 still reaches SRV-1 with one link cut.
+hints:
+- The command goes on CORE only.
+- spanning-tree vlan 1 root primary, in config mode.
+debrief:
+  why: Redundant links need STP to stay loop-free, and picking the root yourself keeps traffic on the best path. Cut a link and the blocked port takes over.
+  solution: |-
+    [CORE]
+    enable
+    configure terminal
+    spanning-tree vlan 1 root primary
+    end
+    show spanning-tree
+  job: A misplaced root is a classic slow-network mystery, so root placement goes in the design, not left to chance.
+teaches:
+- spanning-tree vlan
+- show spanning-tree
+- spanning-tree portfast
+lab:
+  devices:
+  - name: CORE
+    kind: switch
+    x: 50
+    y: 20
+    ports: 8
+    config: ''
+  - name: ACCESS-1
+    kind: switch
+    x: 20
+    y: 65
+    ports: 8
+    config: ''
+  - name: ACCESS-2
+    kind: switch
+    x: 80
+    y: 65
+    ports: 8
+    config: spanning-tree vlan 1 priority 28672
+  - name: PC-1
+    kind: pc
+    x: 20
+    y: 92
+    config: ip addr add 10.40.11.1/24 dev eth0
+  - name: SRV-1
+    kind: server
+    x: 80
+    y: 92
+    config: ip addr add 10.40.11.2/24 dev eth0
+  cables:
+  - - CORE
+    - Gi0/1
+    - ACCESS-1
+    - Gi0/1
+  - - CORE
+    - Gi0/2
+    - ACCESS-2
+    - Gi0/1
+  - - ACCESS-1
+    - Gi0/2
+    - ACCESS-2
+    - Gi0/2
+  - - PC-1
+    - eth0
+    - ACCESS-1
+    - Gi0/5
+  - - SRV-1
+    - eth0
+    - ACCESS-2
+    - Gi0/5
+expect:
+- label: CORE is the root bridge
+  stp_root:
+    device: CORE
+- label: PC-1 reaches SRV-1
+  reach:
+    from: PC-1
+    to: SRV-1
+- label: It survives the CORE to ACCESS-1 link being cut
+  survives:
+    cut:
+    - device: CORE
+      port: Gi0/1
+    then:
+    - reach:
+        from: PC-1
+        to: SRV-1
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why block a port on a perfectly good link?
+  options:
+  - To stop frames looping forever
+  - To save power
+  - To encrypt traffic
+  - To stop DNS
+  answer: To stop frames looping forever
+  hint: Loops are the danger.
+- type: mc
+  level: medium
+  label: Priority
+  q: What does root primary do to a switch?
+  options:
+  - Lowers its priority so it wins the election
+  - Raises its priority
+  - Turns it off
+  - Removes its VLANs
+  answer: Lowers its priority so it wins the election
+  hint: Lowest wins.
+- type: text
+  level: medium
+  label: The command
+  q: Which show command tells you the root bridge? Leave out show.
+  answer:
+  - spanning-tree
+  hint: It's in the name.
+- type: mc
+  level: medium
+  label: Cuts
+  q: A link in the tree is cut. What happens?
+  options:
+  - A blocked port starts forwarding
+  - Everything stops
+  - The root changes its name
+  - VLANs are deleted
+  answer: A blocked port starts forwarding
+  hint: That's the spare.
+- type: mc
+  level: hard
+  label: Design
+  q: Why should the root sit at the core, not in a corner?
+  options:
+  - Traffic follows the tree, so a corner root makes paths longer
+  - Corners are hotter
+  - The root needs more VLANs
+  - It's only a naming rule
+  answer: Traffic follows the tree, so a corner root makes paths longer
+  hint: Paths lead to the root.

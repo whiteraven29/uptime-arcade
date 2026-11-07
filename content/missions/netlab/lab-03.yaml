@@ -1,0 +1,108 @@
+id: lab-03
+track: LAB
+skill: networking
+chapter: Console
+order: 3
+title: Name the new switch
+from: Network Standards
+difficulty: easy
+check: net
+requires: net-32
+par:
+  kind: commands
+  value: 12
+lesson:
+  text: 'Every change starts the same way: enable, then configure terminal, which puts you in config mode. Here, hostname gives a device the name people will see in logs and prompts. Then end takes you back out. Watch the prompt change as you go, because it tells you where you are. Pressing ? shows what fits next, and Tab finishes a word. Short forms work too, such as conf t.'
+  example: |-
+    enable
+    configure terminal
+    hostname CORE-SW1
+    end
+brief: A new switch has just been racked. The naming standard says this one is called NBO-FL3-SW1.
+goal: The switch is named NBO-FL3-SW1.
+hints:
+- Start with enable, then configure terminal.
+- hostname NBO-FL3-SW1, then end.
+debrief:
+  why: Config changes go through modes, and the prompt always shows which one you're in. Names matter because they're what you read at 3am.
+  solution: |-
+    [SW1]
+    enable
+    configure terminal
+    hostname NBO-FL3-SW1
+    end
+  job: Naming standards are the first thing on a new-device checklist.
+teaches:
+- configure terminal
+- hostname
+- end
+lab:
+  devices:
+  - name: SW1
+    kind: switch
+    x: 50
+    y: 50
+    ports: 8
+    config: ''
+  cables: []
+expect:
+- label: The hostname follows the standard
+  config:
+    device: SW1
+    contains: hostname NBO-FL3-SW1
+rewind:
+- type: order
+  level: easy
+  label: Order them
+  q: Put these in order to rename a device.
+  scrambled:
+  - hostname EDGE
+  - enable
+  - end
+  - configure terminal
+  answer:
+  - enable
+  - configure terminal
+  - hostname EDGE
+  - end
+  hint: '# first, then config.'
+- type: mc
+  level: easy
+  label: The prompt
+  q: The prompt says Switch(config)#. Where are you?
+  options:
+  - Config mode
+  - User mode
+  - Privileged mode only
+  - Not logged in
+  answer: Config mode
+  hint: Read the brackets.
+- type: mc
+  level: medium
+  label: Help
+  q: You forget what comes after show ip. What do you type?
+  options:
+  - show ip ?
+  - help me
+  - man show
+  - ip show
+  answer: show ip ?
+  hint: The question mark.
+- type: text
+  level: medium
+  label: The command
+  q: Which command sets a device's name?
+  answer:
+  - hostname
+  hint: It's in the lesson.
+- type: mc
+  level: hard
+  label: Why it matters
+  q: Why bother with a naming standard?
+  options:
+  - So logs and prompts tell you exactly which device you're on
+  - It makes the switch faster
+  - The switch needs it to forward
+  - It sets the password
+  answer: So logs and prompts tell you exactly which device you're on
+  hint: Think of an outage.

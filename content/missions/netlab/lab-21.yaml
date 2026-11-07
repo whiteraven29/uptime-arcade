@@ -1,0 +1,172 @@
+id: lab-21
+track: LAB
+skill: networking
+chapter: Security
+order: 21
+title: Guests stay out of finance
+from: Security
+difficulty: hard
+check: net
+requires: net-42
+par:
+  kind: commands
+  value: 17
+lesson:
+  text: Use a named extended list to control traffic between networks. Create it with ip access-list extended, add lines starting deny or permit with the protocol, source and destination, and apply it with ip access-group on an interface, naming a direction. Remember every list ends by denying everything, so finish with a permit if others should pass. Check with show access-lists, which counts matches.
+  example: |-
+    ip access-list extended GUESTS
+     deny ip 10.70.20.0 0.0.0.255 10.70.30.0 0.0.0.255
+     permit ip any any
+    interface Gi0/0
+     ip access-group GUESTS in
+brief: The guest network is 10.40.21.0/24 and finance is 10.40.31.0/24. Guests must never reach finance, but they still need the web server at 10.40.41.80. Filter as close to the guests as you can.
+goal: Guests reach the web server and can't reach finance.
+hints:
+- The deny line names guests as source and finance as destination.
+- Finish with permit ip any any, or the web server is blocked too.
+debrief:
+  why: An extended list near the source stops traffic before it travels. Without the final permit, the invisible deny would have blocked everything else as well.
+  solution: |-
+    [R1]
+    enable
+    configure terminal
+    ip access-list extended GUESTS
+    deny ip 10.40.21.0 0.0.0.255 10.40.31.0 0.0.0.255
+    permit ip any any
+    interface Gi0/0
+    ip access-group GUESTS in
+    end
+    show access-lists
+  job: Separating guest and internal networks like this is required by most security standards.
+teaches:
+- ip access-list
+- deny
+- permit
+- ip access-group
+- show access-lists
+lab:
+  devices:
+  - name: GUEST-1
+    kind: pc
+    x: 12
+    y: 50
+    config: |-
+      ip addr add 10.40.21.10/24 dev eth0
+      ip route add default via 10.40.21.1
+  - name: R1
+    kind: router
+    x: 48
+    y: 50
+    config: |-
+      interface Gi0/0
+       ip address 10.40.21.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 10.40.31.1 255.255.255.0
+       no shutdown
+      interface Gi0/2
+       ip address 10.40.41.1 255.255.255.0
+       no shutdown
+  - name: FIN-1
+    kind: pc
+    x: 85
+    y: 20
+    config: |-
+      ip addr add 10.40.31.10/24 dev eth0
+      ip route add default via 10.40.31.1
+  - name: WEB-1
+    kind: server
+    x: 85
+    y: 80
+    config: |-
+      ip addr add 10.40.41.80/24 dev eth0
+      ip route add default via 10.40.41.1
+      service http start
+  cables:
+  - - GUEST-1
+    - eth0
+    - R1
+    - Gi0/0
+  - - FIN-1
+    - eth0
+    - R1
+    - Gi0/1
+  - - WEB-1
+    - eth0
+    - R1
+    - Gi0/2
+expect:
+- label: Guests can't reach finance
+  reach:
+    from: GUEST-1
+    to: FIN-1
+    expect: blocked
+- label: Guests reach the web server
+  reach:
+    from: GUEST-1
+    to: WEB-1
+    proto: tcp
+    port: 80
+- label: Finance can still use the web server
+  reach:
+    from: FIN-1
+    to: WEB-1
+    proto: tcp
+    port: 80
+- label: The list is applied near the guests
+  config:
+    device: R1
+    interface: Gi0/0
+    contains: ip access-group
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does the last, invisible line of a list do?
+  options:
+  - Denies everything else
+  - Permits everything else
+  - Logs everything
+  - Nothing
+  answer: Denies everything else
+  hint: Implicit deny.
+- type: mc
+  level: medium
+  label: Placement
+  q: Why apply it on the guest side, inbound?
+  options:
+  - It stops the traffic at the first router
+  - It's the only side that works
+  - It's encrypted there
+  - The VLAN needs it
+  answer: It stops the traffic at the first router
+  hint: Near the source.
+- type: order
+  level: medium
+  label: Order them
+  q: Put the lines in the order that works.
+  scrambled:
+  - permit ip any any
+  - deny ip 10.40.21.0 0.0.0.255 10.40.31.0 0.0.0.255
+  answer:
+  - deny ip 10.40.21.0 0.0.0.255 10.40.31.0 0.0.0.255
+  - permit ip any any
+  hint: First match wins.
+- type: text
+  level: medium
+  label: The word
+  q: What goes at the end of ip access-group GUESTS for traffic arriving?
+  answer:
+  - in
+  hint: Two letters.
+- type: mc
+  level: hard
+  label: Reading
+  q: show access-lists shows 0 matches on your deny line while guests still reach finance. What's likely?
+  options:
+  - The list isn't applied where the traffic passes
+  - The list is too long
+  - The router needs a reload
+  - Matches never count
+  answer: The list isn't applied where the traffic passes
+  hint: No matches means it never saw it.

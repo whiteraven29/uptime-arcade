@@ -1,0 +1,89 @@
+id: net-48
+track: NET
+skill: networking
+chapter: Wireless
+order: 45
+title: Wi-Fi security
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'Open Wi-Fi has no password, and nothing is encrypted on the air. WPA2 and WPA3 encrypt it, using one shared password, and WPA3 is stronger against guessing. A shared password has a weakness: when someone leaves, everyone has to change it. Enterprise Wi-Fi fixes that by giving each person their own login, checked by a RADIUS server, so you can remove one person without touching anyone else. Turning on client isolation stops guests reaching each other. A rogue access point is one nobody approved, plugged into your network, and you trace it to its switch port by its MAC.'
+  example: |-
+    open        no password, not encrypted
+    wpa2, wpa3  one shared password
+    enterprise  each person logs in, checked by RADIUS
+brief: 'Someone leaves the company. Which kind of Wi-Fi lets you lock out just that one person: wpa2 or enterprise?'
+goal: 'Run: submit <answer>'
+hints:
+- Which one has a login per person?
+- A shared password is shared by everyone.
+debrief:
+  why: The choice is about how you remove someone. Shared passwords are simple but all-or-nothing, and per-person logins cost a RADIUS server and save the whole office a password change.
+  solution: submit enterprise
+  job: Most companies use enterprise for staff and a separate isolated network for guests.
+teaches:
+- WPA2
+- WPA3
+- RADIUS
+- client isolation
+- rogue
+answer:
+  accept:
+  - enterprise
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does open Wi-Fi leave unprotected?
+  options:
+  - Everything on the air
+  - Only the password
+  - Only DNS
+  - Nothing
+  answer: Everything on the air
+  hint: No encryption.
+- type: mc
+  level: easy
+  label: Shared passwords
+  q: What's the weakness of one shared password?
+  options:
+  - When someone leaves, everyone has to change it
+  - It can't be long
+  - It stops roaming
+  - It slows the radio
+  answer: When someone leaves, everyone has to change it
+  hint: It's shared.
+- type: text
+  level: medium
+  label: The server
+  q: Which kind of server checks each person's Wi-Fi login?
+  answer:
+  - RADIUS
+  hint: Six letters.
+- type: mc
+  level: medium
+  label: Guests
+  q: What does client isolation do?
+  options:
+  - Stops clients on a network reaching each other
+  - Hides the SSID
+  - Changes the channel
+  - Encrypts the trunk
+  answer: Stops clients on a network reaching each other
+  hint: Guests apart.
+- type: mc
+  level: hard
+  label: Rogue
+  q: You spot an access point you don't own. How do you find where it's plugged in?
+  options:
+  - Look up its MAC in the switch's MAC table
+  - Ask DNS
+  - Ping it by name
+  - Reload the switches
+  answer: Look up its MAC in the switch's MAC table
+  hint: Switches know where MACs are.

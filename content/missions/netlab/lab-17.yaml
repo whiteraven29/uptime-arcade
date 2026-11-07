@@ -1,0 +1,148 @@
+id: lab-17
+track: LAB
+skill: networking
+chapter: Services
+order: 17
+title: 'Fault: the site won''t open by name'
+from: Service Desk
+difficulty: medium
+check: net
+requires: net-17
+par:
+  kind: commands
+  value: 14
+lesson:
+  text: 'A name that fails can be a few different things. Is DNS reachable? Does it have the record? Is the record right? Is the service up? Work through them in order: dig tells you what DNS says, and ping and curl with the address test past DNS. Use dns list on the server to read its records, and dns del to remove a wrong one.'
+  example: |-
+    dig portal.corp.test
+    curl 10.70.17.80
+    dns list
+    dns del portal.corp.test
+brief: 'Ticket: "portal.corp.test stopped working after the server moved. The address works for the people who know it." The portal is now 10.40.17.80, and PC-1 also seems to be asking an old DNS server.'
+goal: PC-1 can open portal.corp.test.
+hints:
+- Start with dig on PC-1, then cat /etc/resolv.conf.
+- DNS-1 still has the old address for portal, and PC-1 points at a server that isn't there.
+debrief:
+  why: 'There were two faults: the wrong DNS server on the PC and a stale record. Testing with the address first splits the problem in half: if the address works, it''s DNS.'
+  solution: |-
+    [PC-1]
+    dig portal.corp.test
+    [DNS-1]
+    dns list
+    dns del portal.corp.test
+    dns add portal.corp.test A 10.40.17.80
+    [PC-1]
+    echo nameserver 10.40.17.53 > /etc/resolv.conf
+    curl portal.corp.test
+  job: '"It works by IP but not by name" tells you it''s DNS straight away.'
+teaches:
+- dns del
+- dns list
+lab:
+  devices:
+  - name: PC-1
+    kind: pc
+    x: 15
+    y: 50
+    config: |-
+      ip addr add 10.40.17.10/24 dev eth0
+      nameserver 10.40.17.99
+  - name: SW1
+    kind: switch
+    x: 50
+    y: 50
+    ports: 8
+    config: ''
+  - name: DNS-1
+    kind: server
+    x: 85
+    y: 20
+    config: |-
+      ip addr add 10.40.17.53/24 dev eth0
+      service dns start
+      dns add portal.corp.test A 10.40.17.40
+  - name: PORTAL
+    kind: server
+    x: 85
+    y: 80
+    config: |-
+      ip addr add 10.40.17.80/24 dev eth0
+      service http start
+  cables:
+  - - PC-1
+    - eth0
+    - SW1
+    - Gi0/1
+  - - DNS-1
+    - eth0
+    - SW1
+    - Gi0/2
+  - - PORTAL
+    - eth0
+    - SW1
+    - Gi0/3
+expect:
+- label: The record points at the new server
+  dns:
+    from: PC-1
+    name: portal.corp.test
+    answer: 10.40.17.80
+- label: PC-1 can open the portal by name
+  reach:
+    from: PC-1
+    to: portal.corp.test
+    proto: tcp
+    port: 80
+rewind:
+- type: mc
+  level: easy
+  label: The method
+  q: The address works and the name doesn't. Where's the fault?
+  options:
+  - DNS
+  - The web server
+  - The cable
+  - The switch
+  answer: DNS
+  hint: The name is the difference.
+- type: mc
+  level: medium
+  label: Reading
+  q: dig times out. What does that point to?
+  options:
+  - The PC can't reach the DNS server, or it's the wrong one
+  - The record is wrong
+  - The site is down
+  - The PC has no browser
+  answer: The PC can't reach the DNS server, or it's the wrong one
+  hint: No answer at all.
+- type: mc
+  level: medium
+  label: Reading
+  q: dig gets NXDOMAIN. What does that mean?
+  options:
+  - 'The server answered: it has no such record'
+  - The server is down
+  - The cable is out
+  - The firewall blocked it
+  answer: 'The server answered: it has no such record'
+  hint: It did answer.
+- type: text
+  level: medium
+  label: The command
+  q: Which command shows the records on this lab's server? Two words.
+  answer:
+  - dns list
+  hint: dns something.
+- type: mc
+  level: hard
+  label: Why it happens
+  q: Why does an old address linger after a move?
+  options:
+  - Someone changed the server but not its DNS record
+  - DNS updates itself every week
+  - Switches remember names
+  - Browsers invent it
+  answer: Someone changed the server but not its DNS record
+  hint: It's a checklist item.

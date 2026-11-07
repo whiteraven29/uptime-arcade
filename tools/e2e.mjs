@@ -369,7 +369,7 @@ try {
   ok('a Beyond mission is refused before Archmage', (await call('/missions/bx-01/')).status === 403);
   const tampered = await call('/auth/me/', 'PATCH', { xp: 999999, peak_cleared: 150, is_staff: true });
   const after = await call('/player/');
-  ok('settings cannot set XP or level', tampered.status === 200 && after.data.xp < 2000 && after.data.level.cleared < 150, `XP ${after.data.xp}`);
+  ok('settings cannot set XP or level', tampered.status === 200 && after.data.xp < 2000 && after.data.level.cleared < 213, `XP ${after.data.xp}`);
   ok('another account\'s block looks missing', (await call('/focus/blocks/999999/claim/', 'POST', { done: true })).status === 404);
   await page.evaluate(() => {
     for (const k of Object.keys(localStorage)) {
@@ -401,9 +401,235 @@ try {
   await openCategory('BX');
   ok('Beyond shows as locked', await page.locator('.node[data-id="bx-01"].locked').count() === 1);
   ok('opening one category closes the other', await page.locator('.tcard.open').count() === 1);
-  ok('NetLab is listed as on its way, with what opens it', (await page.locator('.tcard[data-track="LAB"]').innerText()).includes('NET-11'));
+  ok('NetLab shows what opens it', await page.locator('.tcard[data-track="LAB"]').count() === 1);
+
+  // ---------- NetLab: a real lab, through the real grader ----------
+  const clearFor = (...codes) => manage('shell', '-c', `from apps.content.models import Mission; from apps.game.models import Player; from apps.missions.models import MissionProgress; from apps.game import services; from apps.game.models import TimeLedger; p = Player.objects.get(user__username='${USER}'); [MissionProgress.objects.get_or_create(player=p, mission=Mission.objects.get(code=c), season=p.season, defaults={'state': 'cleared'}) for c in ${JSON.stringify(codes)}]; services.add_time(p, 600, TimeLedger.Reason.STREAK)`);
+  const labLocked = await call('/missions/lab-01/');
+  ok('a lab stays shut until the mission it needs is cleared', labLocked.status === 403 || (await call('/tracks/')).data.tracks.find((t) => t.code === 'LAB').missions[0].state !== 'locked');
+  clearFor('net-05');
+  await page.goto(`${BASE}/missions/lab-01/play`);
+  await page.waitForSelector('#openSession, .lab-map');
+  if (await page.locator('#openSession').count()) await page.click('#openSession');
+  await page.waitForSelector('.lab-map');
+  await shot('netlab');
+  ok('the lab draws its devices', await page.locator('.lab-device').count() === 2);
+  const labPlay = seen.filter((r) => /missions\/lab-01\/play/.test(r.url)).map((r) => r.text).join('');
+  ok('the browser gets what the goals say, and never how they are tested', labPlay.includes('PC-1 can ping PC-2') && !labPlay.includes('"expect"') && !labPlay.includes('"reach"'));
+  await page.click('#labCheck');
+  await page.waitForSelector('.lab-goals .bad');
+  ok('checking too early says why, and costs nothing', /can't (reach|find)/.test(await page.locator('.lab-goals').innerText()));
+  const faked = await call('/missions/lab-01/submit/', 'POST', { state: { devices: {} }, passed: true, result: 'pass', goals: [{ label: 'x', ok: true }] });
+  ok('a client saying it passed changes nothing', faked.data.result === 'fail');
+  const lieAboutOutput = await call('/missions/lab-01/submit/', 'POST', { state: { devices: { 'PC-1': { running: 'ip addr add 10.40.1.1/24 dev eth0', startup: '' }, 'PC-2': { running: 'ip addr add 10.40.1.2/24 dev eth0', startup: '' } } } });
+  ok('real configs with no cable still fail, because the grader runs them', lieAboutOutput.data.result === 'fail');
+  // A cable, dragged by hand from one port to another.
+  const socket = async (key) => {
+    const b = await page.locator(`.lab-socket[data-port="${key}"]`).boundingBox();
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  };
+  const [plugA, plugB] = [await socket('PC-1|eth0'), await socket('PC-2|eth0')];
+  await page.mouse.move(plugA.x, plugA.y);
+  await page.mouse.down();
+  await page.mouse.move((plugA.x + plugB.x) / 2, plugA.y + 40, { steps: 5 });
+  ok('picking up a port gives you a cable in your hand', await page.locator('#labWire').count() === 1);
+  await page.mouse.move(plugB.x, plugB.y, { steps: 5 });
+  ok('the far port lights up as you reach it', await page.locator('.lab-socket.target').count() === 1 && await page.locator('#labWire.ready').count() === 1);
+  await page.mouse.up();
+  ok('letting go plugs it in, and the link is amber at first', await page.locator('.lab-cable').count() === 1 && await page.locator('.lab-cable.negotiating').count() === 1);
+  await page.waitForSelector('.lab-cable.up');
+  ok('then the link comes up green', await page.locator('.lab-socket.up').count() === 2);
+  await page.mouse.move(plugB.x, plugB.y);
+  await page.mouse.down();
+  await page.mouse.move(plugB.x, plugB.y - 90, { steps: 4 });
+  await page.mouse.up();
+  ok('pulling a cable out unplugs it', await page.locator('.lab-cable').count() === 0);
+  await page.mouse.move(plugA.x, plugA.y);
+  await page.mouse.down();
+  await page.mouse.move(plugB.x, plugB.y - 50, { steps: 5 });
+  await page.mouse.up();
+  ok('letting go on a device takes its free port', await page.locator('.lab-cable').count() === 1);
+  await page.waitForSelector('.lab-cable.up');
+  await page.locator('.lab-device[data-device="PC-1"]').click();
+  await typeCmd('ip addr add 10.40.1.1/24 dev eth0');
+  await typeCmd('ping 10.40.1.2');
+  await page.waitForSelector('#labTrace.bad');
+  ok('a failed ping says what went wrong', (await page.locator('.term-out').innerText()).includes('Why:'));
+  await page.waitForTimeout(1500); // the lab saves itself shortly after a change
+  await page.reload();
+  await page.waitForSelector('.lab-map');
+  ok('the lab is still as you left it after a reload', await page.locator('.lab-cable.up').count() === 1);
+  await page.locator('.lab-device[data-device="PC-2"]').click();
+  await typeCmd('ip addr add 10.40.1.2/24 dev eth0');
+  await typeCmd('ping 10.40.1.1');
+  await page.waitForSelector('#labTrace.ok');
+  ok('the ping gets there and back', (await page.locator('#labTrace').innerText()).includes('there and back'));
+  await page.click('#stepReplay');
+  const firstStep = await page.locator('#labStep').innerText();
+  await page.click('#stepNext');
+  ok('a packet can be stepped through one decision at a time', /Step \d+ of \d+/.test(firstStep) && (await page.locator('#labStep').innerText()) !== firstStep);
+  await page.click('#labCheck');
+  await page.waitForSelector('.lab-map.won');
+  ok('clearing a lab lights up the network, with the goals full', await page.locator('.lab-surge').count() === 1 && (await page.locator('#labProgress').innerText()).includes('2 of 2'));
+  await shot('netlab-won');
+  await page.waitForSelector('.over');
+  ok('the real configs solve it, and the debrief shows', (await page.locator('.over').innerText()).toLowerCase().includes('two pcs'));
+  await page.click('text=Start the questions');
+  await page.waitForSelector('.rw-head');
+  const lab1 = byId('lab-01');
+  for (let i = 0; i < 5; i++) await answerTask(lab1);
+  await page.waitForSelector('.tracks');
+  ok('finishing the questions clears the lab', (await call('/tracks/')).data.tracks.find((t) => t.code === 'LAB').missions[0].state === 'cleared');
+  const nextLab = (await call('/tracks/')).data.tracks.find((t) => t.code === 'LAB').missions[1];
+  ok('the next lab stays shut, and says which mission opens it', nextLab.state === 'locked' && nextLab.locked_because.includes('NET-31'));
+  await openCategory('LAB');
+  await page.waitForSelector('.tcard[data-track="LAB"] .chapter');
+  await page.locator('.tcard[data-track="LAB"] .chapter-head, .tcard[data-track="LAB"] .chapter > button').first().click().catch(() => {});
+  clearFor('net-31');
+  ok('clearing that mission opens it', (await call('/tracks/')).data.tracks.find((t) => t.code === 'LAB').missions[1].state === 'open');
+  await page.goto(`${BASE}/missions/lab-02/play`);
+  await page.waitForSelector('.lab-map');
+  await page.locator('.lab-device[data-device="SW1"]').click();
+  await page.waitForSelector('.lab-tabs .on');
+  ok('a device console opens from the map', (await page.locator('.lab-tabs .on').innerText()) === 'SW1');
+  await typeCmd('en');
+  await typeCmd('show mac ?');
+  ok('the console answers ? with what fits next', (await page.locator('.term-out').innerText()).includes('address-table'));
+  await page.fill('#cmd', 'conf');
+  await page.press('#cmd', 'Tab');
+  ok('Tab finishes a word', (await page.inputValue('#cmd')) === 'configure ');
+  await page.fill('#cmd', '');
+
+  // ---------- replaying is free ----------
+  const xpBeforeReplay = (await call('/player/')).data.xp;
+  await page.goto(`${BASE}/missions/lab-01/play`);
+  await page.waitForSelector('.lab-map');
+  // Any running session has gone back to the bank by now, so this is everything the player has.
+  const bankBefore = (await call('/player/')).data.bank_seconds;
+  ok('replaying a cleared lab needs no session', await page.locator('#openSession').count() === 0 && (await call('/player/')).data.session === null);
+  ok('the screen says the replay is free', (await page.locator('.revisit-note').innerText()).includes('uses no play time'));
+  await page.click('#drillOne');
+  await page.waitForSelector('#drillStatus');
+  await page.click('#labCheck');
+  await page.waitForSelector('.lab-goals .bad');
+  ok('a fault drill really breaks the finished lab', (await page.locator('#drillStatus').innerText()).includes('broken'));
+  ok('what broke stays hidden until you ask', await page.locator('#drillFaults').count() === 0);
+  await page.click('#drillReveal');
+  await page.waitForSelector('#drillFaults');
+  ok('asking says what broke', (await page.locator('#drillFaults').innerText()).length > 5);
+  const afterReplay = (await call('/player/')).data;
+  ok('a replay and a drill cost nothing and add nothing', afterReplay.bank_seconds === bankBefore && afterReplay.xp === xpBeforeReplay, `${bankBefore} to ${afterReplay.bank_seconds}`);
+
+  // ---------- the sandbox ----------
+  clearFor(...ALL_MISSIONS.filter((m) => m.track === 'LAB').slice(0, 5).map((m) => m.id));
+  await page.goto(`${BASE}/sandbox`);
+  await page.waitForSelector('.sandbox-palette');
+  ok('the sandbox opens with no session, and costs nothing', (await call('/player/')).data.session === null);
+  await page.click('#add-pc');
+  await page.click('#add-pc');
+  await page.waitForSelector('.lab-device[data-device="PC-2"]');
+  await page.selectOption('#cableA', 'PC-1|eth0');
+  await page.selectOption('#cableB', 'PC-2|eth0');
+  await page.click('#cableConnect');
+  await page.locator('.lab-device[data-device="PC-1"]').click();
+  await typeCmd('ip addr add 10.9.9.1/24 dev eth0');
+  await page.locator('.lab-device[data-device="PC-2"]').click();
+  await typeCmd('ip addr add 10.9.9.2/24 dev eth0');
+  await page.click('#testPings');
+  await page.waitForSelector('#pingResults');
+  ok('a network you built yourself works', await page.locator('#pingResults .ok').count() === 2);
+  const box = await page.locator('.lab-device[data-device="PC-2"]').boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 - 60, box.y + box.height / 2 + 50, { steps: 4 });
+  await page.mouse.up();
+  const moved = await page.locator('.lab-device[data-device="PC-2"]').boundingBox();
+  ok('devices can be dragged around', Math.abs(moved.x - box.x) > 20);
+  await page.click('#breakIt');
+  await page.waitForSelector('#showBroken');
+  await page.click('#testPings');
+  await page.waitForSelector('#pingResults .bad');
+  ok('the sandbox can break itself for practice', true);
+  await page.click('#showBroken');
+  await page.waitForTimeout(1500);
+  await page.reload();
+  await page.waitForSelector('.lab-device[data-device="PC-2"]');
+  ok('your sandbox is still there after a reload', await page.locator('.lab-device').count() === 2);
+  await shot('sandbox');
+
+  // ---------- Wi-Fi and IPv6, with their real solutions through the real grader ----------
+  const playSolution = async (id) => {
+    await page.goto(`${BASE}/missions/${id}/play`);
+    await page.waitForSelector('#openSession, .lab-map');
+    if (await page.locator('#openSession').count()) await page.click('#openSession');
+    await page.waitForSelector('.lab-map');
+    for (const line of byId(id).sol.split('\n')) {
+      const dev = /^\[(\S+)\]$/.exec(line);
+      const cable = /^\[cable\] (\S+) (\S+) (\S+) (\S+)$/.exec(line);
+      if (cable) {
+        await page.selectOption('#cableA', `${cable[1]}|${cable[2]}`);
+        await page.selectOption('#cableB', `${cable[3]}|${cable[4]}`);
+        await page.click('#cableConnect');
+      } else if (dev) await page.locator(`.lab-device[data-device="${dev[1]}"]`).click();
+      else if (line) await typeCmd(line);
+    }
+    await page.click('#labCheck');
+    await page.waitForSelector('.over');
+  };
+  const labOrder = ALL_MISSIONS.filter((m) => m.track === 'LAB').map((m) => m.id);
+  clearFor('net-47', 'net-48', 'net-49', ...labOrder.slice(0, labOrder.indexOf('lab-35')));
+  await playSolution('lab-35');
+  ok('a Wi-Fi lab solves through the browser and the grader', (await page.locator('.over').innerText()).toLowerCase().includes('first access point'));
+  ok('a laptop on Wi-Fi shows on the map', await page.locator('.lab-cable.wifi').count() === 1);
+  await shot('netlab-wifi');
+
+  // ---------- a new lab opening, for real ----------
+  await page.click('text=Start the questions');
+  await page.waitForSelector('.rw-head');
+  const lab35 = byId('lab-35');
+  for (let i = 0; i < 5; i++) await answerTask(lab35);
+  // This clear can also earn a level. That moment comes first, and the lab waits behind it.
+  await page.waitForSelector('#revealTitle, .over button:has-text("Continue")');
+  const levelFirst = await page.locator('#revealTitle').count() === 0;
+  if (levelFirst) await page.locator('.over button:has-text("Continue")').click();
+  await page.waitForSelector('#revealTitle');
+  ok('clearing a lab reveals the next one, drawing itself', (await page.locator('#revealTitle').innerText()).toLowerCase().includes('guests on their own network') && await page.locator('.lab-reveal-device').count() === byId('lab-36').lab.devices.length);
+  ok('the reveal shows what was just earned', (await page.locator('.lab-reveal-meta').innerText()).includes('You just earned'));
+  const revealText = seen.filter((r) => /lab-35\/rewind\/answer/.test(r.url)).map((r) => r.text).join('');
+  ok('the reveal gives no starting config away', revealText.includes('"preview"') && !revealText.includes('authentication wpa2'));
+  // Let it finish drawing before the picture, then check it at phone width too.
+  await page.waitForTimeout(3500);
+  ok('every cable in the reveal has finished drawing', await page.locator('.lab-reveal-map path').evaluateAll((els) => els.length > 0 && els.every((el) => parseFloat(getComputedStyle(el).strokeDashoffset) === 0)));
+  await shot('netlab-reveal');
+  const desktopSize = page.viewportSize();
+  await page.setViewportSize({ width: 400, height: 800 });
+  const fits = await page.evaluate(() => {
+    const box = document.querySelector('.lab-reveal').getBoundingClientRect();
+    const later = document.querySelector('#revealLater').getBoundingClientRect();
+    return box.left >= 0 && box.right <= innerWidth && later.bottom <= innerHeight && later.top >= 0;
+  });
+  ok('the reveal fits a phone, buttons included', fits);
+  await shot('netlab-reveal-phone');
+  await page.setViewportSize(desktopSize);
+  await page.click('#revealLater');
+  await page.waitForSelector('#labProgressMap');
+  ok('the lab map shows the new one as next, with the cleared ones lit', await page.locator('.lm-node.open[data-id="lab-36"]').count() + await page.locator('.lm-node.fresh[data-id="lab-36"]').count() >= 1 && await page.locator('.lm-node.clear').count() > 20);
+  const lockedNode = page.locator('.lm-node.locked').first();
+  ok('a locked lab on the map says what it waits for', ((await lockedNode.getAttribute('title')) || '').length > 10);
+  await shot('netlab-progress');
+  await page.setViewportSize({ width: 400, height: 800 });
+  ok('the lab map fits a phone', await page.evaluate(() => document.querySelector('#labProgressMap').scrollWidth <= document.querySelector('#labProgressMap').clientWidth && document.documentElement.scrollWidth <= innerWidth));
+  await page.locator('#labProgressMap').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  await shot('netlab-progress-phone');
+  await page.setViewportSize(desktopSize);
+  clearFor(...labOrder.slice(0, labOrder.indexOf('lab-41')));
+  await playSolution('lab-41');
+  ok('an IPv6 lab solves through the browser and the grader', (await page.locator('.over').innerText()).toLowerCase().includes('turn on ipv6'));
+
+  await page.goto(`${BASE}/missions`);
+  await page.waitForSelector('.tracks');
   ok('there is no way to reset a season', (await call('/seasons/new/', 'POST')).status === 404);
-  setPeak(USER, 150);
+  setPeak(USER, 213);
   await page.reload();
   await page.waitForSelector('.tracks');
   await openCategory('BX');
@@ -416,6 +642,7 @@ try {
   await page.click('#revisit');
   await page.waitForSelector('#cmd');
   ok('a cleared mission can be played again', await page.locator('.revisit-note').count() === 1);
+  ok('it needs no session, and any session is paused', (await page.locator('.chip-time').innerText()).toLowerCase().includes('play time'));
   await typeCmd('submit /nowhere');
   await page.waitForFunction(() => /Not that one/.test(document.querySelector('.term-out').textContent));
   await typeCmd('submit /home/ops');
@@ -450,7 +677,7 @@ try {
   ok('the picture is still there after a reload', true);
   await page.goto(`${BASE}/rewards`);
   await page.waitForSelector('.badge');
-  ok('rewards come from the server', (await page.locator('.badge').count()) === 30);
+  ok('rewards come from the server', (await page.locator('.badge').count()) === 31);
 
   await page.goto(`${BASE}/system`);
   await page.waitForSelector('#logoutBtn');

@@ -2,7 +2,7 @@ id: net-18
 track: NET
 skill: networking
 chapter: Services
-order: 18
+order: 23
 title: How DHCP hands out addresses
 from: Network
 difficulty: medium

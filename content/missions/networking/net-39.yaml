@@ -1,0 +1,91 @@
+id: net-39
+track: NET
+skill: networking
+chapter: Dynamic routing
+order: 29
+title: How OSPF finds neighbours
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'With many routers, writing every route by hand doesn''t scale. OSPF lets routers work it out. A router sends hellos out each interface in OSPF, and two routers become neighbours if they agree: same subnet and mask, same area, same hello timer. A passive interface advertises its network but sends no hellos, which suits networks with no routers on them. Neighbours share what they know, and each router works out its own best paths. A missing neighbour is almost always a mismatch.'
+  example: |-
+    router ospf 1
+     router-id 1.1.1.1
+     network 10.0.0.0 0.255.255.255 area 0
+     passive-interface Gi0/2
+brief: Router A's link is 10.0.0.1/24 in area 0. Router B's is 10.0.0.2/24 in area 1. Do they become neighbours? Answer yes or no.
+goal: 'Run: submit <answer>'
+hints:
+- List what must match.
+- Compare the areas.
+debrief:
+  why: OSPF neighbours have to agree on the subnet, mask, area and timers. When a neighbour won't come up, comparing those few values finds it almost every time.
+  solution: submit no
+  job: '"Why is that neighbour down?" is one of the most common questions in network operations.'
+teaches:
+- OSPF
+- neighbours
+- hello
+- area
+- passive
+answer:
+  accept:
+  - 'no'
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why use OSPF instead of static routes in a big network?
+  options:
+  - Routers work out routes themselves and adapt to failures
+  - It's encrypted
+  - It needs no addresses
+  - It removes VLANs
+  answer: Routers work out routes themselves and adapt to failures
+  hint: Think about scale.
+- type: mc
+  level: easy
+  label: Agreement
+  q: Which of these must match for two routers to be neighbours?
+  options:
+  - The area
+  - The hostname
+  - The number of ports
+  - The router model
+  answer: The area
+  hint: Subnet, mask, area, timers.
+- type: mc
+  level: medium
+  label: Passive
+  q: Why make an interface facing only PCs passive?
+  options:
+  - No routers are there, so hellos are pointless and it stays quieter and safer
+  - To turn the network off
+  - To speed up the PCs
+  - To remove its address
+  answer: No routers are there, so hellos are pointless and it stays quieter and safer
+  hint: Who would answer?
+- type: text
+  level: medium
+  label: The word
+  q: What do routers send to discover each other? One word.
+  answer:
+  - hello
+  - hellos
+  hint: The lesson names it.
+- type: mc
+  level: hard
+  label: Diagnosis
+  q: A neighbour won't come up. One side is /24 and the other is /25. What's the fix?
+  options:
+  - Make the masks match
+  - Reload both routers
+  - Change the hostname
+  - Add a floating static
+  answer: Make the masks match
+  hint: The mask has to agree.

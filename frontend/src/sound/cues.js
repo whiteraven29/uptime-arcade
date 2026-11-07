@@ -32,5 +32,10 @@ function notes(freqs, step, length, gain = 0.08) {
 
 export const playTimerEnd = () => notes([660, 880], 0.22, 0.18);
 export const playCheckIn = () => notes([880, 660, 880], 0.2, 0.16, 0.1);
+export const playPlugIn = () => notes([1400, 900], 0.035, 0.04, 0.07);
+export const playUnplug = () => notes([700, 1100], 0.04, 0.04, 0.05);
+export const playPacketDelivered = () => notes([880, 1175], 0.08, 0.08, 0.04);
+export const playPacketLost = () => notes([300, 220], 0.09, 0.12, 0.05);
+export const playNetworkUp = () => notes([523, 659, 784, 1047], 0.11, 0.2, 0.07);
 export const playUnlock = () => notes([523, 659, 784], 0.09, 0.12, 0.06);
 export const playLevelUp = () => notes([523, 659, 784], 0, 0.7, 0.05);

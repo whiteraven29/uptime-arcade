@@ -1,0 +1,222 @@
+id: lab-27
+track: LAB
+skill: networking
+chapter: Dynamic routing
+order: 37
+title: First OSPF neighbours
+from: Network
+difficulty: expert
+check: net
+requires: net-39
+par:
+  kind: commands
+  value: 29
+lesson:
+  text: 'Start OSPF with router ospf and a process number. A network line says which interfaces join, using a wildcard and an area, such as network 10.0.0.0 0.255.255.255 area 0. Set a router-id so it has a clear name. Make the interface facing PCs a passive-interface, since there are no routers there. Then read show ip ospf neighbor and show ip route: routes marked O were learned.'
+  example: |-
+    router ospf 1
+     router-id 1.1.1.1
+     network 10.0.0.0 0.255.255.255 area 0
+     passive-interface Gi0/0
+brief: Three routers join three sites, and a static route for every network is getting out of hand. Turn on OSPF on all three in area 0. R1's and R3's PC-facing interfaces, both Gi0/0, should be passive.
+goal: Every router has its neighbours, and PC-A reaches SRV-C by learned routes.
+hints:
+- The same network line works on all three routers.
+- Set a different router-id on each one.
+debrief:
+  why: 'With a few lines per router, the network learns itself: each router finds its neighbours, shares what it knows, and works out the best path.'
+  solution: |-
+    [R1]
+    enable
+    configure terminal
+    router ospf 1
+    router-id 1.1.1.1
+    network 10.0.0.0 0.255.255.255 area 0
+    passive-interface Gi0/0
+    end
+    [R2]
+    enable
+    configure terminal
+    router ospf 1
+    router-id 2.2.2.2
+    network 10.0.0.0 0.255.255.255 area 0
+    end
+    [R3]
+    enable
+    configure terminal
+    router ospf 1
+    router-id 3.3.3.3
+    network 10.0.0.0 0.255.255.255 area 0
+    passive-interface Gi0/0
+    end
+    show ip ospf neighbor
+  job: Static routes don't scale past a handful of sites, and OSPF is one of the most common answers.
+teaches:
+- router ospf
+- network
+- router-id
+- passive-interface
+- show ip ospf
+lab:
+  devices:
+  - name: PC-A
+    kind: pc
+    x: 8
+    y: 80
+    config: |-
+      ip addr add 10.1.1.10/24 dev eth0
+      ip route add default via 10.1.1.1
+  - name: R1
+    kind: router
+    x: 28
+    y: 50
+    config: |-
+      interface Lo0
+       ip address 1.1.1.1 255.255.255.255
+      interface Gi0/0
+       ip address 10.1.1.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 10.0.12.1 255.255.255.0
+       no shutdown
+      interface Gi0/2
+       ip address 10.0.13.1 255.255.255.0
+       no shutdown
+  - name: R2
+    kind: router
+    x: 50
+    y: 15
+    config: |-
+      interface Lo0
+       ip address 2.2.2.2 255.255.255.255
+      interface Gi0/1
+       ip address 10.0.12.2 255.255.255.0
+       no shutdown
+      interface Gi0/2
+       ip address 10.0.23.2 255.255.255.0
+       no shutdown
+  - name: R3
+    kind: router
+    x: 72
+    y: 50
+    config: |-
+      interface Lo0
+       ip address 3.3.3.3 255.255.255.255
+      interface Gi0/0
+       ip address 10.3.3.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 10.0.13.3 255.255.255.0
+       no shutdown
+      interface Gi0/2
+       ip address 10.0.23.3 255.255.255.0
+       no shutdown
+  - name: SRV-C
+    kind: server
+    x: 92
+    y: 80
+    config: |-
+      ip addr add 10.3.3.10/24 dev eth0
+      ip route add default via 10.3.3.1
+      service http start
+  cables:
+  - - PC-A
+    - eth0
+    - R1
+    - Gi0/0
+  - - R1
+    - Gi0/1
+    - R2
+    - Gi0/1
+  - - R1
+    - Gi0/2
+    - R3
+    - Gi0/1
+  - - R2
+    - Gi0/2
+    - R3
+    - Gi0/2
+  - - SRV-C
+    - eth0
+    - R3
+    - Gi0/0
+expect:
+- label: R1 has two neighbours
+  ospf_neighbors:
+    device: R1
+    count: 2
+- label: R2 has two neighbours
+  ospf_neighbors:
+    device: R2
+    count: 2
+- label: R3 has two neighbours
+  ospf_neighbors:
+    device: R3
+    count: 2
+- label: R1 learned the way to SRV-C
+  route:
+    device: R1
+    to: 10.3.3.10
+    type: O
+- label: PC-A reaches SRV-C
+  reach:
+    from: PC-A
+    to: SRV-C
+    proto: tcp
+    port: 80
+- label: The PC-facing interfaces are passive
+  config:
+    device: R1
+    contains: passive-interface Gi0/0
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What do routers do with OSPF that they didn't with static routes?
+  options:
+  - Learn routes from each other
+  - Forward faster
+  - Encrypt traffic
+  - Assign addresses
+  answer: Learn routes from each other
+  hint: They talk.
+- type: mc
+  level: medium
+  label: Network lines
+  q: What does network 10.0.0.0 0.255.255.255 area 0 match?
+  options:
+  - Interfaces with addresses starting 10.
+  - Only 10.0.0.0
+  - Everything
+  - Only PCs
+  answer: Interfaces with addresses starting 10.
+  hint: Wildcard.
+- type: text
+  level: medium
+  label: The letter
+  q: Which letter marks a learned OSPF route in show ip route?
+  answer:
+  - O
+  hint: For OSPF.
+- type: mc
+  level: medium
+  label: Passive
+  q: Why make the PC-facing interface passive?
+  options:
+  - No routers are there, so hellos are pointless
+  - It stops the PCs working
+  - It removes the network from OSPF
+  - It speeds up DHCP
+  answer: No routers are there, so hellos are pointless
+  hint: Who would answer?
+- type: mc
+  level: hard
+  label: At work
+  q: You add a fourth site. What changes on the other three routers?
+  options:
+  - 'Nothing: they learn it'
+  - Each needs a new static route
+  - They all need a reload
+  - You rename them
+  answer: 'Nothing: they learn it'
+  hint: That's the point.

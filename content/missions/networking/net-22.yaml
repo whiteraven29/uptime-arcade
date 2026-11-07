@@ -2,7 +2,7 @@ id: net-22
 track: NET
 skill: networking
 chapter: Tools
-order: 22
+order: 32
 title: Read traceroute
 from: SRE
 difficulty: hard

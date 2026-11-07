@@ -1,0 +1,154 @@
+id: lab-22
+track: LAB
+skill: networking
+chapter: Security
+order: 22
+title: 'Fault: first match wins'
+from: Security
+difficulty: hard
+check: net
+requires: net-26
+par:
+  kind: commands
+  value: 16
+lesson:
+  text: A router checks lines from the top and stops at the first match, so a broad permit above a narrow deny means the deny never runs. Named lists have sequence numbers, shown by show access-lists. To fix the order, remove a line with no and its number, then add it with a lower number, such as 5, so it lands on top.
+  example: |-
+    show access-lists
+    ip access-list extended EDGE
+     no 20
+     5 deny tcp any host 10.70.23.80 eq 22
+brief: 'Audit report: "SSH to SRV-1 is open from the staff network, despite policy." The list on R1 has a deny line for it. Nothing else should change: web traffic has to keep working.'
+goal: SSH to SRV-1 is blocked, and the web still works.
+hints:
+- 'show access-lists: which line matches SSH first?'
+- 'Inside the list: no 20, then 5 deny tcp any host 10.40.23.80 eq 22.'
+debrief:
+  why: The deny sat under a permit that matched first, so it never ran. Order is the whole logic of an access list.
+  solution: |-
+    [R1]
+    enable
+    show access-lists
+    configure terminal
+    ip access-list extended EDGE
+    no 20
+    5 deny tcp any host 10.40.23.80 eq 22
+    end
+    show access-lists
+  job: It's a common audit finding, because a config can look right while reading it line by line.
+teaches:
+- 'no'
+- sequence number
+lab:
+  devices:
+  - name: STAFF-1
+    kind: pc
+    x: 12
+    y: 50
+    config: |-
+      ip addr add 10.40.22.10/24 dev eth0
+      ip route add default via 10.40.22.1
+  - name: R1
+    kind: router
+    x: 48
+    y: 50
+    config: |-
+      interface Gi0/0
+       ip address 10.40.22.1 255.255.255.0
+       ip access-group EDGE in
+       no shutdown
+      interface Gi0/1
+       ip address 10.40.23.1 255.255.255.0
+       no shutdown
+      ip access-list extended EDGE
+       10 permit ip 10.40.22.0 0.0.0.255 any
+       20 deny tcp any host 10.40.23.80 eq 22
+  - name: SRV-1
+    kind: server
+    x: 85
+    y: 50
+    config: |-
+      ip addr add 10.40.23.80/24 dev eth0
+      ip route add default via 10.40.23.1
+      service http start
+      service ssh start
+  cables:
+  - - STAFF-1
+    - eth0
+    - R1
+    - Gi0/0
+  - - SRV-1
+    - eth0
+    - R1
+    - Gi0/1
+expect:
+- label: SSH is blocked
+  reach:
+    from: STAFF-1
+    to: SRV-1
+    proto: tcp
+    port: 22
+    expect: blocked
+- label: The web still works
+  reach:
+    from: STAFF-1
+    to: SRV-1
+    proto: tcp
+    port: 80
+- label: The list is still in place
+  config:
+    device: R1
+    interface: Gi0/0
+    contains: ip access-group EDGE in
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why did the deny line do nothing?
+  options:
+  - An earlier permit matched first
+  - It had a typo
+  - The router ignored it
+  - Denies don't work on TCP
+  answer: An earlier permit matched first
+  hint: Top down.
+- type: mc
+  level: medium
+  label: The fix
+  q: How can you put a line above line 10?
+  options:
+  - Give it a number below 10
+  - Delete the whole list
+  - Reload
+  - Add it twice
+  answer: Give it a number below 10
+  hint: Sequence numbers.
+- type: text
+  level: medium
+  label: Removing
+  q: Inside a named list, what removes line 20? Type it with the number.
+  answer:
+  - no 20
+  hint: no something.
+- type: mc
+  level: medium
+  label: Ordering
+  q: Which order is right?
+  options:
+  - Specific lines first, general lines last
+  - General lines first, specific last
+  - Alphabetical
+  - It makes no difference
+  answer: Specific lines first, general lines last
+  hint: First match wins.
+- type: mc
+  level: hard
+  label: Evidence
+  q: How does show access-lists help?
+  options:
+  - Match counts show which line is really catching the traffic
+  - It rewrites the list
+  - It tests DNS
+  - It saves the config
+  answer: Match counts show which line is really catching the traffic
+  hint: Counters.

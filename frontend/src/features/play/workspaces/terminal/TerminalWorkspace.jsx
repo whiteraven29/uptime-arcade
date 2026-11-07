@@ -1,5 +1,5 @@
 import { Terminal } from '../../../../ui/Terminal.jsx';
-import { S, VI, bump, clearTerm, commandHelp, echoCmd, promptText, runCommand, sessionOn, suggestion, tabComplete, ui } from '../../../../api/game.js';
+import { S, VI, bump, clearTerm, commandHelp, echoCmd, promptText, runCommand, canPlay, suggestion, tabComplete, ui } from '../../../../api/game.js';
 
 export function TerminalWorkspace() {
   return (
@@ -7,11 +7,11 @@ export function TerminalWorkspace() {
       spans={ui.term}
       version={ui.termVersion}
       prompt={promptText()}
-      enabled={sessionOn()}
+      enabled={canPlay()}
       focusKey={VI.on}
       history={S.hist}
       onRun={(v) => {
-        if (sessionOn()) runCommand(v);
+        if (canPlay()) runCommand(v);
       }}
       onComplete={tabComplete}
       onClear={clearTerm}

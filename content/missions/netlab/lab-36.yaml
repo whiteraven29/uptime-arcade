@@ -1,0 +1,211 @@
+id: lab-36
+track: LAB
+skill: networking
+chapter: Wireless
+order: 28
+title: Guests on their own network
+from: Reception
+difficulty: hard
+check: net
+requires: net-48
+par:
+  kind: commands
+  value: 28
+lesson:
+  text: A guest network gets its own SSID and its own VLAN, so guests can reach the internet and nothing else. Use authentication open or a simple password, and client-isolation so guests can't reach each other either. Give the guest VLAN an access list on its gateway, so it can't reach staff. A router's ip access-group works here just as it does on a wire.
+  example: |-
+    dot11 ssid VISITORS
+     vlan 20
+     authentication open
+     client-isolation
+brief: Visitors keep asking for the Wi-Fi password, and staff don't want to share it. Add an open network called GUEST on VLAN 20 on the same radio as STAFF. Guests must not reach the staff server at 10.70.10.9 or each other, but they must reach the router's gateway.
+goal: Guests get on easily, and can't reach staff or each other.
+hints:
+- Add the network on AP-1 and put it on the radio. The trunk already allows every VLAN.
+- The filter goes on R1's Gi0/0.20, and both guests need wifi connect GUEST.
+debrief:
+  why: 'It takes three layers: a separate VLAN, a rule at the gateway to keep it away from staff, and isolation to keep guests from each other.'
+  solution: |-
+    [AP-1]
+    enable
+    configure terminal
+    dot11 ssid GUEST
+    vlan 20
+    authentication open
+    client-isolation
+    exit
+    interface Dot11Radio0
+    ssid GUEST
+    end
+    [R1]
+    enable
+    configure terminal
+    ip access-list extended GUEST
+    deny ip 10.70.20.0 0.0.0.255 10.70.10.0 0.0.0.255
+    permit ip any any
+    interface Gi0/0.20
+    ip access-group GUEST in
+    end
+    [GUEST-1]
+    wifi connect GUEST
+    [GUEST-2]
+    wifi connect GUEST
+  job: Every office and hotel with visitor Wi-Fi is set up this way.
+teaches:
+- authentication open
+- client-isolation
+lab:
+  devices:
+  - name: GUEST-1
+    kind: laptop
+    x: 12
+    y: 75
+    config: |-
+      ip addr add 10.70.20.50/24 dev wlan0
+      ip route add default via 10.70.20.1
+  - name: GUEST-2
+    kind: laptop
+    x: 32
+    y: 80
+    config: |-
+      ip addr add 10.70.20.51/24 dev wlan0
+      ip route add default via 10.70.20.1
+  - name: AP-1
+    kind: ap
+    x: 25
+    y: 40
+    config: |-
+      vlan 10
+      dot11 ssid STAFF
+       vlan 10
+       authentication wpa2 Wh1teraven-Staff
+      interface Do0
+       channel 6
+       ssid STAFF
+       no shutdown
+      interface Gi0/1
+       switchport mode trunk
+  - name: SW1
+    kind: switch
+    x: 55
+    y: 40
+    ports: 8
+    config: |-
+      vlan 10
+       name STAFF
+      vlan 20
+       name GUEST
+      interface Gi0/1
+       switchport mode trunk
+      interface Gi0/2
+       switchport access vlan 10
+      interface Gi0/8
+       switchport mode trunk
+  - name: STAFF-SRV
+    kind: server
+    x: 85
+    y: 40
+    config: |-
+      ip addr add 10.70.10.9/24 dev eth0
+      ip route add default via 10.70.10.1
+  - name: R1
+    kind: router
+    x: 55
+    y: 88
+    config: |-
+      interface Gi0/0
+       no shutdown
+      interface Gi0/0.10
+       encapsulation dot1q 10
+       ip address 10.70.10.1 255.255.255.0
+      interface Gi0/0.20
+       encapsulation dot1q 20
+       ip address 10.70.20.1 255.255.255.0
+  cables:
+  - - AP-1
+    - Gi0/1
+    - SW1
+    - Gi0/1
+  - - STAFF-SRV
+    - eth0
+    - SW1
+    - Gi0/2
+  - - R1
+    - Gi0/0
+    - SW1
+    - Gi0/8
+expect:
+- label: GUEST-1 is on GUEST
+  wifi_assoc:
+    host: GUEST-1
+    ssid: GUEST
+- label: Guests reach their gateway
+  reach:
+    from: GUEST-1
+    to: 10.70.20.1
+- label: Guests can't reach the staff server
+  reach:
+    from: GUEST-1
+    to: STAFF-SRV
+    expect: blocked
+- label: Guests can't reach each other
+  reach:
+    from: GUEST-1
+    to: GUEST-2
+    expect: blocked
+- label: Staff's network is still protected
+  config:
+    device: AP-1
+    contains: authentication wpa2 Wh1teraven-Staff
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why give guests their own SSID?
+  options:
+  - To keep them on their own VLAN, away from staff
+  - To make their Wi-Fi faster
+  - To save addresses
+  - To change the channel
+  answer: To keep them on their own VLAN, away from staff
+  hint: Separation.
+- type: mc
+  level: medium
+  label: Isolation
+  q: What does client-isolation stop?
+  options:
+  - Guests reaching each other
+  - Guests reaching the internet
+  - Guests joining
+  - The radio working
+  answer: Guests reaching each other
+  hint: Same network, no chat.
+- type: mc
+  level: medium
+  label: Rules
+  q: Where do you stop guests reaching staff?
+  options:
+  - On the guest VLAN's gateway
+  - On the radio
+  - On the laptop
+  - In DNS
+  answer: On the guest VLAN's gateway
+  hint: That's where it leaves the VLAN.
+- type: text
+  level: medium
+  label: The word
+  q: What goes after authentication for a network with no password?
+  answer:
+  - open
+  hint: Four letters.
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Is a guest's traffic safe from other people nearby on open Wi-Fi?
+  options:
+  - No, nothing is encrypted on the air
+  - Yes, isolation encrypts it
+  - Yes, VLANs encrypt it
+  - Only on channel 6
+  answer: No, nothing is encrypted on the air
+  hint: Open means open.

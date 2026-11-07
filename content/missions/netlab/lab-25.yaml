@@ -1,0 +1,177 @@
+id: lab-25
+track: LAB
+skill: networking
+chapter: Firewalls
+order: 25
+title: Stand up the firewall
+from: Security
+difficulty: hard
+check: net
+requires: net-43
+par:
+  kind: commands
+  value: 29
+lesson:
+  text: 'A firewall has names and trust levels on its interfaces. Inside each interface, nameif gives the name and security-level the trust, then ip address and no shutdown as usual. A route sets the way out, written route outside then the network, mask and next hop. For sharing the outside address, object network names a group: subnet says which addresses, and nat with dynamic interface shares it. Replies come back through the state table, which you can read with show conn.'
+  example: |-
+    interface Gi0/0
+     nameif inside
+     security-level 100
+    route outside 0.0.0.0 0.0.0.0 192.0.2.1
+    object network STAFF
+     subnet 10.70.26.0 255.255.255.0
+     nat (inside,outside) dynamic interface
+brief: 'A new firewall replaces the router at the edge. Gi0/0 is inside, 10.40.26.1/24, level 100. Gi0/1 is outside, 203.0.113.2/24, level 0. Staff need the internet, and nothing from the internet should reach them. Its cables aren''t in yet either: PC-1 to Gi0/0, and Gi0/1 to the ISP''s Gi0/0.'
+goal: PC-1 reaches the internet, and the internet can't reach PC-1.
+hints:
+- Every interface needs nameif and security-level, or it passes nothing.
+- Then route outside, then an object network with a nat line.
+debrief:
+  why: 'Levels set the default: trusted to less trusted is allowed, and state lets the answers back. So with no rules at all, staff can browse and nobody can get in.'
+  solution: |-
+    [cable] PC-1 eth0 FW1 Gi0/0
+    [cable] FW1 Gi0/1 ISP Gi0/0
+    [FW1]
+    enable
+    configure terminal
+    interface Gi0/0
+    nameif inside
+    security-level 100
+    ip address 10.40.26.1 255.255.255.0
+    no shutdown
+    interface Gi0/1
+    nameif outside
+    security-level 0
+    ip address 203.0.113.2 255.255.255.0
+    no shutdown
+    exit
+    route outside 0.0.0.0 0.0.0.0 203.0.113.1
+    object network STAFF
+    subnet 10.40.26.0 255.255.255.0
+    nat (inside,outside) dynamic interface
+    end
+    show conn
+  job: Standing up an edge firewall is one of the most common jobs in small and mid-sized networks.
+teaches:
+- nameif
+- security-level
+- route
+- object network
+- subnet
+- nat
+- show conn
+lab:
+  devices:
+  - name: PC-1
+    kind: pc
+    x: 12
+    y: 25
+    config: |-
+      ip addr add 10.40.26.10/24 dev eth0
+      ip route add default via 10.40.26.1
+  - name: FW1
+    kind: firewall
+    x: 42
+    y: 25
+    config: ''
+  - name: ISP
+    kind: router
+    x: 70
+    y: 25
+    locked: true
+    config: |-
+      interface Gi0/0
+       ip address 203.0.113.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 198.51.100.1 255.255.255.0
+       no shutdown
+  - name: INTERNET
+    kind: server
+    x: 92
+    y: 25
+    locked: true
+    config: |-
+      ip addr add 198.51.100.10/24 dev eth0
+      ip route add default via 198.51.100.1
+      service http start
+  cables:
+  - - INTERNET
+    - eth0
+    - ISP
+    - Gi0/1
+  cabling: true
+expect:
+- label: inside is at level 100
+  config:
+    device: FW1
+    interface: Gi0/0
+    contains: security-level 100
+- label: PC-1 reaches the internet
+  reach:
+    from: PC-1
+    to: INTERNET
+    proto: tcp
+    port: 80
+- label: The internet can't reach PC-1
+  reach:
+    from: INTERNET
+    to: 10.40.26.10
+    expect: blocked
+- label: The internet can't reach the firewall's inside address
+  reach:
+    from: INTERNET
+    to: 10.40.26.1
+    expect: blocked
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why can staff browse with no rules written?
+  options:
+  - Higher to lower is allowed, and the state table lets replies back
+  - Firewalls allow everything
+  - Staff have a password
+  - DNS allows it
+  answer: Higher to lower is allowed, and the state table lets replies back
+  hint: Level plus state.
+- type: mc
+  level: easy
+  label: Levels
+  q: What level is the outside normally?
+  options:
+  - '0'
+  - '100'
+  - '50'
+  - '1000'
+  answer: '0'
+  hint: Least trusted.
+- type: text
+  level: medium
+  label: The command
+  q: Which command names a firewall interface?
+  answer:
+  - nameif
+  hint: Name, if.
+- type: mc
+  level: medium
+  label: Reading
+  q: show conn lists what?
+  options:
+  - Connections the firewall is tracking
+  - VLANs
+  - DNS records
+  - Routes
+  answer: Connections the firewall is tracking
+  hint: Conn.
+- type: mc
+  level: hard
+  label: Stateful
+  q: How does a reply get back without a rule?
+  options:
+  - The firewall remembers the request, and matches the reply to it
+  - It guesses
+  - Replies have no addresses
+  - Routers mark it safe
+  answer: The firewall remembers the request, and matches the reply to it
+  hint: State.

@@ -51,7 +51,8 @@ export function Terminal({ spans, version, prompt, enabled, focusKey, history, o
     if (out.current) out.current.scrollTop = out.current.scrollHeight;
   }, [version]);
   useEffect(() => {
-    if (enabled) input.current?.focus();
+    // Without preventScroll, a phone's page jumps down to the prompt and away from whatever you were looking at.
+    if (enabled) input.current?.focus({ preventScroll: true });
   }, [enabled, focusKey]);
 
   const onKeyDown = (e) => {

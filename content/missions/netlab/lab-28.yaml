@@ -1,0 +1,220 @@
+id: lab-28
+track: LAB
+skill: networking
+chapter: Dynamic routing
+order: 38
+title: 'Fault: the neighbour that never came up'
+from: Service Desk
+difficulty: expert
+check: net
+requires: net-39
+par:
+  kind: commands
+  value: 22
+lesson:
+  text: 'When a neighbour won''t form, run show ip ospf neighbor on both routers, and show ip ospf interface to see areas and costs. Everything has to match: subnet, mask, area and hello timer. Fix what''s wrong: no passive-interface undoes passive, a network line sets the area, and ip ospf hello-interval sets the timer. Remove a wrong line with no network.'
+  example: |-
+    show ip ospf neighbor
+    show ip ospf interface
+    no network 10.0.13.0 0.0.0.255 area 1
+brief: 'Ticket: "The link between R1 and R3 has been down for OSPF since the weekend, so everything takes the long way through R2." The physical link is fine. Find what doesn''t match. There may be more than one thing.'
+goal: R1 and R3 are neighbours again.
+hints:
+- Read show ip ospf neighbor on R1 and R3. It says why.
+- One side has the wrong area, and the other has a passive interface.
+debrief:
+  why: 'There were two faults: R1 put the link in the wrong area and R3 marked it passive. Fixing only one wouldn''t have helped, so check both ends, every time.'
+  solution: |-
+    [R1]
+    enable
+    show ip ospf neighbor
+    show ip ospf interface
+    configure terminal
+    router ospf 1
+    no network 10.0.13.0 0.0.0.255 area 1
+    network 10.0.13.0 0.0.0.255 area 0
+    end
+    [R3]
+    enable
+    configure terminal
+    router ospf 1
+    no passive-interface Gi0/1
+    end
+    show ip ospf neighbor
+  job: Mismatches like these make up most OSPF faults, and working through the list finds them.
+teaches:
+- no network
+- no passive-interface
+lab:
+  devices:
+  - name: PC-A
+    kind: pc
+    x: 8
+    y: 80
+    config: |-
+      ip addr add 10.1.1.10/24 dev eth0
+      ip route add default via 10.1.1.1
+  - name: R1
+    kind: router
+    x: 28
+    y: 50
+    config: |-
+      interface Lo0
+       ip address 1.1.1.1 255.255.255.255
+      interface Gi0/0
+       ip address 10.1.1.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 10.0.12.1 255.255.255.0
+       no shutdown
+      interface Gi0/2
+       ip address 10.0.13.1 255.255.255.0
+       no shutdown
+      router ospf 1
+       router-id 1.1.1.1
+       network 10.0.12.0 0.0.0.255 area 0
+       network 10.1.1.0 0.0.0.255 area 0
+       network 10.0.13.0 0.0.0.255 area 1
+       passive-interface Gi0/0
+  - name: R2
+    kind: router
+    x: 50
+    y: 15
+    config: |-
+      interface Lo0
+       ip address 2.2.2.2 255.255.255.255
+      interface Gi0/1
+       ip address 10.0.12.2 255.255.255.0
+       no shutdown
+      interface Gi0/2
+       ip address 10.0.23.2 255.255.255.0
+       no shutdown
+      router ospf 1
+       router-id 2.2.2.2
+       network 10.0.0.0 0.255.255.255 area 0
+  - name: R3
+    kind: router
+    x: 72
+    y: 50
+    config: |-
+      interface Lo0
+       ip address 3.3.3.3 255.255.255.255
+      interface Gi0/0
+       ip address 10.3.3.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 10.0.13.3 255.255.255.0
+       no shutdown
+      interface Gi0/2
+       ip address 10.0.23.3 255.255.255.0
+       no shutdown
+      router ospf 1
+       router-id 3.3.3.3
+       network 10.0.0.0 0.255.255.255 area 0
+       passive-interface Gi0/0
+       passive-interface Gi0/1
+  - name: SRV-C
+    kind: server
+    x: 92
+    y: 80
+    config: |-
+      ip addr add 10.3.3.10/24 dev eth0
+      ip route add default via 10.3.3.1
+      service http start
+  cables:
+  - - PC-A
+    - eth0
+    - R1
+    - Gi0/0
+  - - R1
+    - Gi0/1
+    - R2
+    - Gi0/1
+  - - R1
+    - Gi0/2
+    - R3
+    - Gi0/1
+  - - R2
+    - Gi0/2
+    - R3
+    - Gi0/2
+  - - SRV-C
+    - eth0
+    - R3
+    - Gi0/0
+expect:
+- label: R1 has two neighbours
+  ospf_neighbors:
+    device: R1
+    count: 2
+- label: R3 has two neighbours
+  ospf_neighbors:
+    device: R3
+    count: 2
+- label: R1 goes straight to R3 for SRV-C
+  route:
+    device: R1
+    to: 10.3.3.10
+    via: 10.0.13.3
+- label: PC-A reaches SRV-C
+  reach:
+    from: PC-A
+    to: SRV-C
+    proto: tcp
+    port: 80
+rewind:
+- type: mc
+  level: easy
+  label: The fault
+  q: What were the two problems?
+  options:
+  - A wrong area on R1 and a passive interface on R3
+  - A bad cable and a bad DNS record
+  - A VLAN and a trunk
+  - Two wrong hostnames
+  answer: A wrong area on R1 and a passive interface on R3
+  hint: Read the goals again.
+- type: mc
+  level: medium
+  label: Method
+  q: Why check both ends of a link?
+  options:
+  - Each end can be wrong independently
+  - It's only polite
+  - The first end is always right
+  - OSPF needs two reloads
+  answer: Each end can be wrong independently
+  hint: Two sides.
+- type: order
+  level: medium
+  label: Order them
+  q: Put these steps in order.
+  scrambled:
+  - Fix what differs
+  - Read show ip ospf neighbor
+  - Check the neighbour comes up
+  - Compare subnet, mask, area and timers
+  answer:
+  - Read show ip ospf neighbor
+  - Compare subnet, mask, area and timers
+  - Fix what differs
+  - Check the neighbour comes up
+  hint: Look before you change.
+- type: text
+  level: medium
+  label: The undo
+  q: What word turns off a command in config, such as passive-interface?
+  answer:
+  - 'no'
+  hint: Two letters.
+- type: mc
+  level: hard
+  label: Symptom
+  q: Why did users only see slowness, not an outage?
+  options:
+  - OSPF found the longer path through R2 by itself
+  - The ISP stepped in
+  - DNS rerouted them
+  - PCs chose a new gateway
+  answer: OSPF found the longer path through R2 by itself
+  hint: It heals around faults.

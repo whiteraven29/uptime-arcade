@@ -2,7 +2,7 @@ id: net-24
 track: NET
 skill: networking
 chapter: Tools
-order: 24
+order: 34
 title: Talk HTTP by hand
 from: SRE
 difficulty: hard

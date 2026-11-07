@@ -2,7 +2,7 @@ id: net-23
 track: NET
 skill: networking
 chapter: Tools
-order: 23
+order: 33
 title: Who is listening?
 from: SRE
 difficulty: hard

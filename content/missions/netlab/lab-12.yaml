@@ -1,0 +1,160 @@
+id: lab-12
+track: LAB
+skill: networking
+chapter: VLANs
+order: 12
+title: Router on a stick
+from: Network
+difficulty: medium
+check: net
+requires: net-37
+par:
+  kind: commands
+  value: 26
+lesson:
+  text: To route between VLANs with one cable, make the switch port a trunk and give the router one sub-interface per VLAN. Turn on the physical port with no shutdown, then under interface Gi0/0.10 set encapsulation dot1q 10 and the gateway address. Each PC uses its own VLAN's sub-interface as its gateway.
+  example: |-
+    interface Gi0/0
+     no shutdown
+    interface Gi0/0.10
+     encapsulation dot1q 10
+     ip address 10.70.10.1 255.255.255.0
+brief: The printer lives in VLAN 20 and Staff in VLAN 10, and now they need to reach it. R1 needs one cable, to SW1's Gi0/8. Gateways should be 10.40.10.1 and 10.40.20.1. That cable isn't in yet.
+goal: A Staff PC can reach the printer through R1.
+hints:
+- Make SW1's Gi0/8 a trunk first.
+- Then Gi0/0.10 and Gi0/0.20 on R1, each with encapsulation dot1q.
+debrief:
+  why: Each sub-interface is a gateway for one VLAN, and they all share a cable. The router reads the tag to tell which network a frame belongs to.
+  solution: |-
+    [cable] R1 Gi0/0 SW1 Gi0/8
+    [SW1]
+    enable
+    configure terminal
+    interface Gi0/8
+    switchport mode trunk
+    end
+    [R1]
+    enable
+    configure terminal
+    interface Gi0/0
+    no shutdown
+    interface Gi0/0.10
+    encapsulation dot1q 10
+    ip address 10.40.10.1 255.255.255.0
+    interface Gi0/0.20
+    encapsulation dot1q 20
+    ip address 10.40.20.1 255.255.255.0
+    end
+  job: This is how many small offices route between VLANs, using a single router port.
+teaches:
+- encapsulation dot1q
+lab:
+  devices:
+  - name: STAFF-1
+    kind: pc
+    x: 15
+    y: 75
+    config: |-
+      ip addr add 10.40.10.10/24 dev eth0
+      ip route add default via 10.40.10.1
+  - name: SW1
+    kind: switch
+    x: 50
+    y: 60
+    ports: 8
+    config: |-
+      vlan 10
+      vlan 20
+      interface Gi0/1
+       switchport access vlan 10
+      interface Gi0/2
+       switchport access vlan 20
+  - name: PRINTER
+    kind: server
+    x: 85
+    y: 75
+    config: |-
+      ip addr add 10.40.20.10/24 dev eth0
+      ip route add default via 10.40.20.1
+  - name: R1
+    kind: router
+    x: 50
+    y: 15
+    config: ''
+  cables:
+  - - STAFF-1
+    - eth0
+    - SW1
+    - Gi0/1
+  - - PRINTER
+    - eth0
+    - SW1
+    - Gi0/2
+  cabling: true
+expect:
+- label: The switch port to R1 is a trunk
+  config:
+    device: SW1
+    interface: Gi0/8
+    contains: switchport mode trunk
+- label: Staff can reach the printer
+  reach:
+    from: STAFF-1
+    to: PRINTER
+- label: R1 knows both networks
+  route:
+    device: R1
+    to: 10.40.20.10
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: How many cables does a router on a stick need for three VLANs?
+  options:
+  - One
+  - Three
+  - Six
+  - None
+  answer: One
+  hint: Hence the stick.
+- type: text
+  level: medium
+  label: The command
+  q: Which command ties a sub-interface to a VLAN? Leave out the number.
+  answer:
+  - encapsulation dot1q
+  hint: Two words.
+- type: mc
+  level: medium
+  label: Port type
+  q: What mode must the switch port facing the router be in?
+  options:
+  - trunk
+  - access
+  - shutdown
+  - native
+  answer: trunk
+  hint: It carries many VLANs.
+- type: mc
+  level: medium
+  label: Gateways
+  q: What gateway should a PC in VLAN 20 use?
+  options:
+  - The address on the router's VLAN 20 sub-interface
+  - The address on the switch's VLAN 1
+  - The DNS server
+  - Any address
+  answer: The address on the router's VLAN 20 sub-interface
+  hint: Its own VLAN.
+- type: mc
+  level: hard
+  label: Limits
+  q: What's the downside of a router on a stick?
+  options:
+  - All traffic between VLANs squeezes up and down one cable
+  - It can't carry more than two VLANs
+  - It disables DNS
+  - It needs no router
+  answer: All traffic between VLANs squeezes up and down one cable
+  hint: One cable.

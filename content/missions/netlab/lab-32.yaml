@@ -1,0 +1,242 @@
+id: lab-32
+track: LAB
+skill: networking
+chapter: VPNs
+order: 42
+title: 'Fault: NAT broke the VPN'
+from: Service Desk
+difficulty: expert
+check: net
+requires: net-46
+par:
+  kind: commands
+  value: 22
+lesson:
+  text: 'A router translates addresses before it encrypts. If VPN traffic gets translated, it no longer matches the crypto list, so it goes out to the internet unprotected and dies. The fix is a NAT exemption: a new access-list with a deny line for the VPN traffic above the permit for everything else, used by the NAT rule. Remove the old rule with no ip nat inside source list, then add the new one.'
+  example: |-
+    access-list 102 deny ip 10.71.0.0 0.0.0.255 10.72.0.0 0.0.0.255
+    access-list 102 permit ip 10.71.0.0 0.0.0.255 any
+    no ip nat inside source list 1 interface Gi0/1 overload
+    ip nat inside source list 102 interface Gi0/1 overload
+brief: 'Ticket: "Internet access was added at both sites yesterday, and the site-to-site link died." The VPN itself shows as up. Keep both working. Internet goes through NAT, and site-to-site goes through the VPN.'
+goal: Site-to-site traffic is encrypted again, and both sites still reach the internet.
+hints:
+- 'Trace it: what does the packet''s source address become before it reaches the crypto map?'
+- Build list 102 with the deny on top, on both routers, and swap the NAT rule to use it.
+debrief:
+  why: NAT happens first, so VPN traffic was translated and no longer matched the crypto list. Exempting it from NAT lets it keep its private addresses until it's encrypted.
+  solution: |-
+    [R-HQ]
+    enable
+    configure terminal
+    access-list 102 deny ip 10.41.0.0 0.0.0.255 10.42.0.0 0.0.0.255
+    access-list 102 permit ip 10.41.0.0 0.0.0.255 any
+    no ip nat inside source list 1 interface Gi0/1 overload
+    ip nat inside source list 102 interface Gi0/1 overload
+    end
+    [R-BR]
+    enable
+    configure terminal
+    access-list 102 deny ip 10.42.0.0 0.0.0.255 10.41.0.0 0.0.0.255
+    access-list 102 permit ip 10.42.0.0 0.0.0.255 any
+    no ip nat inside source list 1 interface Gi0/1 overload
+    ip nat inside source list 102 interface Gi0/1 overload
+    end
+  job: This exact fault shows up whenever someone adds NAT and a VPN to the same router, so knowing it saves hours.
+teaches:
+- no ip nat
+lab:
+  devices:
+  - name: PC-HQ
+    kind: pc
+    x: 8
+    y: 70
+    config: |-
+      ip addr add 10.41.0.10/24 dev eth0
+      ip route add default via 10.41.0.1
+  - name: R-HQ
+    kind: router
+    x: 30
+    y: 40
+    config: |-
+      interface Gi0/0
+       ip address 10.41.0.1 255.255.255.0
+       ip nat inside
+       no shutdown
+      interface Gi0/1
+       ip address 203.0.113.2 255.255.255.0
+       ip nat outside
+       no shutdown
+      ip route 0.0.0.0 0.0.0.0 203.0.113.1
+      access-list 1 permit 10.41.0.0 0.0.0.255
+      ip nat inside source list 1 interface Gi0/1 overload
+      crypto isakmp policy 10
+       encryption aes 256
+       hash sha256
+       authentication pre-share
+       group 14
+      crypto isakmp key Wh1teraven-VPN address 198.51.100.2
+      crypto ipsec transform-set TS esp-aes 256 esp-sha256-hmac
+      access-list 101 permit ip 10.41.0.0 0.0.0.255 10.42.0.0 0.0.0.255
+      crypto map VPN 10 ipsec-isakmp
+       set peer 198.51.100.2
+       set transform-set TS
+       match address 101
+      interface Gi0/1
+       crypto map VPN
+  - name: ISP
+    kind: router
+    x: 50
+    y: 12
+    locked: true
+    config: |-
+      interface Gi0/0
+       ip address 203.0.113.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 198.51.100.1 255.255.255.0
+       no shutdown
+  - name: R-BR
+    kind: router
+    x: 70
+    y: 40
+    config: |-
+      interface Gi0/0
+       ip address 10.42.0.1 255.255.255.0
+       ip nat inside
+       no shutdown
+      interface Gi0/1
+       ip address 198.51.100.2 255.255.255.0
+       ip nat outside
+       no shutdown
+      ip route 0.0.0.0 0.0.0.0 198.51.100.1
+      access-list 1 permit 10.42.0.0 0.0.0.255
+      ip nat inside source list 1 interface Gi0/1 overload
+      crypto isakmp policy 10
+       encryption aes 256
+       hash sha256
+       authentication pre-share
+       group 14
+      crypto isakmp key Wh1teraven-VPN address 203.0.113.2
+      crypto ipsec transform-set TS esp-aes 256 esp-sha256-hmac
+      access-list 101 permit ip 10.42.0.0 0.0.0.255 10.41.0.0 0.0.0.255
+      crypto map VPN 10 ipsec-isakmp
+       set peer 203.0.113.2
+       set transform-set TS
+       match address 101
+      interface Gi0/1
+       crypto map VPN
+  - name: SRV-BR
+    kind: server
+    x: 92
+    y: 70
+    config: |-
+      ip addr add 10.42.0.10/24 dev eth0
+      ip route add default via 10.42.0.1
+      service http start
+  - name: INTERNET
+    kind: server
+    x: 50
+    y: 70
+    locked: true
+    config: |-
+      ip addr add 198.51.100.10/24 dev eth0
+      ip route add default via 198.51.100.1
+      service http start
+  cables:
+  - - PC-HQ
+    - eth0
+    - R-HQ
+    - Gi0/0
+  - - R-HQ
+    - Gi0/1
+    - ISP
+    - Gi0/0
+  - - R-BR
+    - Gi0/1
+    - ISP
+    - Gi0/1
+  - - SRV-BR
+    - eth0
+    - R-BR
+    - Gi0/0
+  - - INTERNET
+    - eth0
+    - ISP
+    - Gi0/2
+expect:
+- label: PC-HQ reaches SRV-BR, encrypted
+  encrypted:
+    from: PC-HQ
+    to: SRV-BR
+    proto: tcp
+    port: 80
+- label: SRV-BR reaches PC-HQ, encrypted
+  encrypted:
+    from: SRV-BR
+    to: PC-HQ
+- label: The VPN stays up
+  vpn_up:
+    device: R-HQ
+    peer: 198.51.100.2
+- label: HQ still has internet NAT
+  config:
+    device: R-HQ
+    contains: ip nat inside source list 102 interface Gi0/1 overload
+- label: The branch still has internet NAT
+  config:
+    device: R-BR
+    contains: ip nat inside source list 102 interface Gi0/1 overload
+rewind:
+- type: mc
+  level: easy
+  label: The fault
+  q: Why did the VPN traffic stop being encrypted?
+  options:
+  - NAT changed its source, so it no longer matched the crypto list
+  - The key expired
+  - The ISP blocked it
+  - DNS failed
+  answer: NAT changed its source, so it no longer matched the crypto list
+  hint: What happens first?
+- type: mc
+  level: medium
+  label: The fix
+  q: What does the deny line do in a NAT access list?
+  options:
+  - It keeps that traffic out of NAT
+  - It drops that traffic
+  - It encrypts it
+  - It logs it
+  answer: It keeps that traffic out of NAT
+  hint: It isn't a firewall rule here.
+- type: order
+  level: medium
+  label: Order them
+  q: Which order do the lines of list 102 go in?
+  scrambled:
+  - permit ip 10.41.0.0 0.0.0.255 any
+  - deny ip 10.41.0.0 0.0.0.255 10.42.0.0 0.0.0.255
+  answer:
+  - deny ip 10.41.0.0 0.0.0.255 10.42.0.0 0.0.0.255
+  - permit ip 10.41.0.0 0.0.0.255 any
+  hint: First match wins.
+- type: text
+  level: medium
+  label: The term
+  q: 'What do you call keeping VPN traffic out of NAT? Two words: NAT ...'
+  answer:
+  - exemption
+  - nat exemption
+  hint: It's exempt.
+- type: mc
+  level: hard
+  label: Symptom
+  q: The VPN shows as up, and traffic still fails. What does that tell you?
+  options:
+  - Phases 1 and 2 are fine, so the traffic isn't matching the VPN
+  - The keys differ
+  - The cable is cut
+  - DNS is at fault
+  answer: Phases 1 and 2 are fine, so the traffic isn't matching the VPN
+  hint: Up, but unused.

@@ -44,7 +44,7 @@ tracks:
     name: NetLab
     subtitle: Real routers and switches, in a lab you can break
     dir: netlab
-    requires: net-11
+    requires: net-05
   - code: BX
     name: Beyond
     subtitle: "After Archmage: from Easy to Brainfuck"

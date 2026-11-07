@@ -1,0 +1,91 @@
+id: net-42
+track: NET
+skill: networking
+chapter: Security
+order: 41
+title: Where an access list goes
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'An access list only does something once it''s applied to an interface, in a direction: in means as traffic arrives and out means as it leaves. A standard access list matches only the source, so it goes close to the destination, or it would block too much. An extended access list matches source, destination, protocol and port, so it goes close to the source and stops unwanted traffic early. Every list ends with an invisible deny of everything else.'
+  example: |-
+    ip access-list extended GUESTS
+     deny ip 10.40.20.0 0.0.0.255 10.40.30.0 0.0.0.255
+     permit ip any any
+    interface Gi0/0.20
+     ip access-group GUESTS in
+brief: An access list has one line, permit tcp any any eq 443. What happens to a ping? Answer permit or deny.
+goal: 'Run: submit <answer>'
+hints:
+- Does ping match the line?
+- Remember what ends every list.
+debrief:
+  why: Direction and placement decide what a list really does, and the invisible deny at the end catches everything you didn't mention.
+  solution: submit deny
+  job: Many outages come from a new list that forgot the permit line at the end.
+teaches:
+- in
+- out
+- standard
+- extended
+- deny
+answer:
+  accept:
+  - deny
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What happens to traffic matching no line in an access list?
+  options:
+  - It's denied
+  - It's permitted
+  - It's logged and passed
+  - It's sent to the firewall
+  answer: It's denied
+  hint: There's an invisible last line.
+- type: mc
+  level: easy
+  label: Direction
+  q: Traffic arriving at an interface is filtered by which direction?
+  options:
+  - in
+  - out
+  - up
+  - both always
+  answer: in
+  hint: As it arrives.
+- type: mc
+  level: medium
+  label: Placement
+  q: Where does an extended access list usually go?
+  options:
+  - Close to the source
+  - Close to the destination
+  - On the DNS server
+  - On every port
+  answer: Close to the source
+  hint: Stop it early.
+- type: text
+  level: medium
+  label: The fix
+  q: A new list blocks everything except what you meant to deny. Which word starts the line it's missing at the end?
+  answer:
+  - permit
+  hint: The opposite of deny.
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Why does a standard list go close to the destination?
+  options:
+  - It only sees the source, so near the source it would block too much
+  - It's faster there
+  - It needs a DNS server
+  - It can't be used on routers
+  answer: It only sees the source, so near the source it would block too much
+  hint: What can it match?

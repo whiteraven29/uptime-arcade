@@ -1,0 +1,159 @@
+id: lab-41
+track: LAB
+skill: networking
+chapter: IPv6
+order: 33
+title: Turn on IPv6
+from: Network
+difficulty: hard
+check: net
+requires: net-49
+par:
+  kind: commands
+  value: 19
+lesson:
+  text: On a router, ipv6 unicast-routing turns on routing and advertisements, and ipv6 address on an interface gives it an address, with its prefix written as a /64. On a PC, rdisc6 listens for the router's advertisement and builds an address. Check with ip -6 addr on the PC, and show ipv6 interface brief on the router. Then ping works as usual, with IPv6 addresses.
+  example: |-
+    ipv6 unicast-routing
+    interface Gi0/0
+     ipv6 address 2001:db8:a::1/64
+
+    rdisc6 eth0
+    ip -6 addr
+brief: The ISP has given you a block, and the office LAN should be 2001:db8:1::/64, with the router at 2001:db8:1::1. Turn on IPv6 on R1, and let PC-1 and PC-2 configure themselves.
+goal: Both PCs get their own IPv6 addresses and can reach the router.
+hints:
+- ipv6 unicast-routing on R1, then the address on Gi0/0.
+- rdisc6 eth0 on each PC.
+debrief:
+  why: The router announces the prefix and hosts build their own addresses from it, so there's no pool to manage. Without unicast-routing, the router stays silent.
+  solution: |-
+    [R1]
+    enable
+    configure terminal
+    ipv6 unicast-routing
+    interface Gi0/0
+    ipv6 address 2001:db8:1::1/64
+    end
+    show ipv6 interface brief
+    [PC-1]
+    rdisc6 eth0
+    ip -6 addr
+    ping 2001:db8:1::1
+    [PC-2]
+    rdisc6 eth0
+  job: SLAAC is how phones and laptops get IPv6 on most networks.
+teaches:
+- ipv6 unicast-routing
+- ipv6 address
+- rdisc6
+- ip -6
+- show ipv6 interface brief
+lab:
+  devices:
+  - name: PC-1
+    kind: pc
+    x: 15
+    y: 25
+    config: ''
+  - name: PC-2
+    kind: pc
+    x: 15
+    y: 75
+    config: ''
+  - name: SW1
+    kind: switch
+    x: 50
+    y: 50
+    ports: 8
+    config: ''
+  - name: R1
+    kind: router
+    x: 85
+    y: 50
+    config: |-
+      interface Gi0/0
+       no shutdown
+  cables:
+  - - PC-1
+    - eth0
+    - SW1
+    - Gi0/1
+  - - PC-2
+    - eth0
+    - SW1
+    - Gi0/2
+  - - R1
+    - Gi0/0
+    - SW1
+    - Gi0/8
+expect:
+- label: PC-1 built an address from the router's prefix
+  v6_addr:
+    host: PC-1
+    in: 2001:db8:1::/64
+- label: PC-2 built an address from the router's prefix
+  v6_addr:
+    host: PC-2
+    in: 2001:db8:1::/64
+- label: PC-1 reaches the router
+  reach:
+    from: PC-1
+    to: 2001:db8:1::1
+- label: PC-1 reaches PC-2 over IPv6
+  reach:
+    from: PC-1
+    to: PC-2
+    family: 6
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Where did the PCs' addresses come from?
+  options:
+  - They built them from the router's prefix
+  - A DHCP pool
+  - You typed them
+  - The ISP sent them
+  answer: They built them from the router's prefix
+  hint: SLAAC.
+- type: text
+  level: medium
+  label: The command
+  q: Which global command lets a router route and advertise IPv6?
+  answer:
+  - ipv6 unicast-routing
+  hint: Two parts.
+- type: mc
+  level: medium
+  label: Reading
+  q: What does /64 mean in 2001:db8:1::1/64?
+  options:
+  - The first 64 bits name the network
+  - It holds 64 hosts
+  - It's channel 64
+  - It's a wildcard
+  answer: The first 64 bits name the network
+  hint: Half and half.
+- type: mc
+  level: medium
+  label: Shortening
+  q: 'What does :: mean in an address?'
+  options:
+  - A run of zeros
+  - An error
+  - Any address
+  - A port
+  answer: A run of zeros
+  hint: It saves typing.
+- type: mc
+  level: hard
+  label: Diagnosis
+  q: rdisc6 gets no advertisement. The address on the router is right. What's missing?
+  options:
+  - ipv6 unicast-routing
+  - A DHCP pool
+  - A hostname
+  - NAT
+  answer: ipv6 unicast-routing
+  hint: The router stays quiet without it.

@@ -71,6 +71,9 @@ def load(root=None):
     for track in config["tracks"]:
         if track.get("requires") and track["requires"] not in known:
             problems.append(f"{track['code']}: requires {track['requires']}, which doesn't exist")
+    for m in missions:
+        if isinstance(m, dict) and m.get("requires") and m["requires"] not in known:
+            problems.append(f"{m['id']}: requires {m['requires']}, which doesn't exist")
     fixtures = _yaml(root / "fixtures" / "fs" / "base.yaml")["files"]
     if problems:
         raise ContentError(problems)

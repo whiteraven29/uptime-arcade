@@ -1,0 +1,89 @@
+id: net-31
+track: NET
+skill: networking
+chapter: Switching
+order: 12
+title: How a switch learns
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A switch joins machines on one network. It starts knowing nothing. Each time a frame arrives it writes down the sender's MAC and the port it came in on, in its MAC table. If it already knows the destination it sends the frame out that one port. If it doesn't, it floods the frame out every other port, and the answer teaches it the rest.
+  example: |-
+    Vlan  Mac Address     Ports
+    1     02aa.11c4.9e01  Gi0/3
+    1     02aa.77d0.1b22  Gi0/7
+brief: Look at the table in the lesson. A frame arrives for 02aa.77d0.1b22. Which port does it leave by?
+goal: 'Run: submit <answer>'
+hints:
+- Find that MAC in the table.
+- The last column is the port.
+debrief:
+  why: A switch forwards by the MAC table and floods only what it doesn't know yet. That's why the first packet is flooded and later ones aren't.
+  solution: submit Gi0/7
+  job: When someone asks where a laptop is plugged in, the MAC table is how you find out.
+teaches:
+- MAC table
+- flood
+answer:
+  accept:
+  - Gi0/7
+  - gi0/7
+  - 0/7
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does a switch write down when a frame arrives?
+  options:
+  - The sender's MAC and the port it came in on
+  - The destination IP address
+  - The sender's password
+  - The length of the cable
+  answer: The sender's MAC and the port it came in on
+  hint: It learns from who is sending.
+- type: mc
+  level: easy
+  label: What happens next
+  q: A frame arrives for a MAC the switch has never seen. What does it do?
+  options:
+  - Flood it out every other port
+  - Drop it
+  - Send it back
+  - Ask the router
+  answer: Flood it out every other port
+  hint: If it doesn't know, it asks everyone.
+- type: mc
+  level: medium
+  label: Reading a table
+  q: A MAC table says 02aa.1234.0001 is on Gi0/5. A frame arrives for that MAC on Gi0/2. Where does it go?
+  options:
+  - Only out Gi0/5
+  - Out every port
+  - Back out Gi0/2
+  - Nowhere
+  answer: Only out Gi0/5
+  hint: Known MAC, one port.
+- type: text
+  level: medium
+  label: The name
+  q: What is the list a switch keeps of MACs and ports called? Two words.
+  answer:
+  - MAC table
+  - mac address table
+  hint: Those two words appear in the lesson.
+- type: mc
+  level: hard
+  label: At work
+  q: Someone asks which port a laptop is plugged into. What do you look at?
+  options:
+  - The switch's MAC table
+  - The DNS records
+  - The routing table
+  - The laptop's browser
+  answer: The switch's MAC table
+  hint: It maps machines to ports.

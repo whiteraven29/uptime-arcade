@@ -1,0 +1,210 @@
+id: lab-39
+track: LAB
+skill: networking
+chapter: Wireless
+order: 31
+title: 'Fault: the rogue access point'
+from: Security
+difficulty: hard
+check: net
+requires: net-48
+par:
+  kind: commands
+  value: 17
+lesson:
+  text: Anything can plug into a wall port. On your access point, show dot11 neighbors lists every access point it can hear, with its MAC, so one you don't recognise stands out. Then show mac address-table on the switch tells you which port that MAC is on. Shut that port with shutdown, and add a description so people know why.
+  example: |-
+    show dot11 neighbors
+    show mac address-table
+    interface Gi0/7
+     description Rogue AP removed
+     shutdown
+brief: 'Ticket: "There''s a second STAFF network showing up with no password." Someone''s cheap router is broadcasting your network name and is plugged into a wall port, so anyone can get on your network. Find which port it''s on and shut it. Don''t touch the others.'
+goal: The rogue is cut off, and the real network still works.
+hints:
+- show dot11 neighbors on AP-1 gives the rogue's MAC.
+- Find that MAC in show mac address-table on SW1.
+debrief:
+  why: 'A rogue device is traced the same way as any machine: its MAC leads to a port. Shutting the port removes it, and the description tells the next person why.'
+  solution: |-
+    [AP-1]
+    enable
+    show dot11 neighbors
+    [SW1]
+    enable
+    show mac address-table
+    configure terminal
+    interface Gi0/4
+    description Rogue AP removed
+    shutdown
+    end
+  job: Wireless surveys and rogue detection are a standard part of security audits.
+teaches:
+- show mac address-table
+- shutdown
+lab:
+  devices:
+  - name: LAPTOP-1
+    kind: laptop
+    x: 15
+    y: 80
+    config: |-
+      wifi connect STAFF Wh1teraven-Staff
+      ip addr add 10.70.10.50/24 dev wlan0
+      ip route add default via 10.70.10.1
+  - name: AP-1
+    kind: ap
+    x: 22
+    y: 50
+    config: |-
+      vlan 10
+      dot11 ssid STAFF
+       vlan 10
+       authentication wpa2 Wh1teraven-Staff
+      interface Do0
+       channel 6
+       ssid STAFF
+       no shutdown
+      interface Gi0/1
+       switchport mode trunk
+  - name: SW1
+    kind: switch
+    x: 55
+    y: 40
+    ports: 8
+    config: |-
+      vlan 10
+       name STAFF
+      vlan 20
+       name GUEST
+      interface Gi0/1
+       switchport mode trunk
+      interface Gi0/2
+       switchport access vlan 10
+      interface Gi0/8
+       switchport mode trunk
+      interface Gi0/3
+       description Wall port room 2
+       switchport access vlan 10
+      interface Gi0/4
+       description Wall port room 3
+       switchport access vlan 10
+      interface Gi0/5
+       description Wall port room 4
+       switchport access vlan 10
+  - name: SNEAKY
+    kind: ap
+    x: 80
+    y: 70
+    config: |-
+      vlan 10
+      dot11 ssid STAFF
+       vlan 10
+      interface Do0
+       channel 1
+       ssid STAFF
+       no shutdown
+      interface Gi0/1
+       switchport mode access
+       switchport access vlan 10
+    locked: true
+  - name: FILES
+    kind: server
+    x: 85
+    y: 20
+    config: |-
+      ip addr add 10.70.10.9/24 dev eth0
+      ip route add default via 10.70.10.1
+  - name: INTRUDER
+    kind: laptop
+    x: 90
+    y: 90
+    config: |-
+      wifi connect STAFF
+      ip addr add 10.70.10.66/24 dev wlan0
+      ip route add default via 10.70.10.1
+  cables:
+  - - AP-1
+    - Gi0/1
+    - SW1
+    - Gi0/1
+  - - FILES
+    - eth0
+    - SW1
+    - Gi0/2
+  - - SNEAKY
+    - Gi0/1
+    - SW1
+    - Gi0/4
+expect:
+- label: The intruder can't reach the file server
+  reach:
+    from: INTRUDER
+    to: FILES
+    expect: blocked
+- label: The real network still works
+  reach:
+    from: LAPTOP-1
+    to: FILES
+- label: Only the rogue's port was shut
+  config:
+    device: SW1
+    interface: Gi0/4
+    contains: shutdown
+- label: The other wall ports are untouched
+  config:
+    device: SW1
+    interface: Gi0/3
+    absent: shutdown
+rewind:
+- type: mc
+  level: easy
+  label: The risk
+  q: Why is a rogue access point dangerous?
+  options:
+  - It lets anyone onto your network, past your password
+  - It uses up channels only
+  - It slows DNS
+  - It renames VLANs
+  answer: It lets anyone onto your network, past your password
+  hint: Open door.
+- type: mc
+  level: medium
+  label: Finding it
+  q: How did you get from the rogue to the port?
+  options:
+  - Its MAC, looked up in the MAC table
+  - Its hostname
+  - A ping
+  - The cable colour
+  answer: Its MAC, looked up in the MAC table
+  hint: MAC to port.
+- type: text
+  level: medium
+  label: The fix
+  q: Which interface command turned that port off?
+  answer:
+  - shutdown
+  hint: One word.
+- type: mc
+  level: medium
+  label: Good habit
+  q: Why add a description to the port you shut?
+  options:
+  - So the next person knows why it's off
+  - The port needs it to stay off
+  - It alerts the rogue
+  - It logs the MAC
+  answer: So the next person knows why it's off
+  hint: Notes for later.
+- type: mc
+  level: hard
+  label: Prevention
+  q: What stops this happening again on wall ports?
+  options:
+  - Port security, which limits who can use the port
+  - A longer password
+  - A new SSID
+  - A lower channel
+  answer: Port security, which limits who can use the port
+  hint: You've used it before.

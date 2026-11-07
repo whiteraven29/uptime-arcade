@@ -1,0 +1,182 @@
+id: lab-10
+track: LAB
+skill: networking
+chapter: VLANs
+order: 10
+title: 'Fault: the lost VLAN'
+from: Service Desk
+difficulty: medium
+check: net
+requires: net-34
+par:
+  kind: commands
+  value: 15
+lesson:
+  text: 'Faults are where the job really happens. Work from the symptom: what works, what doesn''t, and what''s different? Use show interfaces trunk to compare both ends. To change an allowed list without retyping it, use switchport trunk allowed vlan add. A failing ping in this lab will also tell you why, so read it.'
+  example: |-
+    show interfaces trunk
+    switchport trunk allowed vlan add 30
+brief: 'Ticket: "Everyone in VLAN 30 on floor 2 lost the file server this morning. Other teams are fine." A change went in overnight. Find it and fix it, changing as little as you can.'
+goal: VLAN 30 works again, and the other VLANs still do.
+hints:
+- Ping from OPS-2 and read why it fails.
+- Compare show interfaces trunk on FL1 and FL2.
+debrief:
+  why: The trunk on FL2 had lost VLAN 30 from its allowed list. A change that touches one VLAN's path while others work is usually a trunk or VLAN list.
+  solution: |-
+    [OPS-2]
+    ping 10.40.30.5
+    [FL2]
+    enable
+    show interfaces trunk
+    configure terminal
+    interface Gi0/8
+    switchport trunk allowed vlan add 30
+    end
+  job: Fixing it with add, rather than retyping the list, avoids dropping everyone else by mistake.
+teaches:
+- switchport trunk allowed vlan add
+lab:
+  devices:
+  - name: STAFF-2
+    kind: pc
+    x: 85
+    y: 20
+    config: ip addr add 10.40.10.20/24 dev eth0
+  - name: OPS-2
+    kind: pc
+    x: 85
+    y: 80
+    config: ip addr add 10.40.30.20/24 dev eth0
+  - name: FL2
+    kind: switch
+    x: 60
+    y: 50
+    ports: 8
+    config: |-
+      vlan 10
+      vlan 30
+      interface Gi0/1
+       switchport access vlan 10
+      interface Gi0/2
+       switchport access vlan 30
+      interface Gi0/8
+       switchport mode trunk
+       switchport trunk allowed vlan 10
+  - name: FL1
+    kind: switch
+    x: 30
+    y: 50
+    ports: 8
+    config: |-
+      vlan 10
+      vlan 30
+      interface Gi0/1
+       switchport access vlan 10
+      interface Gi0/2
+       switchport access vlan 30
+      interface Gi0/8
+       switchport mode trunk
+       switchport trunk allowed vlan 10,30
+  - name: SRV-10
+    kind: server
+    x: 8
+    y: 20
+    config: ip addr add 10.40.10.5/24 dev eth0
+  - name: SRV-30
+    kind: server
+    x: 8
+    y: 80
+    config: ip addr add 10.40.30.5/24 dev eth0
+  cables:
+  - - STAFF-2
+    - eth0
+    - FL2
+    - Gi0/1
+  - - OPS-2
+    - eth0
+    - FL2
+    - Gi0/2
+  - - FL2
+    - Gi0/8
+    - FL1
+    - Gi0/8
+  - - SRV-10
+    - eth0
+    - FL1
+    - Gi0/1
+  - - SRV-30
+    - eth0
+    - FL1
+    - Gi0/2
+expect:
+- label: VLAN 30 reaches its server
+  reach:
+    from: OPS-2
+    to: SRV-30
+- label: VLAN 10 still works
+  reach:
+    from: STAFF-2
+    to: SRV-10
+- label: The VLANs stay separate
+  reach:
+    from: OPS-2
+    to: SRV-10
+    expect: blocked
+- label: The fix is on FL2's trunk
+  config:
+    device: FL2
+    interface: Gi0/8
+    contains: switchport trunk allowed vlan 10,30
+rewind:
+- type: mc
+  level: easy
+  label: The fault
+  q: What was wrong?
+  options:
+  - VLAN 30 wasn't on FL2's trunk allowed list
+  - The server was off
+  - The PC had the wrong MAC
+  - DNS was down
+  answer: VLAN 30 wasn't on FL2's trunk allowed list
+  hint: One VLAN, one link.
+- type: mc
+  level: medium
+  label: Safe changes
+  q: Why use allowed vlan add rather than retyping the list?
+  options:
+  - A typo in a retyped list can cut off other VLANs
+  - It's the only way
+  - It reloads the switch
+  - It's encrypted
+  answer: A typo in a retyped list can cut off other VLANs
+  hint: Smallest change.
+- type: text
+  level: medium
+  label: The word
+  q: What word goes between allowed vlan and the number to add just one VLAN?
+  answer:
+  - add
+  hint: Three letters.
+- type: mc
+  level: medium
+  label: Method
+  q: One team lost a service and others are fine. What does that suggest?
+  options:
+  - Look at what's specific to that team, such as its VLAN
+  - Reload everything
+  - Replace the core router
+  - It's DNS for sure
+  answer: Look at what's specific to that team, such as its VLAN
+  hint: What's different?
+- type: mc
+  level: hard
+  label: Prevention
+  q: How would you catch this kind of mistake straight after a change?
+  options:
+  - Test each affected VLAN from end to end before closing the change
+  - Reboot overnight
+  - Remove the allowed lists
+  - Add a banner
+  answer: Test each affected VLAN from end to end before closing the change
+  hint: Test what you touched.

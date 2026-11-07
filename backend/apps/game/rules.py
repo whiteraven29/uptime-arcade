@@ -61,21 +61,21 @@ STREAK_MILESTONES = (
     (100, 30 * 60, 5000, 1),
 )
 
-# Section 6.4 scaled to today's 150 core missions (ADR 0004). Beyond doesn't count towards these.
+# Section 6.4, over the 213 core missions (ADR 0012). Beyond doesn't count towards these.
 LEVELS = (
     (0, "Noob"),
-    (8, "Initiate"),
-    (19, "Apprentice"),
-    (34, "Operator"),
-    (52, "Adept"),
-    (71, "Specialist"),
-    (90, "Technomancer"),
-    (109, "Sorcerer"),
-    (128, "Sage"),
-    (150, "Archmage"),
+    (10, "Initiate"),
+    (25, "Apprentice"),
+    (45, "Operator"),
+    (70, "Adept"),
+    (95, "Specialist"),
+    (125, "Technomancer"),
+    (155, "Sorcerer"),
+    (185, "Sage"),
+    (213, "Archmage"),
 )
 
-CORE_TRACK_BADGES = (("SH", "Shell"), ("VI", "vi"), ("PY", "Python"), ("GO", "Go"), ("NET", "Networking"))
+CORE_TRACK_BADGES = (("SH", "Shell"), ("VI", "vi"), ("PY", "Python"), ("GO", "Go"), ("NET", "Networking"), ("LAB", "NetLab"))
 BEYOND_TIERS = ("Easy", "Medium", "Hard", "Expert", "Brainfuck")
 
 BADGES = (

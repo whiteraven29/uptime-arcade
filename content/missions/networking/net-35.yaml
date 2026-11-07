@@ -1,0 +1,88 @@
+id: net-35
+track: NET
+skill: networking
+chapter: Switching
+order: 16
+title: Loops and spanning tree
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'Spare cables between switches keep things running when one breaks, but a loop is dangerous: a flooded frame would go round forever and take the network down. Spanning tree, or STP, stops that. The switches elect one root bridge, the one with the lowest priority, and every switch keeps its best path towards it. Any other path is blocked until it''s needed. You choose the root deliberately, otherwise it can end up being the oldest switch in a cupboard.'
+  example: |-
+    SW1 priority 24576  root bridge
+    SW2 priority 32768  Gi0/2 forwarding
+    SW3 priority 32768  Gi0/3 blocked
+brief: Three switches have priorities 32768, 24576 and 28672. What priority does the root bridge have?
+goal: 'Run: submit <answer>'
+hints:
+- The lowest priority wins.
+- Compare the three numbers.
+debrief:
+  why: STP turns a loop into a tree by blocking spare paths, and opens them again when something fails. The lowest priority wins the root election, so you set it on purpose.
+  solution: submit 24576
+  job: Every switched network with spare links relies on this, and a badly placed root means traffic takes the long way round.
+teaches:
+- STP
+- root bridge
+- priority
+- blocked
+answer:
+  accept:
+  - '24576'
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What problem does spanning tree solve?
+  options:
+  - Loops between switches
+  - Slow DNS
+  - Short passwords
+  - Lost IP addresses
+  answer: Loops between switches
+  hint: Frames going round forever.
+- type: mc
+  level: easy
+  label: The election
+  q: Which switch becomes the root bridge?
+  options:
+  - The one with the lowest priority
+  - The newest
+  - The one with the most ports
+  - The one with the longest name
+  answer: The one with the lowest priority
+  hint: Lowest wins.
+- type: mc
+  level: medium
+  label: What happens
+  q: A link in use fails. What happens to a port STP had blocked?
+  options:
+  - It starts forwarding
+  - It stays blocked for good
+  - It shuts the switch down
+  - It floods forever
+  answer: It starts forwarding
+  hint: That's what the spare is for.
+- type: text
+  level: medium
+  label: The term
+  q: What is the switch at the centre of the tree called? Two words.
+  answer:
+  - root bridge
+  hint: It starts with root.
+- type: mc
+  level: hard
+  label: At work
+  q: Why set the root bridge yourself?
+  options:
+  - Otherwise a poorly placed switch may win and traffic takes the long way
+  - It makes passwords stronger
+  - It is required for DHCP
+  - It stops VLANs working
+  answer: Otherwise a poorly placed switch may win and traffic takes the long way
+  hint: Think about where traffic flows.

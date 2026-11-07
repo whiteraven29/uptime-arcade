@@ -1,0 +1,85 @@
+id: net-40
+track: NET
+skill: networking
+chapter: Dynamic routing
+order: 30
+title: How OSPF picks a path
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: OSPF chooses the path with the lowest total cost. Every interface has a cost, and a route's cost adds them up along the way. You can change a link's cost with ip ospf cost, which steers traffic onto the path you prefer, such as fibre over a slow backup. If a link fails, the routers notice and recalculate on their own, so traffic moves to the next best path without anyone typing a command.
+  example: |-
+    Path A: 1 + 1 = 2 (fibre)
+    Path B: 10 + 10 = 20 (backup)
+brief: A path crosses links of cost 1, 5 and 2. What's its total cost?
+goal: 'Run: submit <answer>'
+hints:
+- Add up every link.
+- 1 + 5 + 2.
+debrief:
+  why: Cost is what OSPF optimises, and it adds up along the path. Setting it is how you tell the network which links you'd rather use, and failover comes free.
+  solution: submit 8
+  job: Traffic engineering at most companies comes down to choosing these numbers carefully.
+teaches:
+- cost
+- ip ospf cost
+answer:
+  accept:
+  - '8'
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Which path does OSPF choose?
+  options:
+  - The lowest total cost
+  - The fewest routers always
+  - The newest
+  - The highest cost
+  answer: The lowest total cost
+  hint: It adds up.
+- type: mc
+  level: easy
+  label: Adding
+  q: Path A costs 2 + 2. Path B costs 3. Which wins?
+  options:
+  - Path B
+  - Path A
+  - They tie
+  - Neither
+  answer: Path B
+  hint: 4 against 3.
+- type: mc
+  level: medium
+  label: Steering
+  q: You want traffic to avoid a slow link. What do you do?
+  options:
+  - Raise that link's cost
+  - Lower that link's cost
+  - Rename the router
+  - Shut every other link
+  answer: Raise that link's cost
+  hint: Higher cost is less attractive.
+- type: text
+  level: medium
+  label: The command
+  q: Which interface command sets a link's OSPF cost? Three words, without the number.
+  answer:
+  - ip ospf cost
+  hint: It starts with ip ospf.
+- type: mc
+  level: hard
+  label: At work
+  q: A link fails at 3am. What has to happen for traffic to move to the backup path?
+  options:
+  - 'Nothing: the routers recalculate by themselves'
+  - Someone edits every router
+  - The ISP moves it
+  - A reload
+  answer: 'Nothing: the routers recalculate by themselves'
+  hint: That's the point of OSPF.

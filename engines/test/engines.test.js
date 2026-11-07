@@ -5,6 +5,7 @@ import { runLine, sh } from '../shell/index.js';
 import { VI, viKey } from '../vi/index.js';
 import { evalExpect } from '../fs/expect.js';
 import { ALL_MISSIONS, TK, TICKETS } from '../../content/index.mjs';
+import { createLab, faultCandidates, playSolution } from '../netsim/index.js';
 
 const run = (line) => {
   const out = [];
@@ -109,8 +110,8 @@ describe('vi', () => {
 describe('every mission', () => {
   const LEVELS = ['easy', 'medium', 'hard'];
   it('has a lesson and five clear rewind tasks, easiest first', () => {
-    expect(TICKETS).toHaveLength(150);
-    expect(ALL_MISSIONS).toHaveLength(200);
+    expect(TICKETS).toHaveLength(213);
+    expect(ALL_MISSIONS).toHaveLength(263);
     for (const t of ALL_MISSIONS) {
       expect(t.learn[0], t.id).toBeTruthy();
       expect(t.rewind, t.id).toHaveLength(5);
@@ -232,5 +233,28 @@ describe('shell: scripts take arguments', () => {
     sh.sink = null;
     expect(buf.join('')).toContain('hi amina');
     expect(S.ranScript).toBe(`${HOME}/s.sh`);
+  });
+});
+
+describe('every lab', () => {
+  const labs = ALL_MISSIONS.filter((m) => m.track === 'LAB');
+  const solved = (t) => {
+    const lab = createLab(t.lab);
+    playSolution(lab, t.sol);
+    return lab;
+  };
+  it('has only addresses and devices its own solution uses', () => {
+    expect(labs).toHaveLength(44);
+    for (const t of labs) for (const said of playSolution(createLab(t.lab), t.sol)) expect(said.said, `${t.id} ${said.line}`).not.toMatch(/no device/);
+  });
+  it('saves and loads every fault a drill could inject, with nothing lost', () => {
+    for (const t of labs) {
+      for (const fault of faultCandidates(solved(t))) {
+        const lab = solved(t);
+        lab.applyLines(fault.device, fault.lines);
+        const saved = lab.serialize();
+        expect(createLab(t.lab, saved).serialize(), `${t.id}: ${fault.explain}`).toEqual(saved);
+      }
+    }
   });
 });

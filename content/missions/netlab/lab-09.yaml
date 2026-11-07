@@ -1,0 +1,186 @@
+id: lab-09
+track: LAB
+skill: networking
+chapter: VLANs
+order: 9
+title: Trunk between floors
+from: Network
+difficulty: medium
+check: net
+requires: net-34
+par:
+  kind: commands
+  value: 23
+lesson:
+  text: To carry VLANs between switches, make the link a trunk with switchport mode trunk, and limit it to what's needed with switchport trunk allowed vlan. Both ends must agree. Check with show interfaces trunk.
+  example: |-
+    interface Gi0/8
+     switchport mode trunk
+     switchport trunk allowed vlan 10,20
+brief: STAFF users on two floors need to reach each other, and so do FINANCE users. VLANs 10 and 20 are set up on both switches. Gi0/8 joins the floors, and it should carry only those two VLANs. The cable between the floors isn't in yet.
+goal: Each VLAN works across both floors.
+hints:
+- Both ends of Gi0/8 need switchport mode trunk.
+- Then switchport trunk allowed vlan 10,20 on each.
+debrief:
+  why: A trunk tags each frame with its VLAN so one cable can carry them all, and limiting the allowed list keeps VLANs off links they don't need.
+  solution: |-
+    [cable] FL1 Gi0/8 FL2 Gi0/8
+    [FL1]
+    enable
+    configure terminal
+    interface Gi0/8
+    switchport mode trunk
+    switchport trunk allowed vlan 10,20
+    end
+    [FL2]
+    enable
+    configure terminal
+    interface Gi0/8
+    switchport mode trunk
+    switchport trunk allowed vlan 10,20
+    end
+    show interfaces trunk
+  job: Every multi-switch office has trunks between its closets.
+teaches:
+- switchport trunk
+- show interfaces trunk
+lab:
+  devices:
+  - name: STAFF-1
+    kind: pc
+    x: 12
+    y: 20
+    config: ip addr add 10.40.10.1/24 dev eth0
+  - name: FIN-1
+    kind: pc
+    x: 12
+    y: 80
+    config: ip addr add 10.40.20.1/24 dev eth0
+  - name: FL1
+    kind: switch
+    x: 38
+    y: 50
+    ports: 8
+    config: |-
+      vlan 10
+       name STAFF
+      vlan 20
+       name FINANCE
+      interface Gi0/1
+       switchport access vlan 10
+      interface Gi0/2
+       switchport access vlan 20
+  - name: FL2
+    kind: switch
+    x: 62
+    y: 50
+    ports: 8
+    config: |-
+      vlan 10
+       name STAFF
+      vlan 20
+       name FINANCE
+      interface Gi0/1
+       switchport access vlan 10
+      interface Gi0/2
+       switchport access vlan 20
+  - name: STAFF-2
+    kind: pc
+    x: 88
+    y: 20
+    config: ip addr add 10.40.10.2/24 dev eth0
+  - name: FIN-2
+    kind: pc
+    x: 88
+    y: 80
+    config: ip addr add 10.40.20.2/24 dev eth0
+  cables:
+  - - STAFF-1
+    - eth0
+    - FL1
+    - Gi0/1
+  - - FIN-1
+    - eth0
+    - FL1
+    - Gi0/2
+  - - STAFF-2
+    - eth0
+    - FL2
+    - Gi0/1
+  - - FIN-2
+    - eth0
+    - FL2
+    - Gi0/2
+  cabling: true
+expect:
+- label: STAFF works across the floors
+  reach:
+    from: STAFF-1
+    to: STAFF-2
+- label: FINANCE works across the floors
+  reach:
+    from: FIN-1
+    to: FIN-2
+- label: FL1's trunk carries only VLANs 10 and 20
+  config:
+    device: FL1
+    interface: Gi0/8
+    contains: switchport trunk allowed vlan 10,20
+- label: FL2's trunk carries only VLANs 10 and 20
+  config:
+    device: FL2
+    interface: Gi0/8
+    contains: switchport trunk allowed vlan 10,20
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why can a single cable carry two VLANs?
+  options:
+  - Each frame is tagged with its VLAN
+  - It has two wires
+  - The switch alternates by time
+  - DNS sorts them out
+  answer: Each frame is tagged with its VLAN
+  hint: Tags.
+- type: text
+  level: medium
+  label: The command
+  q: What goes after switchport mode to make a link carry many VLANs?
+  answer:
+  - trunk
+  hint: One word.
+- type: mc
+  level: medium
+  label: Both ends
+  q: Only one end is set to trunk. What happens?
+  options:
+  - The tagged frames get dropped at the other end
+  - It works fine
+  - The VLANs merge safely
+  - The cable burns out
+  answer: The tagged frames get dropped at the other end
+  hint: Both must agree.
+- type: mc
+  level: medium
+  label: Limits
+  q: Why limit the allowed list?
+  options:
+  - So VLANs aren't sent over links that don't need them
+  - It makes passwords stronger
+  - It's required for ping
+  - It removes VLAN 1 from the switch
+  answer: So VLANs aren't sent over links that don't need them
+  hint: Least privilege.
+- type: mc
+  level: hard
+  label: Reading
+  q: show interfaces trunk says allowed 10,20. A user in VLAN 30 can't reach the other floor. What do you do?
+  options:
+  - Add VLAN 30 to the allowed list at both ends
+  - Reload both switches
+  - Change the hostname
+  - Change the PC's MAC
+  answer: Add VLAN 30 to the allowed list at both ends
+  hint: It isn't on the list.

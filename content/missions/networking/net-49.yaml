@@ -1,0 +1,88 @@
+id: net-49
+track: NET
+skill: networking
+chapter: Edge
+order: 39
+title: IPv6 on a real network
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'IPv6 addresses are 128 bits, and networks are almost always a /64: the first half names the network and the second half names the machine. A router announces its prefix with router advertisements, and a host can build its own address from that, using its MAC, which is called SLAAC. No DHCP needed. A router must have ipv6 unicast-routing turned on, or it won''t route or advertise. IPv6 needs no NAT, because addresses aren''t scarce. Most networks run both, called dual stack. Most importantly, it''s a separate network from IPv4: an IPv4 access list does nothing to IPv6 traffic.'
+  example: |-
+    Prefix:  2001:db8:1::/64
+    Host:    2001:db8:1:0:aa:bbff:fecc:ddee/64
+    Gateway: 2001:db8:1::1
+brief: A router has an IPv4 access list blocking a server, and IPv6 turned on with no IPv6 list. Is the server blocked over IPv6? Answer yes or no.
+goal: 'Run: submit <answer>'
+hints:
+- Does an IPv4 list see IPv6 packets?
+- They're separate.
+debrief:
+  why: 'IPv6 runs alongside IPv4 and has to be filtered separately. Forgetting that is a real and common hole: the network looks locked down, and it is, for one of the two protocols.'
+  solution: submit no
+  job: When dual stack gets turned on, this is the first thing a security review checks.
+teaches:
+- SLAAC
+- router advertisement
+- /64
+- dual stack
+answer:
+  accept:
+  - 'no'
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: How does a host get an address with SLAAC?
+  options:
+  - It builds one from the router's prefix
+  - It asks a DHCP server
+  - Someone types it
+  - It copies its neighbour's
+  answer: It builds one from the router's prefix
+  hint: Stateless.
+- type: mc
+  level: easy
+  label: Sizing
+  q: What prefix length is a normal IPv6 network?
+  options:
+  - /64
+  - /24
+  - /8
+  - /128
+  answer: /64
+  hint: Half and half.
+- type: mc
+  level: medium
+  label: Routers
+  q: What must be on for a router to route IPv6?
+  options:
+  - ipv6 unicast-routing
+  - ip nat inside
+  - ip routing only
+  - spanning-tree
+  answer: ipv6 unicast-routing
+  hint: Lesson.
+- type: text
+  level: medium
+  label: The term
+  q: What is running IPv4 and IPv6 side by side called? Two words.
+  answer:
+  - dual stack
+  hint: Two stacks.
+- type: mc
+  level: hard
+  label: The hole
+  q: Why is turning on IPv6 a security question?
+  options:
+  - IPv4 rules don't apply to it, so it can bypass them
+  - IPv6 has no addresses
+  - It disables encryption
+  - It removes the firewall
+  answer: IPv4 rules don't apply to it, so it can bypass them
+  hint: Separate rules.

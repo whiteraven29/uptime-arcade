@@ -18,6 +18,7 @@ import { OpsScreen } from '../features/ops/OpsScreen.jsx';
 import { OnCallScreen } from '../features/oncall/OnCallScreen.jsx';
 import { RewardsScreen } from '../features/rewards/RewardsScreen.jsx';
 import { ProfileScreen } from '../features/profile/ProfileScreen.jsx';
+import { SandboxScreen } from '../features/netlab/SandboxScreen.jsx';
 import { SystemScreen } from '../features/system/SystemScreen.jsx';
 import { AuthScreen } from '../features/auth/AuthScreen.jsx';
 
@@ -103,6 +104,7 @@ export function App() {
             <Route path="/oncall" element={<OnCallScreen />} />
             <Route path="/rewards" element={<RewardsScreen />} />
             <Route path="/profile" element={<ProfileScreen />} />
+            <Route path="/sandbox" element={<SandboxScreen />} />
             <Route path="/system" element={<SystemScreen />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

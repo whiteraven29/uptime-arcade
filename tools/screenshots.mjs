@@ -134,6 +134,65 @@ for back in range(1, 340):
   await page.waitForSelector('.rw-head');
   await shot('rewind');
 
+  // NetLab, from a lab with a real problem to solve. The missions it needs are marked clear, and the rest is real play.
+  stack.manage('shell', '-c', `
+from apps.content.models import Mission
+from apps.game.models import Player
+from apps.missions.models import MissionProgress
+p = Player.objects.get(user__username='shots_${width}')
+order = Mission.objects.get(code='lab-32').order
+for m in [*Mission.objects.filter(code__in=['net-05', 'net-46']), *Mission.objects.filter(track__code='LAB', order__lt=order)]:
+    MissionProgress.objects.get_or_create(player=p, mission=m, season=p.season, defaults={'state': 'cleared'})
+`);
+  await open('/missions/lab-32/play');
+  await page.waitForSelector('.lab-map');
+  await page.locator('.lab-device[data-device="PC-HQ"]').click();
+  await page.fill('#cmd', 'ping 10.42.0.10');
+  await page.press('#cmd', 'Enter');
+  await page.click('#labCheck');
+  await page.waitForSelector('.lab-goals .bad');
+  await page.waitForTimeout(1600);
+  await shot('netlab');
+  // A replay, with a drill running, and a packet to step through.
+  await open('/missions/lab-21/play');
+  await page.waitForSelector('.lab-map');
+  await page.click('#drillOne');
+  await page.waitForSelector('#drillStatus');
+  await page.locator('.lab-device[data-device="GUEST-1"]').click();
+  await page.fill('#cmd', 'curl 10.40.41.80');
+  await page.press('#cmd', 'Enter');
+  await page.waitForTimeout(900);
+  await shot('netlab-drill');
+  await open('/sandbox');
+  await page.waitForSelector('.sandbox-palette');
+  for (const id of ['#add-router', '#add-switch', '#add-ap', '#add-laptop', '#add-pc']) await page.click(id);
+  // Halfway through dragging a cable, which is the moment worth seeing.
+  const end = async (key) => {
+    const b = await page.locator(`.lab-socket[data-port="${key}"]`).boundingBox();
+    return [b.x + b.width / 2, b.y + b.height / 2];
+  };
+  await page.locator('.lab-map').scrollIntoViewIfNeeded();
+  const [ax, ay] = await end('R-1|Gi0/0');
+  const [bx, by] = await end('SW-1|Gi0/3');
+  await page.mouse.move(ax, ay);
+  await page.mouse.down();
+  await page.mouse.move(bx, by, { steps: 6 });
+  if (!(await page.locator('#labWire').count())) problems.push(`${width}: a port could not be grabbed`);
+  await shot('netlab-wiring');
+  if (width < 700) {
+    // A device off to one side has to be reachable, so the map slides along with the cable.
+    for (let i = 0; i < 12; i++) await page.mouse.move(width - 6, by + (i % 2));
+    if (!(await page.locator('.lab-canvas').evaluate((e) => e.scrollLeft > 0))) problems.push(`${width}: the map doesn't slide while wiring`);
+  }
+  await page.mouse.move(bx, by);
+  await page.mouse.up();
+  await shot('netlab-sandbox');
+  await open('/missions');
+  await page.waitForSelector('.tracks');
+  await page.click('.tcard[data-track="LAB"] .tcard-head');
+  await page.waitForSelector('.tcard[data-track="LAB"] .chapter');
+  await shot('netlab-missions');
+
   await call('/focus/blocks/', { goal: 'Fix the login endpoint bug', minutes: 25 });
   await open('/focus');
   await page.waitForSelector('#clock');
@@ -147,6 +206,44 @@ for back in range(1, 340):
   await open('/focus');
   await page.waitForSelector('#claimNote');
   await shot('focus-claim');
+  await ctx.close();
+}
+
+/* The landing pages must fit the window at every size, with nothing to scroll. */
+const SIZES = [[2560, 1440], [1920, 1080], [1440, 900], [1366, 768], [1280, 720], [1280, 600], [1024, 768], [1024, 600], [820, 1180], [768, 1024], [600, 960], [430, 932], [400, 860], [390, 844], [375, 667], [360, 640], [320, 568], [844, 390], [667, 375]];
+const fits = (page, name, selectors) => page.evaluate(({ selectors }) => {
+  const found = [];
+  const de = document.documentElement;
+  if (de.scrollHeight > innerHeight + 1) found.push(`the page is ${de.scrollHeight}px tall in a ${innerHeight}px window`);
+  if (de.scrollWidth > innerWidth + 1) found.push('it scrolls sideways');
+  for (const e of document.querySelectorAll('main, .screen, .deck')) if (e.scrollHeight > e.clientHeight + 1) found.push(`${e.className || e.tagName} overflows`);
+  for (const sel of selectors) {
+    for (const e of document.querySelectorAll(sel)) {
+      const b = e.getBoundingClientRect();
+      if (b.width && (b.bottom > innerHeight + 1 || b.right > innerWidth + 1 || b.left < -1 || b.top < -1)) found.push(`${sel} is off screen`);
+    }
+  }
+  return found;
+}, { selectors }).then((found) => found.forEach((f) => problems.push(`${name}: ${f}`)));
+{
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  for (const [width, height] of SIZES) {
+    await page.setViewportSize({ width, height });
+    for (const [path, ready] of [['/login', '#loginBtn'], ['/register', '#registerBtn']]) {
+      await page.goto(base + path);
+      await page.waitForSelector(ready);
+      await fits(page, `${path} ${width}x${height}`, [ready]);
+    }
+  }
+  await ctx.request.post(`${base}/api/v1/auth/register/`, { data: { username: 'shots_fit', email: 'fit@example.test', password: 'correct horse battery' } });
+  await page.goto(`${base}/`);
+  await page.waitForSelector('.deck');
+  for (const [width, height] of SIZES) {
+    await page.setViewportSize({ width, height });
+    await page.waitForTimeout(120);
+    await fits(page, `deck ${width}x${height}`, ['.top', '.strip-main .btn', '.path', '.tile', '.core']);
+  }
   await ctx.close();
 }
 await browser.close();

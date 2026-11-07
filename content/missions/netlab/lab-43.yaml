@@ -1,0 +1,164 @@
+id: lab-43
+track: LAB
+skill: networking
+chapter: IPv6
+order: 35
+title: Route it across sites
+from: Network
+difficulty: hard
+check: net
+requires: net-49
+par:
+  kind: commands
+  value: 18
+lesson:
+  text: IPv6 has its own routing table, separate from IPv4. Add a route with ipv6 route, writing the prefix and the next hop. As with IPv4, both directions need one. Read the table with show ipv6 route.
+  example: |-
+    ipv6 route 2001:db8:b::/64 2001:db8:f::2
+    show ipv6 route
+brief: Two sites are joined by a link on 2001:db8:ff::/64, with R-HQ at ::1 and R-BR at ::2. HQ is 2001:db8:a::/64 and the branch is 2001:db8:b::/64. Each router only knows its own networks. Give them routes so the two PCs can reach each other.
+goal: PC-HQ and PC-BR reach each other over IPv6.
+hints:
+- ipv6 route takes the prefix with its /64, then the next hop.
+- R-BR needs the route back, the same as with IPv4.
+debrief:
+  why: IPv6 routing works just like IPv4, with its own table. The habits carry over, including remembering the way back.
+  solution: |-
+    [R-HQ]
+    enable
+    configure terminal
+    ipv6 route 2001:db8:b::/64 2001:db8:ff::2
+    end
+    show ipv6 route
+    [R-BR]
+    enable
+    configure terminal
+    ipv6 route 2001:db8:a::/64 2001:db8:ff::1
+    end
+    [PC-HQ]
+    ping 2001:db8:b::10
+  job: Knowing the two tables are separate saves you from hunting for a route in the wrong one.
+teaches:
+- ipv6 route
+- show ipv6 route
+lab:
+  devices:
+  - name: PC-HQ
+    kind: pc
+    x: 10
+    y: 50
+    config: |-
+      ip -6 addr add 2001:db8:a::10/64 dev eth0
+      ip -6 route add default via 2001:db8:a::1
+  - name: R-HQ
+    kind: router
+    x: 37
+    y: 50
+    config: |-
+      ipv6 unicast-routing
+      interface Gi0/0
+       ipv6 address 2001:db8:a::1/64
+       no shutdown
+      interface Gi0/1
+       ipv6 address 2001:db8:ff::1/64
+       no shutdown
+  - name: R-BR
+    kind: router
+    x: 63
+    y: 50
+    config: |-
+      ipv6 unicast-routing
+      interface Gi0/0
+       ipv6 address 2001:db8:b::1/64
+       no shutdown
+      interface Gi0/1
+       ipv6 address 2001:db8:ff::2/64
+       no shutdown
+  - name: PC-BR
+    kind: pc
+    x: 90
+    y: 50
+    config: |-
+      ip -6 addr add 2001:db8:b::10/64 dev eth0
+      ip -6 route add default via 2001:db8:b::1
+  cables:
+  - - PC-HQ
+    - eth0
+    - R-HQ
+    - Gi0/0
+  - - R-HQ
+    - Gi0/1
+    - R-BR
+    - Gi0/1
+  - - PC-BR
+    - eth0
+    - R-BR
+    - Gi0/0
+expect:
+- label: R-HQ has a route to the branch
+  route:
+    device: R-HQ
+    to: 2001:db8:b::10
+    via: 2001:db8:ff::2
+- label: R-BR has a route to HQ
+  route:
+    device: R-BR
+    to: 2001:db8:a::10
+    via: 2001:db8:ff::1
+- label: PC-HQ reaches PC-BR
+  reach:
+    from: PC-HQ
+    to: PC-BR
+    family: 6
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Does an IPv4 route help IPv6 traffic?
+  options:
+  - No, they have separate tables
+  - Yes, always
+  - Only with NAT
+  - Only on /64s
+  answer: No, they have separate tables
+  hint: Separate.
+- type: text
+  level: medium
+  label: The command
+  q: Which show command reads the IPv6 routing table? Leave out show.
+  answer:
+  - ipv6 route
+  hint: Two words.
+- type: mc
+  level: medium
+  label: Both ways
+  q: Ping goes out, and no reply comes back. What's likely missing?
+  options:
+  - A route on the far router
+  - A DHCP pool
+  - A VLAN
+  - A channel
+  answer: A route on the far router
+  hint: Same as IPv4.
+- type: mc
+  level: medium
+  label: Reading
+  q: In ipv6 route 2001:db8:b::/64 2001:db8:ff::2, what is the second address?
+  options:
+  - The next hop
+  - The source
+  - The destination
+  - The DNS server
+  answer: The next hop
+  hint: Where next.
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Why does NAT not come up here, unlike with IPv4?
+  options:
+  - IPv6 addresses aren't scarce, so everything can have a public one
+  - IPv6 forbids routers
+  - NAT is automatic
+  - The labs skip it
+  answer: IPv6 addresses aren't scarce, so everything can have a public one
+  hint: Plenty to go round.

@@ -17,7 +17,7 @@ const worth = (m) => {
   const d = difficulties.find((x) => x.code === m.difficulty);
   return m.track === 'BX' ? d.beyond_xp : d.xp;
 };
-const KIND = { answer: 'answer', 'go-out': 'answer', 'go-fix': 'answer', fs: 'auto', vi: 'auto', py: 'py' };
+const KIND = { answer: 'answer', 'go-out': 'answer', 'go-fix': 'answer', fs: 'auto', vi: 'auto', py: 'py', net: 'net' };
 
 function flatten(m) {
   const o = {
@@ -29,7 +29,7 @@ function flatten(m) {
   if (m.par.kind === 'keys') o.parKind = 'keys';
   if (m.answer) o.answer = m.answer.accept;
   if (m.check === 'go-fix') o.fixes = m.answer.accept;
-  for (const k of ['expect', 'fixtures', 'file', 'reasoned']) if (m[k] !== undefined) o[k] = m[k];
+  for (const k of ['expect', 'fixtures', 'file', 'reasoned', 'lab', 'requires']) if (m[k] !== undefined) o[k] = m[k];
   if (m.verify) o.v = m.verify;
   if (o.file) o.file = o.file.replace(/^~/, '/home/ops');
   if (m.python) {

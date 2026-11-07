@@ -1,0 +1,198 @@
+id: lab-30
+track: LAB
+skill: networking
+chapter: VPNs
+order: 40
+title: A tunnel between sites
+from: Network
+difficulty: expert
+check: net
+requires: net-45
+par:
+  kind: commands
+  value: 27
+lesson:
+  text: 'A GRE tunnel gives two sites a virtual link across the internet. Create it with interface tunnel and a number, give it an address, then set tunnel source and tunnel destination, using the public address at the far end. Then route over it: a static ip route through the far tunnel address does the job, or you can run OSPF across it. Remember that plain GRE isn''t encrypted.'
+  example: |-
+    interface tunnel 0
+     ip address 172.31.9.1 255.255.255.252
+     tunnel source Gi0/1
+     tunnel destination 203.0.113.2
+    ip route 10.72.0.0 255.255.255.0 172.31.9.2
+brief: HQ needs to reach the branch's server using private addresses across the ISP. Use tunnel addresses 172.31.0.1/30 at HQ and 172.31.0.2/30 at the branch, and static routes for each other's LAN over it.
+goal: PC-HQ reaches SRV-BR through the tunnel.
+hints:
+- The tunnel destination is the far router's public address.
+- Each side needs a route to the other's LAN through the far tunnel address.
+debrief:
+  why: The tunnel wraps private packets in public ones, so the ISP only ever sees the two routers' addresses. To the routers, it's just another link.
+  solution: |-
+    [R-HQ]
+    enable
+    configure terminal
+    interface tunnel 0
+    ip address 172.31.0.1 255.255.255.252
+    tunnel source Gi0/1
+    tunnel destination 198.51.100.2
+    exit
+    ip route 10.42.0.0 255.255.255.0 172.31.0.2
+    end
+    [R-BR]
+    enable
+    configure terminal
+    interface tunnel 0
+    ip address 172.31.0.2 255.255.255.252
+    tunnel source Gi0/1
+    tunnel destination 203.0.113.2
+    exit
+    ip route 10.41.0.0 255.255.255.0 172.31.0.1
+    end
+    [PC-HQ]
+    traceroute 10.42.0.10
+  job: Tunnels connect sites over the cheapest transport there is. Encrypting them comes next.
+teaches:
+- interface tunnel
+- tunnel source
+- tunnel destination
+lab:
+  devices:
+  - name: PC-HQ
+    kind: pc
+    x: 8
+    y: 70
+    config: |-
+      ip addr add 10.41.0.10/24 dev eth0
+      ip route add default via 10.41.0.1
+  - name: R-HQ
+    kind: router
+    x: 30
+    y: 40
+    config: |-
+      interface Gi0/0
+       ip address 10.41.0.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 203.0.113.2 255.255.255.0
+       no shutdown
+      ip route 0.0.0.0 0.0.0.0 203.0.113.1
+  - name: ISP
+    kind: router
+    x: 50
+    y: 12
+    locked: true
+    config: |-
+      interface Gi0/0
+       ip address 203.0.113.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 198.51.100.1 255.255.255.0
+       no shutdown
+  - name: R-BR
+    kind: router
+    x: 70
+    y: 40
+    config: |-
+      interface Gi0/0
+       ip address 10.42.0.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 198.51.100.2 255.255.255.0
+       no shutdown
+      ip route 0.0.0.0 0.0.0.0 198.51.100.1
+  - name: SRV-BR
+    kind: server
+    x: 92
+    y: 70
+    config: |-
+      ip addr add 10.42.0.10/24 dev eth0
+      ip route add default via 10.42.0.1
+      service http start
+  cables:
+  - - PC-HQ
+    - eth0
+    - R-HQ
+    - Gi0/0
+  - - R-HQ
+    - Gi0/1
+    - ISP
+    - Gi0/0
+  - - R-BR
+    - Gi0/1
+    - ISP
+    - Gi0/1
+  - - SRV-BR
+    - eth0
+    - R-BR
+    - Gi0/0
+expect:
+- label: R-HQ's tunnel is up
+  tunnel_up:
+    device: R-HQ
+    interface: Tunnel0
+- label: R-BR's tunnel is up
+  tunnel_up:
+    device: R-BR
+    interface: Tunnel0
+- label: PC-HQ reaches SRV-BR
+  reach:
+    from: PC-HQ
+    to: SRV-BR
+    proto: tcp
+    port: 80
+- label: The route to the branch uses the tunnel
+  route:
+    device: R-HQ
+    to: 10.42.0.10
+    via: 172.31.0.2
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why can private addresses cross the internet in a tunnel?
+  options:
+  - They're wrapped inside packets with public addresses
+  - The ISP routes them specially
+  - They're translated by DNS
+  - They aren't really private
+  answer: They're wrapped inside packets with public addresses
+  hint: A packet inside a packet.
+- type: mc
+  level: medium
+  label: Destination
+  q: What goes in tunnel destination?
+  options:
+  - The far router's public address
+  - The far PC
+  - Your own LAN
+  - The DNS server
+  answer: The far router's public address
+  hint: The internet has to route it.
+- type: text
+  level: medium
+  label: The protocol
+  q: Which tunnel protocol is this lab using? Three letters.
+  answer:
+  - GRE
+  hint: The lesson says.
+- type: mc
+  level: medium
+  label: Routing
+  q: How does a packet get into the tunnel?
+  options:
+  - A route points through the far tunnel address
+  - It happens to everything automatically
+  - The switch decides
+  - By MAC address
+  answer: A route points through the far tunnel address
+  hint: Routing.
+- type: mc
+  level: hard
+  label: Risk
+  q: What's the risk of plain GRE across the internet?
+  options:
+  - Anyone on the path can read it, because it isn't encrypted
+  - It only carries ping
+  - It disables NAT
+  - It can't carry OSPF
+  answer: Anyone on the path can read it, because it isn't encrypted
+  hint: Hiding isn't protecting.

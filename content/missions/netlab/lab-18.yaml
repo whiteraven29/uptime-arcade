@@ -1,0 +1,173 @@
+id: lab-18
+track: LAB
+skill: networking
+chapter: The edge
+order: 18
+title: Get the office online
+from: IT Manager
+difficulty: hard
+check: net
+requires: net-25
+par:
+  kind: commands
+  value: 20
+lesson:
+  text: 'Private addresses can''t cross the internet, so the edge router translates them. An access-list says which addresses qualify, ip nat inside and ip nat outside mark each side, and ip nat inside source list with overload shares one public address among everyone, by giving each connection its own port. Read the results with show ip nat translations. Router access lists use wildcards: a /24 is 0.0.0.255.'
+  example: |-
+    access-list 1 permit 10.70.18.0 0.0.0.255
+    interface Gi0/0
+     ip nat inside
+    interface Gi0/1
+     ip nat outside
+    ip nat inside source list 1 interface Gi0/1 overload
+brief: The ISP link at 203.0.113.2 is up, and the office at 10.40.18.0/24 still can't get out. Share the public address among the office.
+goal: PC-1 can reach a web server on the internet, and the internet can't reach PC-1.
+hints:
+- Mark Gi0/0 inside and Gi0/1 outside.
+- access-list 1 permit 10.40.18.0 0.0.0.255, then the overload line.
+debrief:
+  why: NAT overload lets a whole office share one public address, using ports to keep connections apart. It also means nobody outside can start a connection in.
+  solution: |-
+    [EDGE]
+    enable
+    configure terminal
+    access-list 1 permit 10.40.18.0 0.0.0.255
+    interface Gi0/0
+    ip nat inside
+    interface Gi0/1
+    ip nat outside
+    exit
+    ip nat inside source list 1 interface Gi0/1 overload
+    end
+    [PC-1]
+    curl 198.51.100.10
+    [EDGE]
+    show ip nat translations
+  job: It's on almost every internet edge, and show ip nat translations is how you see it working.
+teaches:
+- access-list
+- ip nat
+- show ip nat translations
+lab:
+  devices:
+  - name: PC-1
+    kind: pc
+    x: 12
+    y: 25
+    config: |-
+      ip addr add 10.40.18.10/24 dev eth0
+      ip route add default via 10.40.18.1
+  - name: EDGE
+    kind: router
+    x: 42
+    y: 25
+    config: |-
+      interface Gi0/0
+       ip address 10.40.18.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 203.0.113.2 255.255.255.0
+       no shutdown
+      ip route 0.0.0.0 0.0.0.0 203.0.113.1
+  - name: ISP
+    kind: router
+    x: 70
+    y: 25
+    locked: true
+    config: |-
+      interface Gi0/0
+       ip address 203.0.113.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 198.51.100.1 255.255.255.0
+       no shutdown
+  - name: INTERNET
+    kind: server
+    x: 92
+    y: 25
+    locked: true
+    config: |-
+      ip addr add 198.51.100.10/24 dev eth0
+      ip route add default via 198.51.100.1
+      service http start
+  cables:
+  - - PC-1
+    - eth0
+    - EDGE
+    - Gi0/0
+  - - EDGE
+    - Gi0/1
+    - ISP
+    - Gi0/0
+  - - INTERNET
+    - eth0
+    - ISP
+    - Gi0/1
+expect:
+- label: PC-1 can reach the internet
+  reach:
+    from: PC-1
+    to: INTERNET
+    proto: tcp
+    port: 80
+- label: The internet can't start a connection to PC-1
+  reach:
+    from: INTERNET
+    to: 10.40.18.10
+    expect: blocked
+- label: One address is shared
+  config:
+    device: EDGE
+    contains: overload
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why can't a private address go straight to the internet?
+  options:
+  - Internet routers have no route back to private addresses
+  - It's too long
+  - It's encrypted
+  - It has no MAC
+  answer: Internet routers have no route back to private addresses
+  hint: Replies couldn't return.
+- type: mc
+  level: medium
+  label: Overload
+  q: How does one public address serve many PCs?
+  options:
+  - Each connection gets its own port
+  - They take turns by the minute
+  - Each gets a VLAN
+  - It can't
+  answer: Each connection gets its own port
+  hint: Ports tell them apart.
+- type: text
+  level: medium
+  label: Which word
+  q: Which word at the end of the NAT line shares the address?
+  answer:
+  - overload
+  hint: It's in the lesson.
+- type: mc
+  level: medium
+  label: Sides
+  q: Which side gets ip nat outside?
+  options:
+  - The side facing the internet
+  - The side facing the PCs
+  - Both
+  - Neither
+  answer: The side facing the internet
+  hint: Outside.
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Why can't the internet start a connection to PC-1?
+  options:
+  - No translation exists until PC-1 starts one
+  - A firewall rule blocks it
+  - PC-1 has no gateway
+  - DNS refuses it
+  answer: No translation exists until PC-1 starts one
+  hint: What does the router look up?

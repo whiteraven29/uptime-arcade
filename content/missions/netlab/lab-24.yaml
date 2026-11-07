@@ -1,0 +1,164 @@
+id: lab-24
+track: LAB
+skill: networking
+chapter: Security
+order: 24
+title: Stop the rogue switch
+from: Security
+difficulty: hard
+check: net
+requires: net-44
+par:
+  kind: commands
+  value: 16
+lesson:
+  text: Port security limits who can use a switch port. Set switchport mode access, turn it on with switchport port-security, and limit it with switchport port-security maximum. If too many machines appear, or the wrong one, the port shuts itself and shows err-disabled. spanning-tree bpduguard enable shuts a port if a switch appears on it at all. Check with show port-security.
+  example: |-
+    interface Gi0/3
+     switchport mode access
+     switchport port-security
+     switchport port-security maximum 1
+     spanning-tree bpduguard enable
+brief: Someone plugged a cheap mini switch into the meeting room's port on Gi0/3, and two laptops are sharing it. Policy is one machine per wall port. Meanwhile, the desk on Gi0/1 must keep working.
+goal: The meeting room port shuts itself down, and the desk keeps working.
+hints:
+- Security only works on an access port.
+- switchport port-security, then maximum 1.
+debrief:
+  why: A port that knows how many machines to expect can close itself the moment someone adds more. It stops rogue switches and much casual snooping.
+  solution: |-
+    [SW1]
+    enable
+    configure terminal
+    interface Gi0/3
+    switchport mode access
+    switchport port-security
+    switchport port-security maximum 1
+    end
+    show port-security
+  job: It's a standard item in network access policies, especially for ports in public rooms.
+teaches:
+- switchport port-security
+- show port-security
+- spanning-tree bpduguard
+lab:
+  devices:
+  - name: DESK-1
+    kind: pc
+    x: 12
+    y: 20
+    config: ip addr add 10.40.25.1/24 dev eth0
+  - name: SRV-1
+    kind: server
+    x: 12
+    y: 80
+    config: ip addr add 10.40.25.9/24 dev eth0
+  - name: SW1
+    kind: switch
+    x: 45
+    y: 50
+    ports: 8
+    config: ''
+  - name: MINI
+    kind: switch
+    x: 75
+    y: 50
+    ports: 4
+    config: ''
+  - name: LAPTOP-A
+    kind: pc
+    x: 95
+    y: 20
+    config: ip addr add 10.40.25.2/24 dev eth0
+  - name: LAPTOP-B
+    kind: pc
+    x: 95
+    y: 80
+    config: ip addr add 10.40.25.3/24 dev eth0
+  cables:
+  - - DESK-1
+    - eth0
+    - SW1
+    - Gi0/1
+  - - SRV-1
+    - eth0
+    - SW1
+    - Gi0/8
+  - - SW1
+    - Gi0/3
+    - MINI
+    - Gi0/1
+  - - LAPTOP-A
+    - eth0
+    - MINI
+    - Gi0/2
+  - - LAPTOP-B
+    - eth0
+    - MINI
+    - Gi0/3
+expect:
+- label: The meeting room port has shut itself
+  err_disabled:
+    device: SW1
+    interface: Gi0/3
+- label: Nothing on the mini switch gets through
+  reach:
+    from: LAPTOP-A
+    to: SRV-1
+    expect: blocked
+- label: The desk still works
+  reach:
+    from: DESK-1
+    to: SRV-1
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does port security do?
+  options:
+  - Limits which or how many machines can use a port
+  - Encrypts the port
+  - Speeds it up
+  - Adds VLANs
+  answer: Limits which or how many machines can use a port
+  hint: It's about who.
+- type: mc
+  level: medium
+  label: The result
+  q: What state does a port show after a violation?
+  options:
+  - err-disabled
+  - FULL
+  - QM_IDLE
+  - forwarding
+  answer: err-disabled
+  hint: Error, disabled.
+- type: text
+  level: medium
+  label: The word
+  q: Which word sets how many machines are allowed? It follows port-security.
+  answer:
+  - maximum
+  hint: The most.
+- type: mc
+  level: medium
+  label: Mode
+  q: What port mode does this lab's port security need?
+  options:
+  - access
+  - trunk
+  - routed
+  - tunnel
+  answer: access
+  hint: One device.
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Why is a rogue switch a risk, even if it's just convenience?
+  options:
+  - It adds unknown machines and can create loops
+  - It adds encryption
+  - It makes DNS slower only
+  - It renames VLANs
+  answer: It adds unknown machines and can create loops
+  hint: Unknown and uncontrolled.

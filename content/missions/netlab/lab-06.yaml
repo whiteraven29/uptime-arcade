@@ -1,0 +1,134 @@
+id: lab-06
+track: LAB
+skill: networking
+chapter: Routing
+order: 6
+title: Join two networks
+from: Network
+difficulty: easy
+check: net
+requires: net-11
+par:
+  kind: commands
+  value: 22
+lesson:
+  text: To reach another subnet, a machine sends the packet to its default gateway. On a Linux PC, set it with ip route add default via and the router's address. The router needs an address in each network on its own interfaces. Then traceroute shows the path a packet takes, one router at a time.
+  example: |-
+    ip route add default via 10.70.6.1
+    traceroute 10.70.7.10
+brief: Support and Engineering sit on different subnets joined by R1. Nothing has been set up on the router, and neither PC has a gateway. Support is 10.40.6.0/24 and Engineering is 10.40.7.0/24, and each gateway is .1. Engineering's PC needs plugging into Gi0/1.
+goal: The two PCs can ping each other through R1.
+hints:
+- The router needs an address and no shutdown on each side.
+- Each PC needs ip route add default via its own gateway.
+debrief:
+  why: A router's job is to join networks, and it knows its directly connected ones automatically. Hosts only need to know where their gateway is.
+  solution: |-
+    [cable] PC-ENG eth0 R1 Gi0/1
+    [R1]
+    enable
+    configure terminal
+    interface Gi0/0
+    ip address 10.40.6.1 255.255.255.0
+    no shutdown
+    interface Gi0/1
+    ip address 10.40.7.1 255.255.255.0
+    no shutdown
+    end
+    [PC-SUP]
+    ip route add default via 10.40.6.1
+    [PC-ENG]
+    ip route add default via 10.40.7.1
+    traceroute 10.40.6.10
+  job: '"I can reach my subnet but nothing else" almost always means a missing or wrong gateway.'
+teaches:
+- ip route
+- traceroute
+lab:
+  devices:
+  - name: PC-SUP
+    kind: pc
+    x: 15
+    y: 50
+    config: ip addr add 10.40.6.10/24 dev eth0
+  - name: R1
+    kind: router
+    x: 50
+    y: 50
+    config: ''
+  - name: PC-ENG
+    kind: pc
+    x: 85
+    y: 50
+    config: ip addr add 10.40.7.10/24 dev eth0
+  cables:
+  - - PC-SUP
+    - eth0
+    - R1
+    - Gi0/0
+  cabling: true
+expect:
+- label: PC-SUP has a gateway on its own subnet
+  config:
+    device: PC-SUP
+    contains: ip route add default via 10.40.6.1
+- label: PC-ENG has a gateway on its own subnet
+  config:
+    device: PC-ENG
+    contains: ip route add default via 10.40.7.1
+- label: Support can reach Engineering
+  reach:
+    from: PC-SUP
+    to: PC-ENG
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Where does a PC send a packet for another subnet?
+  options:
+  - To its default gateway
+  - Straight to the far PC
+  - To the DNS server
+  - To the switch's MAC table
+  answer: To its default gateway
+  hint: That's what it's for.
+- type: mc
+  level: easy
+  label: Addressing
+  q: Which gateway makes sense for 10.40.6.10/24?
+  options:
+  - 10.40.6.1
+  - 10.40.7.1
+  - 192.168.1.1
+  - 10.41.6.1
+  answer: 10.40.6.1
+  hint: It must be on the PC's subnet.
+- type: text
+  level: medium
+  label: The tool
+  q: Which tool shows each router on the way?
+  answer:
+  - traceroute
+  hint: It traces the route.
+- type: mc
+  level: medium
+  label: Routers
+  q: How does a router learn about the networks on its own interfaces?
+  options:
+  - Automatically, once they have addresses and are up
+  - You must add a route for each
+  - From DNS
+  - From the PCs
+  answer: Automatically, once they have addresses and are up
+  hint: Connected routes.
+- type: mc
+  level: hard
+  label: Diagnosis
+  q: A PC can ping its gateway but nothing past it. Where do you look next?
+  options:
+  - The router's routing table
+  - The PC's cable
+  - The PC's address
+  - The switch's MAC table
+  answer: The router's routing table
+  hint: The first hop works.

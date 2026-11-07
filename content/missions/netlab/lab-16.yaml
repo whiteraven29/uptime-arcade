@@ -1,0 +1,150 @@
+id: lab-16
+track: LAB
+skill: networking
+chapter: Services
+order: 16
+title: Run the company DNS
+from: Web Team
+difficulty: medium
+check: net
+requires: net-16
+par:
+  kind: commands
+  value: 15
+lesson:
+  text: 'A DNS server answers names with addresses. On this server, start it with service dns start, and add records with dns add: an A record maps a name to an address, and a CNAME maps one name to another. PCs use whichever server is in /etc/resolv.conf, set here with echo nameserver. Test with dig, then with curl using the name. You can start a web server with service http start.'
+  example: |-
+    service dns start
+    dns add www.corp.test A 10.70.16.80
+    dns add intranet.corp.test CNAME www.corp.test
+    echo nameserver 10.70.16.53 > /etc/resolv.conf
+    dig www.corp.test
+brief: The intranet is moving to a proper name. DNS-1 at 10.40.16.53 needs to answer www.corp.test with 10.40.16.80, and intranet.corp.test as an alias of it. WEB-1 isn't serving yet, and PC-1 isn't using the new DNS server.
+goal: PC-1 can open http://intranet.corp.test.
+hints:
+- 'On DNS-1: service dns start, then two dns add lines.'
+- PC-1 needs echo nameserver 10.40.16.53 > /etc/resolv.conf, and WEB-1 needs service http start.
+debrief:
+  why: A name needs a working server, the right records, and a client pointed at that server. An alias means changing one record moves every name.
+  solution: |-
+    [DNS-1]
+    service dns start
+    dns add www.corp.test A 10.40.16.80
+    dns add intranet.corp.test CNAME www.corp.test
+    [WEB-1]
+    service http start
+    [PC-1]
+    echo nameserver 10.40.16.53 > /etc/resolv.conf
+    dig intranet.corp.test
+    curl intranet.corp.test
+  job: Web moves and renames become one-line changes when aliases are set up well.
+teaches:
+- service
+- dns add
+- echo
+- dig
+- curl
+lab:
+  devices:
+  - name: PC-1
+    kind: pc
+    x: 15
+    y: 50
+    config: ip addr add 10.40.16.10/24 dev eth0
+  - name: SW1
+    kind: switch
+    x: 50
+    y: 50
+    ports: 8
+    config: ''
+  - name: DNS-1
+    kind: server
+    x: 85
+    y: 20
+    config: ip addr add 10.40.16.53/24 dev eth0
+  - name: WEB-1
+    kind: server
+    x: 85
+    y: 80
+    config: ip addr add 10.40.16.80/24 dev eth0
+  cables:
+  - - PC-1
+    - eth0
+    - SW1
+    - Gi0/1
+  - - DNS-1
+    - eth0
+    - SW1
+    - Gi0/2
+  - - WEB-1
+    - eth0
+    - SW1
+    - Gi0/3
+expect:
+- label: www.corp.test resolves to the web server
+  dns:
+    from: PC-1
+    name: www.corp.test
+    answer: 10.40.16.80
+- label: intranet.corp.test is an alias of it
+  config:
+    device: DNS-1
+    contains: dns add intranet.corp.test CNAME www.corp.test
+- label: PC-1 can open the site by name
+  reach:
+    from: PC-1
+    to: intranet.corp.test
+    proto: tcp
+    port: 80
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does an A record do?
+  options:
+  - Maps a name to an IP address
+  - Maps an address to a port
+  - Maps a MAC to a port
+  - Blocks a site
+  answer: Maps a name to an IP address
+  hint: Address.
+- type: mc
+  level: easy
+  label: Aliases
+  q: What does a CNAME do?
+  options:
+  - Maps one name to another name
+  - Encrypts a name
+  - Deletes a name
+  - Gives a name a port
+  answer: Maps one name to another name
+  hint: Canonical name.
+- type: text
+  level: medium
+  label: The tool
+  q: Which tool asks DNS a question directly?
+  answer:
+  - dig
+  hint: Three letters.
+- type: mc
+  level: medium
+  label: The file
+  q: Where does a Linux PC keep its DNS server?
+  options:
+  - /etc/resolv.conf
+  - /etc/passwd
+  - /var/log/dns
+  - /home/ops/dns
+  answer: /etc/resolv.conf
+  hint: Resolv.
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Why point ten names at one A record with CNAMEs?
+  options:
+  - Moving the server then takes one change
+  - It makes lookups skip DNS
+  - It's required by HTTP
+  - It hides the names
+  answer: Moving the server then takes one change
+  hint: One place to edit.

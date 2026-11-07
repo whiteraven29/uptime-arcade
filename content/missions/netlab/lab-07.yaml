@@ -1,0 +1,158 @@
+id: lab-07
+track: LAB
+skill: networking
+chapter: Routing
+order: 7
+title: A route to the branch
+from: Network
+difficulty: easy
+check: net
+requires: net-19
+par:
+  kind: commands
+  value: 17
+lesson:
+  text: 'A router only knows the networks it touches. To reach anything further, add a static route with ip route: the destination network, its mask, then the next hop. Remember that replies need a route too, so both routers need one. Read the routing table with show ip route.'
+  example: |-
+    ip route 10.70.9.0 255.255.255.0 10.70.8.2
+    show ip route
+brief: 'HQ and the Mombasa branch share a link on 10.40.8.0/24: R-HQ is 10.40.8.1 and R-MBA is 10.40.8.2. HQ''s LAN is 10.40.10.0/24 and the branch''s is 10.40.9.0/24. Neither router knows about the other''s LAN.'
+goal: PC-HQ and PC-MBA can reach each other.
+hints:
+- R-HQ needs a route to 10.40.9.0, through R-MBA.
+- R-MBA needs the route back. Replies need a path too.
+debrief:
+  why: 'Routing is one-way: each direction is decided separately. Half the "it can''t reach" faults are a missing route for the return trip.'
+  solution: |-
+    [R-HQ]
+    enable
+    configure terminal
+    ip route 10.40.9.0 255.255.255.0 10.40.8.2
+    end
+    [R-MBA]
+    enable
+    configure terminal
+    ip route 10.40.10.0 255.255.255.0 10.40.8.1
+    end
+    show ip route
+  job: Static routes are still the right answer for small sites with one way in and out.
+teaches:
+- show ip route
+lab:
+  devices:
+  - name: PC-HQ
+    kind: pc
+    x: 10
+    y: 50
+    config: |-
+      ip addr add 10.40.10.10/24 dev eth0
+      ip route add default via 10.40.10.1
+  - name: R-HQ
+    kind: router
+    x: 37
+    y: 50
+    config: |-
+      interface Gi0/0
+       ip address 10.40.10.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 10.40.8.1 255.255.255.0
+       no shutdown
+  - name: R-MBA
+    kind: router
+    x: 63
+    y: 50
+    config: |-
+      interface Gi0/0
+       ip address 10.40.9.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 10.40.8.2 255.255.255.0
+       no shutdown
+  - name: PC-MBA
+    kind: pc
+    x: 90
+    y: 50
+    config: |-
+      ip addr add 10.40.9.10/24 dev eth0
+      ip route add default via 10.40.9.1
+  cables:
+  - - PC-HQ
+    - eth0
+    - R-HQ
+    - Gi0/0
+  - - R-HQ
+    - Gi0/1
+    - R-MBA
+    - Gi0/1
+  - - PC-MBA
+    - eth0
+    - R-MBA
+    - Gi0/0
+expect:
+- label: R-HQ has a route to the branch
+  route:
+    device: R-HQ
+    to: 10.40.9.10
+    via: 10.40.8.2
+- label: R-MBA has a route to HQ
+  route:
+    device: R-MBA
+    to: 10.40.10.10
+    via: 10.40.8.1
+- label: PC-HQ can reach PC-MBA
+  reach:
+    from: PC-HQ
+    to: PC-MBA
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does a router know without being told?
+  options:
+  - Only the networks on its own interfaces
+  - Every network on the internet
+  - Its neighbour's networks
+  - Nothing at all
+  answer: Only the networks on its own interfaces
+  hint: Connected ones.
+- type: mc
+  level: medium
+  label: Reading a command
+  q: In ip route 10.40.9.0 255.255.255.0 10.40.8.2, what is 10.40.8.2?
+  options:
+  - The next hop
+  - The destination
+  - The mask
+  - The source
+  answer: The next hop
+  hint: Where to send it next.
+- type: mc
+  level: medium
+  label: Both ways
+  q: The ping goes out but no reply returns. What's likely missing?
+  options:
+  - A route for the return path
+  - The switch
+  - A hostname
+  - A description
+  answer: A route for the return path
+  hint: Replies are packets too.
+- type: text
+  level: medium
+  label: The command
+  q: Which show command reads the routing table? Leave out show.
+  answer:
+  - ip route
+  hint: Two words.
+- type: mc
+  level: hard
+  label: Which wins
+  q: A router has 10.0.0.0/8 and 10.40.9.0/24. Which does a packet for 10.40.9.5 use?
+  options:
+  - 10.40.9.0/24
+  - 10.0.0.0/8
+  - Both
+  - Neither
+  answer: 10.40.9.0/24
+  hint: Longest prefix.

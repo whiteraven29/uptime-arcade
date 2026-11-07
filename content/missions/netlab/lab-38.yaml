@@ -1,0 +1,200 @@
+id: lab-38
+track: LAB
+skill: networking
+chapter: Wireless
+order: 30
+title: Staff log in as themselves
+from: Security
+difficulty: hard
+check: net
+requires: net-48
+par:
+  kind: commands
+  value: 22
+lesson:
+  text: Enterprise Wi-Fi gives each person their own login. On the access point, authentication enterprise turns it on, and radius-server host says where to check logins, with a shared key. The access point needs its own address to talk to the server, on interface vlan. On the server, service radius start runs it, radius add-client trusts the access point, and radius add-user adds a login. A laptop joins with wifi connect, then the network name, username and password.
+  example: |-
+    dot11 ssid CORP
+     authentication enterprise
+    radius-server host 10.70.99.5 key Sh4red-K3y
+
+    service radius start
+    radius add-client 10.70.10.2 Sh4red-K3y
+    radius add-user amina Her-0wn-Phrase
+brief: Security wants the shared Wi-Fi password gone. STAFF should use enterprise, checked by AUTH-1 at 10.70.10.5, using the shared key Wh1teraven-Radius. AP-1's management address is 10.70.10.2/24. Add a login for amina with the password Amina-Long-Phrase, and connect LAPTOP-1 as her.
+goal: LAPTOP-1 is on STAFF with amina's own login.
+hints:
+- AP-1 needs an address on interface vlan 10 before it can reach RADIUS.
+- Each failed wifi connect says what's missing next.
+debrief:
+  why: 'Three things have to line up: the access point trusts the server, the server trusts the access point through the shared key, and the server knows the person.'
+  solution: |-
+    [AP-1]
+    enable
+    configure terminal
+    interface vlan 10
+    ip address 10.70.10.2 255.255.255.0
+    exit
+    dot11 ssid STAFF
+    authentication enterprise
+    exit
+    radius-server host 10.70.10.5 key Wh1teraven-Radius
+    end
+    [AUTH-1]
+    service radius start
+    radius add-client 10.70.10.2 Wh1teraven-Radius
+    radius add-user amina Amina-Long-Phrase
+    [LAPTOP-1]
+    wifi connect STAFF amina Amina-Long-Phrase
+  job: When someone leaves, you delete one login and nobody else notices. That's the whole point.
+teaches:
+- authentication enterprise
+- radius-server
+- service radius
+- radius add-client
+- radius add-user
+- interface vlan
+lab:
+  devices:
+  - name: LAPTOP-1
+    kind: laptop
+    x: 12
+    y: 75
+    config: |-
+      ip addr add 10.70.10.50/24 dev wlan0
+      ip route add default via 10.70.10.1
+  - name: AP-1
+    kind: ap
+    x: 22
+    y: 40
+    config: |-
+      vlan 10
+      dot11 ssid STAFF
+       vlan 10
+       authentication wpa2 Wh1teraven-Staff
+      interface Do0
+       channel 6
+       ssid STAFF
+       no shutdown
+      interface Gi0/1
+       switchport mode trunk
+       switchport trunk native vlan 10
+  - name: SW1
+    kind: switch
+    x: 55
+    y: 40
+    ports: 8
+    config: |-
+      vlan 10
+       name STAFF
+      vlan 20
+       name GUEST
+      interface Gi0/1
+       switchport mode trunk
+       switchport trunk native vlan 10
+      interface Gi0/2
+       switchport access vlan 10
+      interface Gi0/8
+       switchport mode trunk
+  - name: AUTH-1
+    kind: server
+    x: 85
+    y: 40
+    config: |-
+      ip addr add 10.70.10.5/24 dev eth0
+      ip route add default via 10.70.10.1
+  - name: R1
+    kind: router
+    x: 55
+    y: 88
+    config: |-
+      interface Gi0/0
+       no shutdown
+      interface Gi0/0.10
+       encapsulation dot1q 10
+       ip address 10.70.10.1 255.255.255.0
+      interface Gi0/0.20
+       encapsulation dot1q 20
+       ip address 10.70.20.1 255.255.255.0
+  cables:
+  - - AP-1
+    - Gi0/1
+    - SW1
+    - Gi0/1
+  - - AUTH-1
+    - eth0
+    - SW1
+    - Gi0/2
+  - - R1
+    - Gi0/0
+    - SW1
+    - Gi0/8
+expect:
+- label: STAFF no longer has a shared password
+  config:
+    device: AP-1
+    contains: authentication enterprise
+- label: LAPTOP-1 is on STAFF as amina
+  wifi_assoc:
+    host: LAPTOP-1
+    ssid: STAFF
+- label: LAPTOP-1 reaches the server
+  reach:
+    from: LAPTOP-1
+    to: AUTH-1
+- label: She has her own login
+  config:
+    device: AUTH-1
+    contains: radius add-user amina
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does enterprise Wi-Fi give each person?
+  options:
+  - Their own login
+  - Their own channel
+  - Their own VLAN always
+  - Their own access point
+  answer: Their own login
+  hint: Per person.
+- type: mc
+  level: medium
+  label: The key
+  q: What is the RADIUS shared key for?
+  options:
+  - So the server and access point trust each other
+  - For laptops to type in
+  - To encrypt DNS
+  - To pick the channel
+  answer: So the server and access point trust each other
+  hint: Between those two.
+- type: text
+  level: medium
+  label: The port
+  q: Which kind of server checks the logins?
+  answer:
+  - RADIUS
+  hint: You started it.
+- type: mc
+  level: medium
+  label: Management
+  q: Why does the access point need its own address here?
+  options:
+  - To talk to the RADIUS server
+  - To reach the internet for updates
+  - To be on channel 6
+  - To name the SSID
+  answer: To talk to the RADIUS server
+  hint: It asks over the network.
+- type: mc
+  level: hard
+  label: Offboarding
+  q: Someone leaves. What do you do on this network?
+  options:
+  - Delete their one login on the server
+  - Change the password everywhere
+  - Replace the access points
+  - Rename the SSID
+  answer: Delete their one login on the server
+  hint: One change.

@@ -1,0 +1,88 @@
+id: net-45
+track: NET
+skill: networking
+chapter: Tunnels
+order: 46
+title: 'Tunnels: a link that isn''t there'
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A tunnel makes a virtual link across another network. A GRE tunnel wraps each packet inside a new one with public addresses, so two offices' private networks act as if they share a cable over the internet. Each end has a tunnel interface with a private address, a tunnel source, and a tunnel destination, which is the public address of the far end. Routing, even OSPF, runs over it as if it were real. GRE by itself isn't encrypted.
+  example: |-
+    interface Tunnel0
+     ip address 172.31.0.1 255.255.255.252
+     tunnel source Gi0/1
+     tunnel destination 198.51.100.2
+brief: 'In the example, which address does the internet see as the packet''s destination: 172.31.0.2 or 198.51.100.2?'
+goal: 'Run: submit <answer>'
+hints:
+- The internet only routes public addresses.
+- It's the tunnel destination.
+debrief:
+  why: 'A tunnel hides private addressing inside public packets, so routing protocols work across networks that know nothing about them. But hiding isn''t protecting: GRE has no encryption.'
+  solution: submit 198.51.100.2
+  job: Tunnels join sites, carry routing over the internet, and sit underneath many VPNs.
+teaches:
+- GRE
+- tunnel source
+- tunnel destination
+answer:
+  accept:
+  - 198.51.100.2
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does a tunnel do?
+  options:
+  - Wraps packets so they cross another network like a virtual link
+  - Speeds up the internet
+  - Encrypts everything always
+  - Gives out addresses
+  answer: Wraps packets so they cross another network like a virtual link
+  hint: A packet inside a packet.
+- type: mc
+  level: easy
+  label: GRE
+  q: Is a plain GRE tunnel encrypted?
+  options:
+  - 'No'
+  - 'Yes'
+  - Only on Sundays
+  - Only with OSPF
+  answer: 'No'
+  hint: The lesson says so.
+- type: mc
+  level: medium
+  label: The address
+  q: What goes in tunnel destination?
+  options:
+  - The public address of the far end
+  - Your own private address
+  - The DNS server
+  - The VLAN number
+  answer: The public address of the far end
+  hint: The internet has to route it.
+- type: text
+  level: medium
+  label: The name
+  q: Which tunnel protocol does the lesson use? Three letters.
+  answer:
+  - GRE
+  hint: It's in the first lines.
+- type: mc
+  level: hard
+  label: At work
+  q: Why run OSPF over a GRE tunnel?
+  options:
+  - So both sites learn each other's networks automatically
+  - To make it encrypted
+  - To remove the public addresses
+  - To replace DNS
+  answer: So both sites learn each other's networks automatically
+  hint: It acts like a link.

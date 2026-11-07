@@ -1,0 +1,203 @@
+id: lab-23
+track: LAB
+skill: networking
+chapter: Security
+order: 23
+title: Lock down the router
+from: Security
+difficulty: hard
+check: net
+requires: net-44
+par:
+  kind: commands
+  value: 23
+lesson:
+  text: Hardening is a checklist. Set enable secret, not enable password. Add a named user with username. SSH needs a domain name, set with ip domain-name, and keys from crypto key generate rsa. On the remote login lines, line vty 0 15, use login local and transport input ssh. Add access-class with a standard list to limit who can log in. Turn off what you don't use, such as no ip http server. Remove an old password with no enable password.
+  example: |-
+    enable secret S0me-Long-Phrase
+    username ops secret An0ther-Phrase
+    ip domain-name corp.test
+    crypto key generate rsa
+    line vty 0 15
+     login local
+     transport input ssh
+     access-class 10 in
+    no ip http server
+brief: 'An audit flagged R1: Telnet is open, the enable password is plain text, the web admin page is running, and anyone can try to log in. Only the admin PC at 10.40.24.5 should reach it, using SSH, as user ops. Replace the enable password with a secret.'
+goal: Only ADMIN-1 can log in, only with SSH, and nothing is left in plain text.
+hints:
+- The enable password is trustno1 for now. SSH needs ip domain-name before the keys.
+- Limit logins with access-list 10 permit host 10.40.24.5 and access-class 10 in.
+debrief:
+  why: 'Each step removes a way in: encrypted logins, hashed secrets, named users, a short list of who may connect, and nothing listening without a reason.'
+  solution: |-
+    [R1]
+    enable
+    trustno1
+    configure terminal
+    no enable password
+    enable secret Wh1teraven-Long-Phrase
+    username ops secret An0ther-Long-Phrase
+    ip domain-name corp.test
+    crypto key generate rsa
+    no ip http server
+    access-list 10 permit host 10.40.24.5
+    line vty 0 15
+    login local
+    transport input ssh
+    access-class 10 in
+    end
+  job: This is the baseline for any device, and an auditor can check it in minutes.
+teaches:
+- enable secret
+- username
+- ip domain-name
+- crypto key
+- line vty
+- login local
+- transport input
+- access-class
+- no ip http server
+- no enable password
+lab:
+  devices:
+  - name: ADMIN-1
+    kind: pc
+    x: 12
+    y: 20
+    config: |-
+      ip addr add 10.40.24.5/24 dev eth0
+      ip route add default via 10.40.24.1
+  - name: STAFF-1
+    kind: pc
+    x: 12
+    y: 80
+    config: |-
+      ip addr add 10.40.24.50/24 dev eth0
+      ip route add default via 10.40.24.1
+  - name: SW1
+    kind: switch
+    x: 40
+    y: 50
+    ports: 8
+    config: ''
+  - name: R1
+    kind: router
+    x: 80
+    y: 50
+    config: |-
+      interface Gi0/0
+       ip address 10.40.24.1 255.255.255.0
+       no shutdown
+      enable password trustno1
+      ip http server
+      line vty 0 15
+       login
+       transport input all
+  cables:
+  - - ADMIN-1
+    - eth0
+    - SW1
+    - Gi0/1
+  - - STAFF-1
+    - eth0
+    - SW1
+    - Gi0/2
+  - - R1
+    - Gi0/0
+    - SW1
+    - Gi0/8
+expect:
+- label: ADMIN-1 can reach SSH
+  reach:
+    from: ADMIN-1
+    to: 10.40.24.1
+    proto: tcp
+    port: 22
+- label: Telnet is off
+  reach:
+    from: ADMIN-1
+    to: 10.40.24.1
+    proto: tcp
+    port: 23
+    expect: blocked
+- label: STAFF-1 can't log in
+  reach:
+    from: STAFF-1
+    to: 10.40.24.1
+    proto: tcp
+    port: 22
+    expect: blocked
+- label: The web admin page is off
+  reach:
+    from: ADMIN-1
+    to: 10.40.24.1
+    proto: tcp
+    port: 80
+    expect: blocked
+- label: No password in plain text
+  config:
+    device: R1
+    absent: enable password
+- label: There's an enable secret
+  config:
+    device: R1
+    contains: enable secret
+- label: User ops exists
+  config:
+    device: R1
+    contains: username ops
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why turn off Telnet?
+  options:
+  - It sends passwords in plain text
+  - It's too fast
+  - It needs DNS
+  - It blocks ping
+  answer: It sends passwords in plain text
+  hint: Who could read it?
+- type: mc
+  level: easy
+  label: Secrets
+  q: Which command stores the privileged password hashed?
+  options:
+  - enable secret
+  - enable password
+  - hostname
+  - banner motd
+  answer: enable secret
+  hint: Secret.
+- type: order
+  level: medium
+  label: Order them
+  q: Put these in the order SSH needs them.
+  scrambled:
+  - transport input ssh
+  - ip domain-name corp.test
+  - crypto key generate rsa
+  answer:
+  - ip domain-name corp.test
+  - crypto key generate rsa
+  - transport input ssh
+  hint: Keys need a domain.
+- type: text
+  level: medium
+  label: The command
+  q: Which line command limits who can log in? Leave out the number.
+  answer:
+  - access-class
+  hint: Access something.
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Why turn off the web admin page, if it has a password?
+  options:
+  - Anything listening is something that can be attacked
+  - It uses too much power
+  - It breaks SSH
+  - DNS needs it off
+  answer: Anything listening is something that can be attacked
+  hint: Attack surface.

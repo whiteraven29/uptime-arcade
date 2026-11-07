@@ -1,0 +1,92 @@
+id: net-37
+track: NET
+skill: networking
+chapter: Routing
+order: 27
+title: Routing between VLANs
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'VLANs are separate networks, so traffic between them needs routing. There are two common ways. A router on a stick has one cable to the switch, set up as a trunk, and one sub-interface per VLAN, such as Gi0/0.10, each with encapsulation dot1q and the gateway address for that VLAN. A layer 3 switch does it in the switch itself: each VLAN gets a virtual interface, called an SVI, holding the gateway address, and you turn on ip routing.'
+  example: |-
+    interface Gi0/0.10
+     encapsulation dot1q 10
+     ip address 10.40.10.1 255.255.255.0
+
+    interface Vlan10
+     ip address 10.40.10.1 255.255.255.0
+brief: What is the name of the virtual interface for a VLAN on a layer 3 switch? It's three letters.
+goal: 'Run: submit <answer>'
+hints:
+- The lesson names it.
+- Three letters.
+debrief:
+  why: Each VLAN needs a gateway address somewhere. On a stick, that's a sub-interface on a router. On a layer 3 switch, it's an SVI, which is faster because the routing happens inside the switch.
+  solution: submit SVI
+  job: Small sites often use a router on a stick and bigger ones use layer 3 switches, so you'll meet both.
+teaches:
+- router on a stick
+- sub-interface
+- SVI
+- ip routing
+answer:
+  accept:
+  - SVI
+  - svi
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why do VLANs need routing to reach each other?
+  options:
+  - Each VLAN is a separate network
+  - Switches are slow
+  - VLANs have no MACs
+  - Trunks need a router
+  answer: Each VLAN is a separate network
+  hint: Separate networks need a router.
+- type: mc
+  level: easy
+  label: Which is it
+  q: A single router cable to the switch, with a sub-interface per VLAN, is called what?
+  options:
+  - A router on a stick
+  - A floating static
+  - A stub
+  - A hairpin
+  answer: A router on a stick
+  hint: One cable up and down.
+- type: mc
+  level: medium
+  label: The switch port
+  q: On a router on a stick, what must the switch port facing the router be?
+  options:
+  - A trunk
+  - An access port
+  - Shut down
+  - In VLAN 1 only
+  answer: A trunk
+  hint: It carries many VLANs.
+- type: text
+  level: medium
+  label: The command
+  q: On a layer 3 switch, which command lets it route between VLANs? Two words.
+  answer:
+  - ip routing
+  hint: The lesson names it.
+- type: mc
+  level: hard
+  label: At work
+  q: Why do bigger sites prefer a layer 3 switch?
+  options:
+  - The routing happens inside the switch instead of up and down one cable
+  - It has more colours
+  - It needs no VLANs
+  - It avoids using IP
+  answer: The routing happens inside the switch instead of up and down one cable
+  hint: Where is the bottleneck?

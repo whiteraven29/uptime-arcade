@@ -50,17 +50,6 @@ class Chapter(models.Model):
         return f"{self.track.code}: {self.name}"
 
 
-class Topology(models.Model):
-    """A NetLab network. Empty until M6."""
-
-    code = models.CharField(max_length=20, unique=True)
-    yaml = models.TextField()
-    version = models.PositiveIntegerField(default=1)
-
-    def __str__(self):
-        return self.code
-
-
 class Mission(models.Model):
     class Status(models.TextChoices):
         DRAFT = "draft"
@@ -86,7 +75,6 @@ class Mission(models.Model):
     hints = models.JSONField(default=list)  # revealed one at a time, never all at once
     play = models.JSONField(default=dict)  # what a workspace needs: starter, tests, program, file
     teaches = models.JSONField(default=list)
-    topology = models.ForeignKey(Topology, null=True, blank=True, on_delete=models.SET_NULL)
     content_version = models.PositiveIntegerField(default=1)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PUBLISHED)
     # Server-only from here down.

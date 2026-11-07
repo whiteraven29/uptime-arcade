@@ -1,0 +1,88 @@
+id: net-34
+track: NET
+skill: networking
+chapter: Switching
+order: 15
+title: Trunks carry many VLANs
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'A cable between two switches often has to carry several VLANs. That cable is a trunk. Each frame gets a small tag saying which VLAN it belongs to, called an 802.1Q tag, and the far switch reads it and keeps the VLANs apart. A trunk also has an allowed list: a VLAN that isn''t on the list can''t cross. A very common fault is a VLAN missing from that list. One VLAN, the native VLAN, crosses untagged.'
+  example: |-
+    Gi0/24  trunk  native 1  allowed 10,20
+    A frame in VLAN 30 stops here.
+brief: In the example, VLAN 30 was just added to both switches, and its users on different switches can't talk. What's the VLAN number missing from the trunk's allowed list?
+goal: 'Run: submit <answer>'
+hints:
+- Read the allowed list.
+- 10 and 20 are there.
+debrief:
+  why: Tags keep VLANs apart on a shared cable, and the allowed list decides what may cross. VLANs missing from it fail silently, with no error anywhere.
+  solution: submit 30
+  job: '"It works on this floor but not that one" usually means a trunk allowed list.'
+teaches:
+- trunk
+- 802.1Q
+- allowed list
+- native VLAN
+answer:
+  accept:
+  - '30'
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does a trunk carry that an access port doesn't?
+  options:
+  - Several VLANs at once
+  - Power
+  - Only one VLAN
+  - Passwords
+  answer: Several VLANs at once
+  hint: It joins switches.
+- type: mc
+  level: easy
+  label: Tags
+  q: How does the far switch know which VLAN a frame belongs to?
+  options:
+  - It reads the frame's 802.1Q tag
+  - It asks the router
+  - It checks DNS
+  - It guesses from the MAC
+  answer: It reads the frame's 802.1Q tag
+  hint: The tag says which.
+- type: mc
+  level: medium
+  label: Diagnosis
+  q: VLAN 20 works on floor 1 but floor 2 can't reach it. VLAN 10 works on both. What do you check first?
+  options:
+  - The trunk's allowed list
+  - The PC's browser
+  - The DNS server
+  - The router's hostname
+  answer: The trunk's allowed list
+  hint: One VLAN is missing.
+- type: text
+  level: medium
+  label: The word
+  q: What is the cable carrying many VLANs between switches called?
+  answer:
+  - trunk
+  - a trunk
+  hint: One word, in the lesson.
+- type: mc
+  level: hard
+  label: At work
+  q: Why does a VLAN missing from a trunk make for a hard fault to spot?
+  options:
+  - 'Nothing shows an error: frames just stop crossing'
+  - The switch reboots
+  - All VLANs stop
+  - The tag turns red
+  answer: 'Nothing shows an error: frames just stop crossing'
+  hint: It fails silently.

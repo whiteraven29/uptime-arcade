@@ -1,0 +1,205 @@
+id: lab-26
+track: LAB
+skill: networking
+chapter: Firewalls
+order: 26
+title: The DMZ
+from: Web Team
+difficulty: hard
+check: net
+requires: net-43
+par:
+  kind: commands
+  value: 16
+lesson:
+  text: 'To publish a server safely, put it in a DMZ. Under object network, host names it and nat with static gives it a public address. Then write a rule, because outside is level 0: access-list with a name and extended, then permit, and apply it with access-group, naming in and interface. A firewall''s rules name the server''s real address, and use normal masks rather than wildcards. Anything you don''t permit stays shut.'
+  example: |-
+    object network WEB
+     host 172.16.90.80
+     nat (dmz,outside) static 192.0.2.80
+    access-list OUTSIDE_IN extended permit tcp any host 172.16.90.80 eq 443
+    access-group OUTSIDE_IN in interface outside
+brief: The customer portal goes live today on WEB-1 in the DMZ at 172.16.27.80, public address 203.0.113.80. The public must reach HTTPS only. If WEB-1 is ever hacked, it mustn't be able to reach staff. Staff should reach it for updates.
+goal: The public reaches HTTPS on the portal, and nothing else gets through.
+hints:
+- object network WEB, then host and nat (dmz,outside) static.
+- The rule names the real address and eq 443. Apply it in on outside.
+debrief:
+  why: The DMZ holds what the public touches. If it's breached, its level still stops it starting anything towards the inside, and the rule opens exactly one port.
+  solution: |-
+    [FW1]
+    enable
+    configure terminal
+    object network WEB
+    host 172.16.27.80
+    nat (dmz,outside) static 203.0.113.80
+    access-list OUTSIDE_IN extended permit tcp any host 172.16.27.80 eq 443
+    access-group OUTSIDE_IN in interface outside
+    end
+  job: This three-zone design is standard for anything facing the internet.
+teaches:
+- host
+- access-group
+lab:
+  devices:
+  - name: STAFF-1
+    kind: pc
+    x: 10
+    y: 75
+    config: |-
+      ip addr add 10.40.27.10/24 dev eth0
+      ip route add default via 10.40.27.1
+  - name: FW1
+    kind: firewall
+    x: 42
+    y: 50
+    config: |-
+      interface Gi0/0
+       nameif inside
+       security-level 100
+       ip address 10.40.27.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       nameif outside
+       security-level 0
+       ip address 203.0.113.2 255.255.255.0
+       no shutdown
+      interface Gi0/2
+       nameif dmz
+       security-level 50
+       ip address 172.16.27.1 255.255.255.0
+       no shutdown
+      route outside 0.0.0.0 0.0.0.0 203.0.113.1
+      object network STAFF
+       subnet 10.40.27.0 255.255.255.0
+       nat (inside,outside) dynamic interface
+  - name: WEB-1
+    kind: server
+    x: 42
+    y: 92
+    config: |-
+      ip addr add 172.16.27.80/24 dev eth0
+      ip route add default via 172.16.27.1
+      service https start
+      service ssh start
+  - name: ISP
+    kind: router
+    x: 72
+    y: 25
+    locked: true
+    config: |-
+      interface Gi0/0
+       ip address 203.0.113.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 198.51.100.1 255.255.255.0
+       no shutdown
+  - name: INTERNET
+    kind: server
+    x: 92
+    y: 25
+    locked: true
+    config: |-
+      ip addr add 198.51.100.10/24 dev eth0
+      ip route add default via 198.51.100.1
+      service http start
+  cables:
+  - - STAFF-1
+    - eth0
+    - FW1
+    - Gi0/0
+  - - WEB-1
+    - eth0
+    - FW1
+    - Gi0/2
+  - - FW1
+    - Gi0/1
+    - ISP
+    - Gi0/0
+  - - INTERNET
+    - eth0
+    - ISP
+    - Gi0/1
+expect:
+- label: The public reaches HTTPS
+  reach:
+    from: INTERNET
+    to: 203.0.113.80
+    proto: tcp
+    port: 443
+- label: The public can't reach SSH
+  reach:
+    from: INTERNET
+    to: 203.0.113.80
+    proto: tcp
+    port: 22
+    expect: blocked
+- label: WEB-1 can't start a connection to staff
+  reach:
+    from: WEB-1
+    to: STAFF-1
+    expect: blocked
+- label: Staff can reach WEB-1
+  reach:
+    from: STAFF-1
+    to: 172.16.27.80
+    proto: tcp
+    port: 22
+- label: Staff still reach the internet
+  reach:
+    from: STAFF-1
+    to: INTERNET
+    proto: tcp
+    port: 80
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why put a public server in a DMZ?
+  options:
+  - A breach there can't start connections to the inside
+  - It's faster
+  - It needs no address
+  - It avoids NAT
+  answer: A breach there can't start connections to the inside
+  hint: Containment.
+- type: mc
+  level: medium
+  label: Rules
+  q: Which address does this firewall's rule name for the server?
+  options:
+  - Its real address, 172.16.27.80
+  - Its public address
+  - The firewall's address
+  - The ISP's address
+  answer: Its real address, 172.16.27.80
+  hint: The real one here.
+- type: mc
+  level: medium
+  label: Masks
+  q: 'What does a firewall rule use: masks or wildcards?'
+  options:
+  - Masks
+  - Wildcards
+  - Neither
+  - Both in one line
+  answer: Masks
+  hint: Different from routers.
+- type: text
+  level: medium
+  label: The port
+  q: HTTPS listens on which TCP port?
+  answer:
+  - '443'
+  hint: You permitted it.
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Why leave SSH off the outside rule, if SSH is encrypted?
+  options:
+  - 'Open only what''s needed: anything reachable can be attacked'
+  - SSH can't cross firewalls
+  - It breaks HTTPS
+  - SSH needs DNS
+  answer: 'Open only what''s needed: anything reachable can be attacked'
+  hint: Least exposure.

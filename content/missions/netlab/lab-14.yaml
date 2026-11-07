@@ -1,0 +1,160 @@
+id: lab-14
+track: LAB
+skill: networking
+chapter: Services
+order: 14
+title: Addresses for the floor
+from: Service Desk
+difficulty: medium
+check: net
+requires: net-18
+par:
+  kind: commands
+  value: 21
+lesson:
+  text: A DHCP pool hands out addresses so nobody types them by hand. Keep some back with ip dhcp excluded-address, for printers and gateways. Then ip dhcp pool opens the pool, where network says which addresses, default-router sets the gateway and dns-server sets DNS. On the PC, dhclient asks for an address. Check who got what with show ip dhcp binding.
+  example: |-
+    ip dhcp excluded-address 10.70.14.1 10.70.14.20
+    ip dhcp pool FLOOR
+     network 10.70.14.0 255.255.255.0
+     default-router 10.70.14.1
+     dns-server 10.70.99.53
+brief: 'New desks are arriving on the third floor, and typing addresses isn''t going to scale. R1 is the gateway at 10.40.14.1. Keep .1 to .20 back, use 10.40.99.53 for DNS, and get both PCs an address by DHCP. Nothing is plugged in yet: R1 goes to Gi0/8, and the PCs to Gi0/1 and Gi0/2.'
+goal: Both PCs have DHCP addresses from the pool, and neither is in the kept-back range.
+hints:
+- Exclude first, then create the pool.
+- 'On each PC: dhclient eth0.'
+debrief:
+  why: A pool hands out addresses, the gateway and DNS in one go. The excluded range protects addresses you've assigned by hand.
+  solution: |-
+    [cable] R1 Gi0/0 SW1 Gi0/8
+    [cable] PC-1 eth0 SW1 Gi0/1
+    [cable] PC-2 eth0 SW1 Gi0/2
+    [R1]
+    enable
+    configure terminal
+    ip dhcp excluded-address 10.40.14.1 10.40.14.20
+    ip dhcp pool FLOOR
+    network 10.40.14.0 255.255.255.0
+    default-router 10.40.14.1
+    dns-server 10.40.99.53
+    end
+    show ip dhcp binding
+    [PC-1]
+    dhclient eth0
+    [PC-2]
+    dhclient eth0
+  job: Every office network runs on this, and a full pool or missing option is a common ticket.
+teaches:
+- ip dhcp excluded-address
+- ip dhcp pool
+- network
+- default-router
+- dns-server
+- dhclient
+- show ip dhcp binding
+lab:
+  devices:
+  - name: PC-1
+    kind: pc
+    x: 15
+    y: 25
+    config: ''
+  - name: PC-2
+    kind: pc
+    x: 15
+    y: 75
+    config: ''
+  - name: SW1
+    kind: switch
+    x: 50
+    y: 50
+    ports: 8
+    config: ''
+  - name: R1
+    kind: router
+    x: 85
+    y: 50
+    config: |-
+      interface Gi0/0
+       ip address 10.40.14.1 255.255.255.0
+       no shutdown
+  cables: []
+  cabling: true
+expect:
+- label: PC-1 got an address from the pool
+  dhcp:
+    host: PC-1
+    in: 10.40.14.0/24
+- label: PC-2 got an address from the pool
+  dhcp:
+    host: PC-2
+    in: 10.40.14.0/24
+- label: The first twenty addresses are kept back
+  config:
+    device: R1
+    contains: ip dhcp excluded-address 10.40.14.1 10.40.14.20
+- label: PC-1 was given a gateway that works
+  reach:
+    from: PC-1
+    to: 10.40.14.1
+- label: Clients are told about DNS
+  config:
+    device: R1
+    contains: dns-server 10.40.99.53
+rewind:
+- type: order
+  level: easy
+  label: DORA
+  q: Put the DHCP steps in order.
+  scrambled:
+  - Request
+  - Discover
+  - Acknowledge
+  - Offer
+  answer:
+  - Discover
+  - Offer
+  - Request
+  - Acknowledge
+  hint: DORA.
+- type: mc
+  level: easy
+  label: What it gives
+  q: What does a client get from DHCP in this lab?
+  options:
+  - An address, a gateway and DNS
+  - Only a MAC
+  - A VLAN
+  - A password
+  answer: An address, a gateway and DNS
+  hint: Three things.
+- type: mc
+  level: medium
+  label: Excluding
+  q: Why exclude .1 to .20?
+  options:
+  - They're kept for things with fixed addresses
+  - They're broken addresses
+  - DHCP can't count that low
+  - It makes it faster
+  answer: They're kept for things with fixed addresses
+  hint: Gateways and printers.
+- type: text
+  level: medium
+  label: The command
+  q: Which tool does a Linux PC use to ask for an address?
+  answer:
+  - dhclient
+  hint: DHCP client.
+- type: mc
+  level: hard
+  label: Diagnosis
+  q: Everyone new gets no address, and old PCs are fine. What's the likely cause?
+  options:
+  - The pool has run out
+  - The cable is the wrong colour
+  - DNS is down
+  - The router has no hostname
+  answer: The pool has run out
+  hint: New ones only.

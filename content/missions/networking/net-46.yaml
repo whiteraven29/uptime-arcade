@@ -1,0 +1,96 @@
+id: net-46
+track: NET
+skill: networking
+chapter: Tunnels
+order: 47
+title: 'VPNs: IPsec in two phases'
+from: Network
+difficulty: expert
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'IPsec encrypts traffic between two sites. It comes up in two phases. In phase 1, the two ends agree how to talk safely, called the ISAKMP policy, and prove who they are, usually with a pre-shared key. In phase 2, they agree how to protect the data, called the transform set, and which traffic counts, set by a crypto access list. The two lists must mirror each other. NAT catches people out: if traffic gets translated before it''s encrypted, it no longer matches and the VPN ignores it, so VPN traffic must be exempt from NAT.'
+  example: |-
+    Phase 1: encryption, hash, group, pre-shared key
+    Phase 2: transform set, crypto ACL
+    HQ: permit ip 10.1.0.0 0.0.0.255 10.2.0.0 0.0.0.255
+    BR: permit ip 10.2.0.0 0.0.0.255 10.1.0.0 0.0.0.255
+brief: 'The two ends have different pre-shared keys. Which phase fails: 1 or 2?'
+goal: 'Run: submit <answer>'
+hints:
+- Where do they prove who they are?
+- The key belongs to the first phase.
+debrief:
+  why: Phase 1 builds trust and phase 2 protects the data, so which phase fails tells you where to look. Mirrored ACLs and a NAT exemption are the two details that catch people out.
+  solution: submit 1
+  job: Site-to-site VPNs join most branch offices, and diagnosing one starts with asking which phase came up.
+teaches:
+- IPsec
+- ISAKMP
+- pre-shared key
+- transform set
+- crypto access list
+- NAT
+answer:
+  accept:
+  - '1'
+  - phase 1
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does IPsec give traffic between two sites?
+  options:
+  - Encryption
+  - More bandwidth
+  - Faster DNS
+  - Free addresses
+  answer: Encryption
+  hint: It protects data.
+- type: order
+  level: medium
+  label: Order them
+  q: Put these in the order a VPN comes up.
+  scrambled:
+  - Agree the transform set
+  - Agree the ISAKMP policy
+  - Encrypt the traffic
+  - Prove identity with the pre-shared key
+  answer:
+  - Agree the ISAKMP policy
+  - Prove identity with the pre-shared key
+  - Agree the transform set
+  - Encrypt the traffic
+  hint: Trust first, then data.
+- type: mc
+  level: medium
+  label: Mirrors
+  q: HQ's crypto ACL permits 10.1.0.0 to 10.2.0.0. What must the branch's permit?
+  options:
+  - 10.2.0.0 to 10.1.0.0
+  - 10.1.0.0 to 10.2.0.0
+  - any to any
+  - Nothing
+  answer: 10.2.0.0 to 10.1.0.0
+  hint: Mirror image.
+- type: text
+  level: medium
+  label: The name
+  q: In phase 2, what is the agreement on how to protect the data called? Two words.
+  answer:
+  - transform set
+  hint: The lesson names it.
+- type: mc
+  level: hard
+  label: Diagnosis
+  q: The VPN is configured and the internet works, but site-to-site traffic never gets encrypted. What do you check?
+  options:
+  - Whether NAT is translating that traffic first
+  - The DNS records
+  - The hostname
+  - The VLAN names
+  answer: Whether NAT is translating that traffic first
+  hint: What happens before encryption?

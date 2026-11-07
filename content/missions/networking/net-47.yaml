@@ -1,0 +1,87 @@
+id: net-47
+track: NET
+skill: networking
+chapter: Wireless
+order: 44
+title: 'Wi-Fi: networks on the air'
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: An access point is a switch with a radio. It offers one or more networks by name, called an SSID, and each SSID drops its clients into a VLAN. The cable from the access point to the switch is a trunk, carrying those VLANs. Radios use channels. On 2.4 GHz, only 1, 6 and 11 don't overlap, so neighbouring access points should use different ones. If two neighbours overlap, they talk over each other and everyone slows down. A client joins the strongest access point offering its SSID, and moves to another if that one goes away, which is called roaming.
+  example: |-
+    SSID STAFF  -> VLAN 10
+    SSID GUEST  -> VLAN 20
+    AP-1 channel 1, AP-2 channel 6, AP-3 channel 11
+brief: Two neighbouring access points are on channels 6 and 8. Do they overlap? Answer yes or no.
+goal: 'Run: submit <answer>'
+hints:
+- Only 1, 6 and 11 are clear of each other.
+- 6 and 8 are too close.
+debrief:
+  why: An SSID is just a name for a VLAN on the air, so everything you know about VLANs and trunks still applies. Channels are the part that's new, and picking non-overlapping ones is most of Wi-Fi planning.
+  solution: submit yes
+  job: '"The Wi-Fi is slow" in a busy office is very often neighbouring access points on overlapping channels.'
+teaches:
+- SSID
+- channel
+- roaming
+answer:
+  accept:
+  - 'yes'
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What is an SSID?
+  options:
+  - The name of a Wi-Fi network
+  - A kind of cable
+  - A DNS record
+  - A password
+  answer: The name of a Wi-Fi network
+  hint: You pick it from a list.
+- type: mc
+  level: easy
+  label: Into the wire
+  q: What decides which network a Wi-Fi client ends up on?
+  options:
+  - The VLAN its SSID maps to
+  - The colour of the access point
+  - Its hostname
+  - The time of day
+  answer: The VLAN its SSID maps to
+  hint: An SSID drops clients into a VLAN.
+- type: mc
+  level: medium
+  label: Channels
+  q: Which 2.4 GHz channels don't overlap?
+  options:
+  - 1, 6 and 11
+  - 1, 2 and 3
+  - 5, 6 and 7
+  - All of them
+  answer: 1, 6 and 11
+  hint: The classic three.
+- type: text
+  level: medium
+  label: The term
+  q: What is it called when a client moves to another access point?
+  answer:
+  - roaming
+  hint: Like a phone abroad.
+- type: mc
+  level: hard
+  label: Uplink
+  q: Why is the cable from an access point to its switch usually a trunk?
+  options:
+  - It has to carry the VLAN of every SSID
+  - It needs more power
+  - Radios require it
+  - It stops interference
+  answer: It has to carry the VLAN of every SSID
+  hint: Several SSIDs, several VLANs.

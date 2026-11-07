@@ -1,0 +1,86 @@
+id: net-36
+track: NET
+skill: networking
+chapter: Services
+order: 24
+title: DHCP across routers
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'DHCP starts with a broadcast, and routers don''t forward broadcasts. So a client on another subnet would never reach a central DHCP server. The fix is a relay: on the router interface facing the clients you set an ip helper-address pointing at the server. The router catches the broadcast and sends it on as a normal packet, saying which subnet it came from. The server then picks the matching pool.'
+  example: |-
+    interface Gi0/0
+     ip address 10.40.30.1 255.255.255.0
+     ip helper-address 10.40.99.5
+brief: In the example, which address is the DHCP server?
+goal: 'Run: submit <answer>'
+hints:
+- Read the helper line.
+- The other address is the router's own.
+debrief:
+  why: Broadcasts stop at the router, so the router relays them as unicast to the server. That's how one server can serve a whole company.
+  solution: submit 10.40.99.5
+  job: Central DHCP is the norm, and a missing helper is the usual reason one floor gets no addresses.
+teaches:
+- relay
+- ip helper-address
+answer:
+  accept:
+  - 10.40.99.5
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why can't a client reach a DHCP server on another subnet on its own?
+  options:
+  - Routers don't forward broadcasts
+  - DHCP is too slow
+  - The server has no MAC
+  - Clients don't have ports
+  answer: Routers don't forward broadcasts
+  hint: How does DHCP start?
+- type: mc
+  level: easy
+  label: The fix
+  q: Where does ip helper-address go?
+  options:
+  - On the router interface facing the clients
+  - On the client
+  - On the DNS server
+  - On the switch's trunk
+  answer: On the router interface facing the clients
+  hint: Where the broadcast arrives.
+- type: mc
+  level: medium
+  label: How it picks
+  q: How does the server know which pool to use for a relayed request?
+  options:
+  - The relay says which subnet it came from
+  - It picks at random
+  - The client tells it the VLAN name
+  - It uses the first pool
+  answer: The relay says which subnet it came from
+  hint: The router includes that.
+- type: text
+  level: medium
+  label: The command
+  q: Which two-part command sets a DHCP relay on an interface? Leave out the address.
+  answer:
+  - ip helper-address
+  hint: It starts with ip.
+- type: mc
+  level: hard
+  label: At work
+  q: One floor gets no addresses, and every other floor is fine. What do you check on that floor's router interface?
+  options:
+  - Its ip helper-address
+  - Its hostname
+  - Its banner
+  - Its NTP server
+  answer: Its ip helper-address
+  hint: It's about reaching the server.

@@ -1,0 +1,85 @@
+id: net-33
+track: NET
+skill: networking
+chapter: Switching
+order: 14
+title: 'VLANs: one switch, separate networks'
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'A VLAN splits one physical switch into separate networks. Ports in VLAN 10 can only talk to ports in VLAN 10, as if they were on their own switch. That keeps groups apart: staff, guests, finance. A port for one machine is an access port, and it belongs to one VLAN. Each VLAN is normally its own subnet, so going between them needs a router.'
+  example: |-
+    VLAN 10 Staff    10.40.10.0/24   Gi0/1, Gi0/2
+    VLAN 20 Guests   10.40.20.0/24   Gi0/3
+brief: In the example, can the machine on Gi0/1 reach the machine on Gi0/3 without a router? Answer yes or no.
+goal: 'Run: submit <answer>'
+hints:
+- Which VLAN is each port in?
+- Different VLANs act like different switches.
+debrief:
+  why: VLANs are separate networks that happen to share hardware. Crossing from one to another takes a router, which is also where you can apply rules.
+  solution: submit no
+  job: Almost every office network is built this way, so guests never share a network with payroll.
+teaches:
+- VLAN
+- access port
+answer:
+  accept:
+  - 'no'
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does a VLAN do?
+  options:
+  - Splits one switch into separate networks
+  - Makes a cable faster
+  - Encrypts traffic
+  - Gives out addresses
+  answer: Splits one switch into separate networks
+  hint: Think of separate switches in one box.
+- type: mc
+  level: easy
+  label: Which is it
+  q: A port connects to one PC in one VLAN. What kind of port is it?
+  options:
+  - Access port
+  - Trunk port
+  - Console port
+  - Routed port
+  answer: Access port
+  hint: The lesson names it.
+- type: mc
+  level: medium
+  label: Reasoning
+  q: Two PCs share a switch. One is in VLAN 10 and one in VLAN 20. Why can't they talk directly?
+  options:
+  - Each VLAN is its own network, so they need a router
+  - The switch is broken
+  - They need the same MAC
+  - They need more bandwidth
+  answer: Each VLAN is its own network, so they need a router
+  hint: Separate networks need routing.
+- type: text
+  level: medium
+  label: The term
+  q: What does a port that belongs to one VLAN get called? Two words.
+  answer:
+  - access port
+  hint: The first word is access.
+- type: mc
+  level: hard
+  label: At work
+  q: Why put guests in a different VLAN from finance?
+  options:
+  - So guests can't reach finance's machines directly
+  - So guests get faster Wi-Fi
+  - So finance needs no passwords
+  - So the switch uses less power
+  answer: So guests can't reach finance's machines directly
+  hint: It's about keeping groups apart.

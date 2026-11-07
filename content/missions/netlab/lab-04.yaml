@@ -1,0 +1,127 @@
+id: lab-04
+track: LAB
+skill: networking
+chapter: Console
+order: 4
+title: Wake the interface
+from: Service Desk
+difficulty: easy
+check: net
+requires: net-32
+par:
+  kind: commands
+  value: 18
+lesson:
+  text: A router's interfaces start switched off and have no address. Go in with interface, give it an ip address and a mask, add a description so the next person knows what it's for, and finish with no shutdown to turn it on. Check your work with show ip interface brief, which lists every interface, its address and whether it's up.
+  example: |-
+    interface Gi0/0
+     description To the floor switch
+     ip address 10.70.4.1 255.255.255.0
+     no shutdown
+brief: PC-1 is ready but can't reach its gateway, because the router's port was never set up. Its gateway should be 10.40.4.1/24 on Gi0/0, described as FLOOR-LAN. PC-1 still needs plugging into Gi0/0.
+goal: PC-1 can ping 10.40.4.1.
+hints:
+- interface Gi0/0 takes you into that interface.
+- Don't forget no shutdown. Router ports start off.
+debrief:
+  why: Router interfaces need an address and no shutdown before they'll do anything. A description costs a few seconds and saves far more later.
+  solution: |-
+    [cable] PC-1 eth0 R1 Gi0/0
+    [R1]
+    enable
+    configure terminal
+    interface Gi0/0
+    description FLOOR-LAN
+    ip address 10.40.4.1 255.255.255.0
+    no shutdown
+    end
+    show ip interface brief
+  job: '"Administratively down" in show ip interface brief is one of the most common things you''ll read.'
+teaches:
+- interface
+- ip address
+- description
+- no shutdown
+- show ip interface brief
+lab:
+  devices:
+  - name: PC-1
+    kind: pc
+    x: 20
+    y: 50
+    config: |-
+      ip addr add 10.40.4.10/24 dev eth0
+      ip route add default via 10.40.4.1
+  - name: R1
+    kind: router
+    x: 70
+    y: 50
+    config: ''
+  cables: []
+  cabling: true
+expect:
+- label: Gi0/0 is up
+  iface_up:
+    device: R1
+    interface: Gi0/0
+- label: PC-1 can ping its gateway
+  reach:
+    from: PC-1
+    to: 10.40.4.1
+- label: Gi0/0 is described as FLOOR-LAN
+  config:
+    device: R1
+    interface: Gi0/0
+    contains: description FLOOR-LAN
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What state does a router interface start in?
+  options:
+  - Off, with no address
+  - On, with an address
+  - On, with no address
+  - Off, with an address
+  answer: Off, with no address
+  hint: You had to turn it on.
+- type: text
+  level: easy
+  label: The command
+  q: Which two words turn an interface on?
+  answer:
+  - no shutdown
+  hint: It's a negative.
+- type: mc
+  level: medium
+  label: Reading it
+  q: Status says administratively down. What does that mean?
+  options:
+  - Someone or a default has shut it, and it needs no shutdown
+  - The cable is broken
+  - The far end is off
+  - It has no address
+  answer: Someone or a default has shut it, and it needs no shutdown
+  hint: Administratively.
+- type: mc
+  level: medium
+  label: Checking
+  q: Which command shows every interface in a table?
+  options:
+  - show ip interface brief
+  - show mac address-table
+  - ping
+  - hostname
+  answer: show ip interface brief
+  hint: brief.
+- type: mc
+  level: hard
+  label: Why it matters
+  q: Why write a description?
+  options:
+  - So the next person knows what the port connects to
+  - It speeds up routing
+  - It's needed for the port to come up
+  - It sets the VLAN
+  answer: So the next person knows what the port connects to
+  hint: Think of the next person.

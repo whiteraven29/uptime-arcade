@@ -1,0 +1,85 @@
+id: net-38
+track: NET
+skill: networking
+chapter: Routing
+order: 28
+title: When routes compete
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'A router can hear about the same network from several places. First the longest prefix wins. If the prefixes are the same, the lowest administrative distance wins, which says how much a source is trusted: connected is 0, static is 1, OSPF is 110. You can use this on purpose. A floating static route is a static route given a high distance such as 200, so it sits unused until the better route disappears. That''s a simple backup link.'
+  example: |-
+    ip route 0.0.0.0 0.0.0.0 203.0.113.1
+    ip route 0.0.0.0 0.0.0.0 198.51.100.1 200
+brief: In the example, which next hop carries traffic while both links are up?
+goal: 'Run: submit <answer>'
+hints:
+- No number at the end means distance 1.
+- Lowest distance wins.
+debrief:
+  why: Distance chooses between sources for the same prefix, and raising it on purpose gives you a backup that only wakes up when the main route goes.
+  solution: submit 203.0.113.1
+  job: A second ISP link on a floating static is one of the cheapest ways to survive an outage.
+teaches:
+- administrative distance
+- floating static
+answer:
+  accept:
+  - 203.0.113.1
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Two routes have the same prefix. Which wins?
+  options:
+  - The lowest administrative distance
+  - The newest
+  - The highest distance
+  - The longest name
+  answer: The lowest administrative distance
+  hint: Lowest wins.
+- type: mc
+  level: easy
+  label: Comparing
+  q: Which does a router trust more, for the same prefix?
+  options:
+  - A static route (1)
+  - An OSPF route (110)
+  - They tie
+  - Neither
+  answer: A static route (1)
+  hint: Compare the numbers.
+- type: mc
+  level: medium
+  label: Backup
+  q: Why give a backup static route a distance of 200?
+  options:
+  - So it stays unused until the better route disappears
+  - So it's faster
+  - So OSPF copies it
+  - So it's encrypted
+  answer: So it stays unused until the better route disappears
+  hint: It floats above the others.
+- type: text
+  level: medium
+  label: The name
+  q: What is a static route with a high distance called? Two words.
+  answer:
+  - floating static
+  hint: The lesson names it.
+- type: mc
+  level: hard
+  label: At work
+  q: The main link fails and the backup never takes over. The backup route has a distance of 1, and so does the main one. What really happened before the failure?
+  options:
+  - Both routes were in use at once, so it was never a true backup
+  - OSPF turned it off
+  - The switch learned it
+  - Nothing was wrong
+  answer: Both routes were in use at once, so it was never a true backup
+  hint: Same distance means what?

@@ -1,0 +1,96 @@
+id: net-32
+track: NET
+skill: networking
+chapter: Switching
+order: 13
+title: The device console
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'Routers and switches are configured by typing commands. You start in user mode, where the prompt ends in >. The command enable takes you to privileged mode, ending in #, where you can look at everything. From there, configure terminal lets you change things. The config in use is the running-config, and it lives in memory. The startup-config is what''s saved, and it''s what the device loads when it restarts. Changes you don''t save are lost on a restart.'
+  example: |-
+    Router> enable
+    Router# configure terminal
+    Router(config)# hostname EDGE
+    EDGE(config)# end
+    EDGE# copy running-config startup-config
+brief: 'You change a router''s config and it loses power before you save. Which config does it come back with: running or startup?'
+goal: 'Run: submit <answer>'
+hints:
+- Which one is saved?
+- The running-config lives in memory.
+debrief:
+  why: The running-config is in memory and the startup-config is on disk. Only what you copied across survives a restart.
+  solution: submit startup
+  job: Plenty of outages come from a reboot bringing back a config someone forgot to save.
+teaches:
+- enable
+- configure terminal
+- running-config
+- startup-config
+answer:
+  accept:
+  - startup
+  - startup-config
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What happens to changes that were never saved when a device restarts?
+  options:
+  - They are lost
+  - They are kept
+  - They move to the backup
+  - The device refuses to restart
+  answer: They are lost
+  hint: Only the startup-config is loaded.
+- type: mc
+  level: easy
+  label: Reading the prompt
+  q: The prompt ends in (config)#. What can you do here?
+  options:
+  - Change the configuration
+  - Only look at things
+  - Nothing until you log in
+  - Reset the password only
+  answer: Change the configuration
+  hint: Config mode is for changes.
+- type: order
+  level: medium
+  label: Order them
+  q: Put these in the order you'd type them to change something and keep it.
+  scrambled:
+  - end
+  - enable
+  - copy running-config startup-config
+  - configure terminal
+  answer:
+  - enable
+  - configure terminal
+  - end
+  - copy running-config startup-config
+  hint: Into privileged mode, in to config, out, then save.
+- type: text
+  level: medium
+  label: The command
+  q: 'Which command takes you from > to #?'
+  answer:
+  - enable
+  - en
+  hint: It's one word.
+- type: mc
+  level: hard
+  label: At work
+  q: You fixed a fault an hour ago and now it's back after a power cut. What most likely happened?
+  options:
+  - The fix was never saved to the startup-config
+  - The router forgot its hostname
+  - The cable changed
+  - DNS failed
+  answer: The fix was never saved to the startup-config
+  hint: What does a restart load?

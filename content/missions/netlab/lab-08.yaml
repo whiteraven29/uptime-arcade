@@ -1,0 +1,184 @@
+id: lab-08
+track: LAB
+skill: networking
+chapter: VLANs
+order: 8
+title: Split the office
+from: Security
+difficulty: medium
+check: net
+requires: net-33
+par:
+  kind: commands
+  value: 28
+lesson:
+  text: 'Create a VLAN with vlan and give it a name, then put ports in it: interface, switchport mode access, and switchport access vlan with the number. Check with show vlan brief. Machines in different VLANs can''t reach each other at all now, even with addresses on the same subnet, which is how you know the split worked.'
+  example: |-
+    vlan 10
+     name STAFF
+    interface Gi0/1
+     switchport mode access
+     switchport access vlan 10
+brief: Finance and Staff share a switch and one flat network, and Audit says that has to stop. Put Gi0/1 and Gi0/2 in VLAN 10 named STAFF, and Gi0/3 and Gi0/4 in VLAN 20 named FINANCE.
+goal: Each team can reach only its own team.
+hints:
+- vlan 10, then name STAFF.
+- interface Gi0/1, then switchport mode access and switchport access vlan 10.
+debrief:
+  why: VLANs separate traffic at layer 2, whatever the addresses say. Same subnet or not, a frame never leaves its VLAN on a switch.
+  solution: |-
+    [SW1]
+    enable
+    configure terminal
+    vlan 10
+    name STAFF
+    vlan 20
+    name FINANCE
+    interface Gi0/1
+    switchport mode access
+    switchport access vlan 10
+    interface Gi0/2
+    switchport mode access
+    switchport access vlan 10
+    interface Gi0/3
+    switchport mode access
+    switchport access vlan 20
+    interface Gi0/4
+    switchport mode access
+    switchport access vlan 20
+    end
+    show vlan brief
+  job: Segmentation like this is the first thing auditors ask about and the first thing that limits an attack.
+teaches:
+- vlan
+- name
+- switchport mode
+- switchport access
+- show vlan brief
+lab:
+  devices:
+  - name: STAFF-1
+    kind: pc
+    x: 15
+    y: 20
+    config: ip addr add 10.40.20.1/24 dev eth0
+  - name: STAFF-2
+    kind: pc
+    x: 15
+    y: 80
+    config: ip addr add 10.40.20.2/24 dev eth0
+  - name: SW1
+    kind: switch
+    x: 50
+    y: 50
+    ports: 8
+    config: ''
+  - name: FIN-1
+    kind: pc
+    x: 85
+    y: 20
+    config: ip addr add 10.40.20.3/24 dev eth0
+  - name: FIN-2
+    kind: pc
+    x: 85
+    y: 80
+    config: ip addr add 10.40.20.4/24 dev eth0
+  cables:
+  - - STAFF-1
+    - eth0
+    - SW1
+    - Gi0/1
+  - - STAFF-2
+    - eth0
+    - SW1
+    - Gi0/2
+  - - FIN-1
+    - eth0
+    - SW1
+    - Gi0/3
+  - - FIN-2
+    - eth0
+    - SW1
+    - Gi0/4
+expect:
+- label: VLAN 10 is named STAFF
+  config:
+    device: SW1
+    contains: |-
+      vlan 10
+       name STAFF
+- label: VLAN 20 is named FINANCE
+  config:
+    device: SW1
+    contains: |-
+      vlan 20
+       name FINANCE
+- label: Staff can reach Staff
+  reach:
+    from: STAFF-1
+    to: STAFF-2
+- label: Finance can reach Finance
+  reach:
+    from: FIN-1
+    to: FIN-2
+- label: Staff can't reach Finance
+  reach:
+    from: STAFF-1
+    to: FIN-1
+    expect: blocked
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: After the split, why can't Staff reach Finance?
+  options:
+  - Frames stay inside their own VLAN
+  - Finance changed passwords
+  - The cable was removed
+  - DNS blocks it
+  answer: Frames stay inside their own VLAN
+  hint: Separate networks.
+- type: order
+  level: medium
+  label: Order them
+  q: Put a port into a VLAN, in order.
+  scrambled:
+  - switchport mode access
+  - vlan 10
+  - switchport access vlan 10
+  - interface Gi0/1
+  answer:
+  - vlan 10
+  - interface Gi0/1
+  - switchport mode access
+  - switchport access vlan 10
+  hint: Make the VLAN first.
+- type: text
+  level: medium
+  label: The command
+  q: Which show command lists VLANs and their ports? Leave out show.
+  answer:
+  - vlan brief
+  hint: Two words.
+- type: mc
+  level: medium
+  label: Port type
+  q: What mode is a port connected to one PC?
+  options:
+  - access
+  - trunk
+  - routed
+  - console
+  answer: access
+  hint: One VLAN.
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Staff and Finance need to share one printer now. What do you need to add?
+  options:
+  - A router or layer 3 switch between the VLANs
+  - A longer cable
+  - A new hostname
+  - More MAC addresses
+  answer: A router or layer 3 switch between the VLANs
+  hint: Crossing VLANs takes routing.

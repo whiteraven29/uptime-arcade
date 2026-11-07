@@ -90,7 +90,33 @@ function viTokens(t) {
   return used;
 }
 
+/* Lab solutions are console commands, so what's taught is the command, in as many words as make it one. */
+const LAB_TWO = new Set(['ipv6', 'wifi', 'radius', 'radius-server', 'dot11', 'ip', 'no', 'show', 'switchport', 'spanning-tree', 'crypto', 'router', 'interface', 'tunnel', 'dns', 'ip', 'set', 'match', 'authentication', 'enable', 'configure', 'copy', 'object', 'line', 'login', 'transport']);
+const LAB_THREE = new Set(['no ip', 'show ip', 'show interfaces', 'switchport trunk', 'crypto isakmp', 'crypto ipsec', 'show crypto', 'ip dhcp', 'ip nat', 'ip access-list']);
+function labTokens(t) {
+  const out = new Set();
+  for (const line of t.sol.split('\n')) {
+    if (!line || line.startsWith('[')) continue;
+    const w = line.trim().split(/\s+/).filter((x) => !/^(\d|Gi|eth)/.test(x));
+    if (/^\d+ (permit|deny)/.test(line)) { out.add('sequence number'); out.add(line.split(' ')[1]); continue; }
+    let token = w[0];
+    if (LAB_TWO.has(w[0]) && w[1]) token = `${w[0]} ${w[1]}`;
+    if (LAB_THREE.has(token) && w[2]) token = `${token} ${w[2]}`;
+    out.add(token);
+  }
+  return out;
+}
+
+/* "show mac" is covered by teaching "show mac address-table", and "ip nat inside" by teaching "ip nat". Whole
+   words only, so "ip addr" doesn't cover "ip address". And once "no" is taught, it works on anything taught. */
+const startsWithWords = (a, b) => a === b || a.startsWith(`${b} `);
+function labTaught(taught, token) {
+  if ([...taught].some((x) => startsWithWords(x, token) || startsWithWords(token, x))) return true;
+  return token.startsWith('no ') && taught.has('no') && labTaught(taught, token.slice(3));
+}
+
 const tokensFor = {
+  LAB: labTokens,
   SH: (t) => shellTokens(t.sol),
   NET: (t) => shellTokens(t.sol),
   VI: viTokens,
@@ -102,6 +128,8 @@ const SAME = { VI: { dd: 'd', yy: 'y', cc: 'c', cw: 'c', dw: 'd', '3dd': 'd', dd
 
 for (const [k] of TRACKS) {
   const taught = new Set();
+  // Lab commands that come with no lesson of their own: leaving a mode, and passwords the brief hands you.
+  if (k === 'LAB') for (const x of ['exit', 'trustno1']) taught.add(x);
   for (const t of TK[k]) {
     if (!t.teaches?.length) problems.push(`${t.id}: lists nothing under teaches`);
     const lesson = `${t.learn[0]} ${t.learn[1]}`;
@@ -111,7 +139,7 @@ for (const [k] of TRACKS) {
       const claims = x === 'capstone' || x === 'state' || x === 'unpack' || x === 'comprehension' || x === 'f-string' || x === 'default' || x === 'keyword' || x === 'receiver' || x === 'slice' || x === 'table' || x === 'size' || x === 'hosts' || x === 'block';
       if (!claims && k !== 'VI' && !lesson.includes(x.replace(/^\[i\]$/, '[0]').replace(/^\[\]$/, '['))) problems.push(`${t.id}: claims to teach ${x}, but the lesson never mentions it`);
     }
-    for (const tok of tokensFor[k](t)) if (!taught.has(tok)) problems.push(`${t.id} "${t.title}": uses ${tok} before any lesson teaches it`);
+    for (const tok of tokensFor[k](t)) if (!taught.has(tok) && !(k === 'LAB' && labTaught(taught, tok))) problems.push(`${t.id} "${t.title}": uses ${tok} before any lesson teaches it`);
   }
 }
 

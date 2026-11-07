@@ -16,7 +16,7 @@
 5. [Screens and routes](#5-screens-and-routes)
 6. [Game systems](#6-game-systems)
 7. [Learning design](#7-learning-design)
-8. [Mission catalogue (200 at launch)](#8-mission-catalogue-200-at-launch)
+8. [Mission catalogue (213 core missions)](#8-mission-catalogue-213-core-missions)
 9. [NetLab: the network simulator](#9-netlab-the-network-simulator)
 10. [Simulation engines](#10-simulation-engines)
 11. [System architecture](#11-system-architecture)
@@ -182,7 +182,7 @@ Each screen is its own route, and the top bar shows the logo, navigation, level,
 
 | Route | Screen | Purpose |
 |---|---|---|
-| `/` | **Deck** | The core ring with your level and clock, tiles for streak and focus, skill paths with their medals, and a strip with the next mission, level progress and badges |
+| `/` | **Deck** | The core ring with your level and clock, tiles for streak and focus, skill paths with their medals, and a strip with the next mission, level progress and badges. It always fits the window with nothing to scroll, from a small phone to a large monitor, folding details away as room runs out |
 | `/focus` | **Focus** | Set your study plan first. Then set a goal and length, see what the block will earn, check off "phone out of reach", watch the timer ring, answer its one check-in, log drifts, and claim with a line on what you did. Weekly and monthly goals sit beside it |
 | `/missions` | **Missions** | A card per category with progress, difficulty mix and its chapters cycling. Opening one reveals chapter dropdowns. Tracks on the way show what opens them |
 | `/missions/:slug` | **Briefing** | Lesson and example, mission brief, sender, worth and par, plus the Launch button |
@@ -191,9 +191,10 @@ Each screen is its own route, and the top bar shows the logo, navigation, level,
 | `/ops` | **Operations** | Multi-skill missions with their prerequisites shown as linked track icons |
 | `/oncall` | **On-call** | Endless incident shifts, unlocked after all track missions are cleared. Arrives in M11 ([ADR 0007](adr/0007-the-game-runs-on-the-server.md)) |
 | `/rewards` | **Rewards** | Streak ladder, level ladder and badge grid |
+| `/sandbox` | **Sandbox** | Your own network with no goals: add, drag, cable and configure devices, test every ping, and break something to practise. It opens after LAB-05 and is free |
 | `/profile` | **Profile** | Your picture (sixteen operators, or upload your own), stats, a year's focus map, goals, focus minutes a day, XP a week, and recent blocks. Your username and picture stay at the top right of every screen |
 | `/system` | **System** | Account, time zone, sound, close session, logout, delete account |
-| `/login`, `/register` | Auth | Styled in the HUD. Log in with a username, which shows available or taken as you type. Email stays private |
+| `/login`, `/register` | Auth | Styled in the HUD, and they fit the window too. They only scroll if a phone's keyboard takes the room. Log in with a username, which shows available or taken as you type. Email stays private |
 
 **Locks:**
 - Play and Rewind need an active session. Without one, they show a panel with "Open session (MM:SS)" or "Go to Focus".
@@ -245,7 +246,7 @@ Targets round up to the next 5 minutes and count only days from when the plan st
 
 - **Opening:** moves the whole bank into a session with `expires_at = now + bank`.
 - **Closing:** returns the unused seconds to the bank.
-- **Enforcement:** submissions for missions and rewinds are rejected with `409 no_active_session` when no session is active.
+- **Enforcement:** submissions for missions and rewinds are rejected with `409 no_active_session` when no session is active. Replays of cleared missions are the exception: they need no session, and they're refused while a focus block runs.
 
 ### 6.3 XP and scoring
 
@@ -272,10 +273,10 @@ Levels count **cleared** missions, so the ladder rewards finishing the rewind as
 | 4 | Operator | 45 |
 | 5 | Adept | 70 |
 | 6 | Specialist | 95 |
-| 7 | Technomancer | 120 |
-| 8 | Sorcerer | 145 |
-| 9 | Sage | 170 |
-| 10 | Archmage | 200 |
+| 7 | Technomancer | 125 |
+| 8 | Sorcerer | 155 |
+| 9 | Sage | 185 |
+| 10 | Archmage | 213 |
 
 The `peak` value remembers the highest count reached, so a new season never lowers your title.
 
@@ -305,7 +306,8 @@ After a mission is solved, the player answers five questions about it, easiest f
 - **Tracks:** a mission opens when the previous mission in its track is cleared. The first mission of each track is open from the start.
 - **Operations:** each one lists prerequisite missions and opens when all of them are cleared.
 - **On-call:** opens when every track mission is cleared.
-- **NetLab:** nothing in it opens until Networking 11 (the local or gateway decision) is cleared, because the lab assumes that idea. The gate is already live, through `requires` in `content/tracks.yaml`.
+- **NetLab:** a lab opens when the previous lab is cleared and the Networking mission named in its `requires` is cleared, because each lab assumes what that mission teaches ([ADR 0011](adr/0011-netlab.md)). The track opens with the first lab's gate.
+- **Seeing it happen:** whichever comes last opens the lab, and that's when its `unlocked` event is sent. The event carries a preview of the lab's devices and cables, with no config, and the lab draws itself on screen. The NetLab card shows every lab on one long cable that lights up as labs clear ([ADR 0013](adr/0013-wires-by-hand.md)). If a lab is cleared and the next is still waiting, a `lab_waiting` event names the mission it needs.
 
 ### 6.7 Daily streaks
 
@@ -339,7 +341,7 @@ The streak grows by 1 on each calendar day (in the player's time zone) with at l
 | Par Hunter | 50 missions at or under par |
 | No Hints Needed | Clear a whole chapter without hints |
 | Night Shift | Finish 25 on-call incidents |
-| Archmage | Clear all launch missions (150 today, 200 at launch) |
+| Archmage | Clear all 213 core missions |
 | Easy, Medium, Hard, Expert and Brainfuck Conquered | Clear that tier of Beyond |
 
 Every badge has its own medal (`BadgeEmblem`), designed to look good on its own when shared.
@@ -347,7 +349,7 @@ Every badge has its own medal (`BadgeEmblem`), designed to look good on its own 
 ### 6.9 Seasons and on-call
 
 - **Seasons are content we publish.** A new season adds new missions. Players can't start or reset one, and nothing they've done is ever taken away ([ADR 0009](adr/0009-seasons-gates-and-profiles.md)).
-- **Revisiting:** every cleared mission stays open to play again as practice. It uses play time, pays no XP and changes nothing.
+- **Replaying:** every cleared mission stays open to play again. It costs no play time, pays no XP and changes nothing. A running session is paused so its clock can't spend anything, and replays wait for a focus block to end ([ADR 0012](adr/0012-free-replays-and-a-complete-netlab.md)).
 - **On-call:** shifts have five generated incidents (subnet maths, log queries, Go and Python tracing, NetLab micro-faults). Generation uses a server-side seed, so answers are never sent to the browser. Arrives in M11.
 
 ### 6.10 New content after launch
@@ -376,11 +378,11 @@ Content packs (section 13) add missions to existing tracks or new tracks. Archma
 
 ---
 
-## 8. Mission catalogue (200 at launch)
+## 8. Mission catalogue (213 core missions)
 
-Six tracks of 30, plus 20 Operations. Each track starts from zero and is ordered for understanding, top to bottom, so nobody meets an idea before a lesson has taught it. IDs are permanent, and new missions get new IDs (renumbering only changes the order field).
+Shell, vi, Python and Go have 30 missions each, Networking has 49 and NetLab has 44, with 20 Operations to come. Each track starts from zero and is ordered for understanding, top to bottom, so nobody meets an idea before a lesson has taught it. IDs are permanent, and new missions get new IDs (renumbering only changes the order field).
 
-The five tracks below are built and playable (150 missions, [ADR 0004](adr/0004-thirty-missions-from-zero.md)). Their tables are generated from the catalogue. NetLab and Operations follow with M6 and M7.
+The six tracks below are built and playable (213 missions, [ADR 0004](adr/0004-thirty-missions-from-zero.md), [ADR 0011](adr/0011-netlab.md) and [ADR 0012](adr/0012-free-replays-and-a-complete-netlab.md)). Their tables are generated from the catalogue. NetLab and Operations follow with M6 and M7.
 
 **Check types:**
 - `answer`: submit a value
@@ -538,75 +540,110 @@ When the sandboxed runner ships (M9), `go-fix` missions upgrade to *write and ru
 
 ### 8.5 Networking (NET): concepts and host tools
 
+Forty-nine missions in the order they're played. IDs stay fixed so progress survives, so newer ones (NET-31 to NET-49) sit among the older ones. They teach what the labs need ([ADR 0011](adr/0011-netlab.md), [ADR 0012](adr/0012-free-replays-and-a-complete-netlab.md)).
+
 | ID | Chapter | Mission | You learn | Check |
 |---|---|---|---|---|
 | NET-01 | Addresses | What an IP really is | IP, bits, octet | answer |
 | NET-02 | Addresses | Binary to decimal | binary | answer |
-| NET-03 | Addresses | Prefix and mask | prefix, mask, `/24` | answer |
+| NET-03 | Addresses | Prefix and mask | prefix, mask, /24 | answer |
 | NET-04 | Subnets | Hosts in a subnet | hosts | answer |
 | NET-05 | Subnets | Network and broadcast | block, network, broadcast | answer |
 | NET-06 | Subnets | Size it right | size | answer |
-| NET-07 | Subnets | Private and special ranges | RFC 1918, `127.0.0.1` | answer |
+| NET-07 | Subnets | Private and special ranges | RFC 1918, 127.0.0.1 | answer |
 | NET-08 | Subnets | Carve one /24 | VLSM | answer |
-| NET-09 | Subnets | One route for four | summarising | answer |
+| NET-09 | Subnets | One route for four | summaris | answer |
 | NET-10 | Local network | MACs and ARP | MAC, ARP | answer |
 | NET-11 | Local network | Local or via the gateway? | gateway | answer |
+| NET-31 | Switching | How a switch learns | MAC table, flood | answer |
+| NET-32 | Switching | The device console | enable, configure terminal, running-config, startup-config | answer |
+| NET-33 | Switching | VLANs: one switch, separate networks | VLAN, access port | answer |
+| NET-34 | Switching | Trunks carry many VLANs | trunk, 802.1Q, allowed list, native VLAN | answer |
+| NET-35 | Switching | Loops and spanning tree | STP, root bridge, priority, blocked | answer |
 | NET-12 | Transport | Ports and sockets | port, socket | answer |
 | NET-13 | Transport | The TCP handshake | SYN, SYN-ACK, ACK, TCP | answer |
 | NET-14 | Transport | TCP or UDP? | UDP | answer |
-| NET-15 | Transport | Ports you must know | `22`, `53`, `80` | answer |
-| NET-16 | Services | DNS records | DNS, A, CNAME, `grep`, `cat` | answer |
-| NET-17 | Services | Follow a DNS lookup | `dig`, `resolv.conf`, `sed`, `-i` | fs |
+| NET-15 | Transport | Ports you must know | 22, 53, 80 | answer |
+| NET-16 | Services | DNS records | DNS, A, CNAME, grep, cat | answer |
+| NET-17 | Services | Follow a DNS lookup | dig, resolv.conf, sed, -i | fs |
 | NET-18 | Services | How DHCP hands out addresses | DHCP, DORA | answer |
+| NET-36 | Services | DHCP across routers | relay, ip helper-address | answer |
 | NET-19 | Routing | Read a routing table | longest prefix | answer |
-| NET-20 | Routing | The PC with no internet | `ip`, `netplan`, `ping`, `addr`, `route`, `-c` | fs |
+| NET-20 | Routing | The PC with no internet | ip, netplan, ping, addr, route, -c | fs |
+| NET-37 | Routing | Routing between VLANs | router on a stick, sub-interface, SVI, ip routing | answer |
+| NET-38 | Routing | When routes compete | administrative distance, floating static | answer |
+| NET-39 | Dynamic routing | How OSPF finds neighbours | OSPF, neighbours, hello, area, passive | answer |
+| NET-40 | Dynamic routing | How OSPF picks a path | cost, ip ospf cost | answer |
 | NET-21 | Tools | Read ping | ICMP, TTL, loss | answer |
 | NET-22 | Tools | Read traceroute | traceroute | answer |
-| NET-23 | Tools | Who is listening? | `ss`, `-t`, `-u`, `-l`, `-p`, `-n` | answer |
-| NET-24 | Tools | Talk HTTP by hand | `curl`, `-I` | answer |
+| NET-23 | Tools | Who is listening? | ss, -t, -u, -l, -p, -n | answer |
+| NET-24 | Tools | Talk HTTP by hand | curl, -I | answer |
 | NET-25 | Edge | Read the NAT table | NAT | answer |
-| NET-26 | Edge | First match wins | first match wins | answer |
-| NET-27 | Edge | TLS at a glance | TLS, certificate, `openssl` | answer |
-| NET-28 | Edge | IPv6 basics | IPv6, `::` | answer |
+| NET-26 | Edge | First match wins | Firewall | answer |
+| NET-27 | Edge | TLS at a glance | TLS, certificate, openssl | answer |
+| NET-28 | Edge | IPv6 basics | IPv6, :: | answer |
+| NET-49 | Edge | IPv6 on a real network | SLAAC, router advertisement, /64, dual stack | answer |
+| NET-41 | Security | Wildcard masks | wildcard | answer |
+| NET-42 | Security | Where an access list goes | in, out, standard, extended, deny | answer |
+| NET-43 | Security | Firewalls and zones | stateful, security level, DMZ | answer |
+| NET-44 | Security | Hardening a device | Telnet, SSH, enable secret, port security | answer |
+| NET-47 | Wireless | Wi-Fi: networks on the air | SSID, channel, roaming | answer |
+| NET-48 | Wireless | Wi-Fi security | WPA2, WPA3, RADIUS, client isolation, rogue | answer |
+| NET-45 | Tunnels | Tunnels: a link that isn't there | GRE, tunnel source, tunnel destination | answer |
+| NET-46 | Tunnels | VPNs: IPsec in two phases | IPsec, ISAKMP, pre-shared key, transform set, crypto access list, NAT | answer |
 | NET-29 | Putting it together | How long will it take? | Mbps | answer |
-| NET-30 | Putting it together | Capstone: the troubleshooting ladder | everything so far | answer |
+| NET-30 | Putting it together | Capstone: the troubleshooting ladder | capstone | answer |
 
 ### 8.6 NetLab (LAB): simulated devices
 
-Each lab loads a topology and gives you device consoles. You pass when every goal assertion holds (section 9.6).
+Each lab is a piece of daily network work: a ticket, a change or a build. You get a topology and device consoles, and you pass when every goal holds on the server (section 9.6). A lab opens when the previous lab is cleared **and** the Networking mission that teaches it is cleared ([ADR 0011](adr/0011-netlab.md)). IDs stay fixed, so the table is in playing order.
 
-| ID | Chapter | Lab | You learn | Check |
+| ID | Chapter | Lab | Comes from | Opens after |
 |---|---|---|---|---|
-| LAB-01 | First contact | Two PCs, one cable | cabling, host IPs, `ping` | net |
-| LAB-02 | First contact | The switch learns | MAC learning, `show mac address-table` | net |
-| LAB-03 | Console | Talk to a device | `enable`, `configure terminal`, `hostname`, `show running-config` | net |
-| LAB-04 | Console | Wake the interface | `interface`, `ip address`, `no shutdown`, `description` | net |
-| LAB-05 | Console | Make it stick | `copy running-config startup-config`, `reload` | net |
-| LAB-06 | Routing basics | Join two networks | router interfaces in two subnets | net |
-| LAB-07 | Routing basics | Gateways for everyone | host default gateways | net |
-| LAB-08 | VLANs | Create VLANs | `vlan 10`, `name`, `show vlan brief` | net |
-| LAB-09 | VLANs | Access ports | `switchport mode access`, `switchport access vlan` | net |
-| LAB-10 | VLANs | Trunk between switches | `switchport mode trunk`, `allowed vlan` | net |
-| LAB-11 | VLANs | Fault: the lost VLAN | trunk allowed list missing a VLAN | net |
-| LAB-12 | VLANs | Router on a stick | sub-interfaces, `encapsulation dot1q` | net |
-| LAB-13 | Routing | Static routes | `ip route` | net |
-| LAB-14 | Routing | Way out to the ISP | default route | net |
-| LAB-15 | Routing | Fault: the wrong route wins | longest prefix match in practice | net |
-| LAB-16 | Services | DHCP on the router | `ip dhcp pool`, `network`, `default-router`, `dns-server`, `ip dhcp excluded-address` | net |
-| LAB-17 | Services | DHCP across VLANs | `ip helper-address` | net |
-| LAB-18 | Services | Name resolution | lab DNS server records, host resolver | net |
-| LAB-19 | Security | Standard ACL | `access-list 10`, `ip access-group` | net |
-| LAB-20 | Security | Extended ACL | block guests from finance, allow web | net |
-| LAB-21 | Security | Fault: rule order | first match wins | net |
-| LAB-22 | Edge | NAT overload | `ip nat inside/outside`, `overload` | net |
-| LAB-23 | Edge | Port forwarding | static NAT for a server | net |
-| LAB-24 | Dynamic routing | OSPF in one area | `router ospf 1`, `network ... area 0` | net |
-| LAB-25 | Dynamic routing | Survive a cut cable | OSPF reconverges, `show ip route` | net |
-| LAB-26 | Switching safety | The broadcast storm | spanning tree, blocked ports | net |
-| LAB-27 | Switching safety | Port security | `switchport port-security`, maximum, sticky | net |
-| LAB-28 | Layer 3 switching | Route on the switch | `ip routing`, SVIs (`interface vlan 10`) | net |
-| LAB-29 | Build | The four-floor office | VLANs, DHCP, inter-VLAN routing, ACLs, NAT from a blank lab | net |
-| LAB-30 | Capstone | Blackout | five injected faults, restore every service under a timer | net |
+| LAB-01 | First day | Two PCs, one cable | Facilities | NET-05 |
+| LAB-02 | First day | The switch learns | Facilities | NET-31 |
+| LAB-03 | Console | Name the new switch | Network Standards | NET-32 |
+| LAB-04 | Console | Wake the interface | Service Desk | NET-32 |
+| LAB-05 | Console | Make it stick | Operations | NET-32 |
+| LAB-06 | Routing | Join two networks | Network | NET-11 |
+| LAB-07 | Routing | A route to the branch | Network | NET-19 |
+| LAB-08 | VLANs | Split the office | Security | NET-33 |
+| LAB-09 | VLANs | Trunk between floors | Network | NET-34 |
+| LAB-10 | VLANs | Fault: the lost VLAN | Service Desk | NET-34 |
+| LAB-11 | VLANs | Choose the root bridge | Network | NET-35 |
+| LAB-12 | VLANs | Router on a stick | Network | NET-37 |
+| LAB-13 | VLANs | Route on the switch | Network | NET-37 |
+| LAB-14 | Services | Addresses for the floor | Service Desk | NET-18 |
+| LAB-15 | Services | Relay across routers | Service Desk | NET-36 |
+| LAB-16 | Services | Run the company DNS | Web Team | NET-16 |
+| LAB-17 | Services | Fault: the site won't open by name | Service Desk | NET-17 |
+| LAB-18 | The edge | Get the office online | IT Manager | NET-25 |
+| LAB-19 | The edge | Publish the web server | Web Team | NET-25 |
+| LAB-20 | The edge | The backup link | IT Manager | NET-38 |
+| LAB-21 | Security | Guests stay out of finance | Security | NET-42 |
+| LAB-22 | Security | Fault: first match wins | Security | NET-26 |
+| LAB-23 | Security | Lock down the router | Security | NET-44 |
+| LAB-24 | Security | Stop the rogue switch | Security | NET-44 |
+| LAB-25 | Firewalls | Stand up the firewall | Security | NET-43 |
+| LAB-26 | Firewalls | The DMZ | Web Team | NET-43 |
+| LAB-35 | Wireless | The first access point | Facilities | NET-47 |
+| LAB-36 | Wireless | Guests on their own network | Reception | NET-48 |
+| LAB-37 | Wireless | Stop the interference | Service Desk | NET-47 |
+| LAB-38 | Wireless | Staff log in as themselves | Security | NET-48 |
+| LAB-39 | Wireless | Fault: the rogue access point | Security | NET-48 |
+| LAB-40 | Wireless | Fault: connected, but no internet | Service Desk | NET-47 |
+| LAB-41 | IPv6 | Turn on IPv6 | Network | NET-49 |
+| LAB-42 | IPv6 | Dual stack | Web Team | NET-49 |
+| LAB-43 | IPv6 | Route it across sites | Network | NET-49 |
+| LAB-44 | IPv6 | Fault: the hole in the firewall rules | Security | NET-49 |
+| LAB-27 | Dynamic routing | First OSPF neighbours | Network | NET-39 |
+| LAB-28 | Dynamic routing | Fault: the neighbour that never came up | Service Desk | NET-39 |
+| LAB-29 | Dynamic routing | Prefer the fibre, survive the cut | Network | NET-40 |
+| LAB-30 | VPNs | A tunnel between sites | Network | NET-45 |
+| LAB-31 | VPNs | Encrypt the link | Security | NET-46 |
+| LAB-32 | VPNs | Fault: NAT broke the VPN | Service Desk | NET-46 |
+| LAB-33 | Capstones | Design day: build the branch | CTO | NET-08 |
+| LAB-34 | Capstones | Blackout | Incident Commander | NET-30 |
 
 ### 8.7 Operations (OPS): multi-skill missions
 
@@ -725,94 +762,105 @@ These open when you reach Archmage, one at a time, and don't count towards level
 
 ### 9.1 Goals
 
-- **Real enough to transfer:** the CLI syntax and behaviour follow Cisco IOS conventions, which is what network courses and jobs use. The command set is limited and documented in-game.
-- **Fun:** you see packets move, links light up, and outages happen and get fixed.
-- **Deterministic:** the same config always gives the same result, so missions can be graded and tested in CI.
-- **Pure JavaScript, with no React inside the engine:** the same engine runs in the browser, in tests, and in the grading runner (Node).
+- **Real enough to transfer:** the CLI syntax and behaviour follow common network OS conventions, which is what network courses and jobs use. The command set is limited and documented in-game with `?`.
+- **Daily work:** labs are tickets, changes and builds: design, config, security, firewalls, DNS, VPNs and OSPF.
+- **It explains itself:** a drop always says why, such as `R1 Gi0/0 access list GUESTS coming in drops it (line 10)`.
+- **Deterministic:** the same config always gives the same result, so labs can be graded and tested in CI.
+- **Pure JavaScript, with no React inside the engine:** the same engine runs in the browser, in tests, and in the server's grader.
 
 ### 9.2 Devices
 
 | Device | Ports | Capabilities |
 |---|---|---|
-| PC, laptop | `eth0` | IP config (static or DHCP), gateway, DNS. Commands: `ipconfig`, `ping`, `tracert`, `nslookup` |
-| Server | `eth0` | As a PC, plus services: DNS, HTTP, DHCP (optional) |
-| Switch (L2) | `Gi0/1` to `Gi0/24` | VLANs, access and trunk ports, MAC table, STP, port security |
-| Switch (L3) | `Gi0/1` to `Gi0/24` | L2 features plus `ip routing`, SVIs, static routes, OSPF |
-| Router | `Gi0/0` to `Gi0/3` | Interfaces, sub-interfaces, static routes, OSPF, ACLs, NAT, DHCP server and relay |
-| Cloud (ISP) | `Gi0/0` | Fixed upstream with a public range and an "internet" host at `198.51.100.10` |
-| Wireless AP | `Gi0/1` + SSIDs | Maps each SSID to a VLAN (simplified) |
+| PC | `eth0` | The Linux tools from the Networking track: `ip`, `ip -6`, `ping`, `traceroute`, `dig`, `curl`, `nc`, `ss`, `dhclient`, `rdisc6` |
+| Laptop | `wlan0` | As a PC, plus `wifi scan`, `wifi connect`, `wifi status` and `wifi disconnect` |
+| Server | `eth0` | As a PC, plus `service` (http, https, dns, ssh, smb, ntp, mysql, smtp, radius), `dns` records and `radius` users |
+| Access point | `Gi0/1`, two radios | SSIDs mapped to VLANs, a 2.4 GHz and a 5 GHz radio, channels, WPA2, WPA3, enterprise through RADIUS, client isolation, roaming |
+| Switch | `Gi0/1` up | VLANs, access and trunk ports, MAC learning, spanning tree, port security, BPDU guard |
+| Layer 3 switch | `Gi0/1` up | Switch features plus `ip routing`, SVIs, static routes, OSPF, ACLs, DHCP |
+| Router | `Gi0/0` to `Gi0/3` | Interfaces, sub-interfaces, tunnels, loopbacks, static routes, OSPF, ACLs, NAT, DHCP server and relay, IPsec, hardening |
+| Firewall | `Gi0/0` to `Gi0/3` | `nameif`, security levels, a state table, object NAT, access lists with masks |
+| Locked device | as above | Devices that aren't yours, such as the ISP. No console, and a client's claims about them are never read |
 
-### 9.3 CLI modes and commands (v1)
+### 9.3 CLI modes and commands
 
-Modes work like IOS: `Router>` (user), `Router#` (privileged), `Router(config)#`, `Router(config-if)#`, `Router(config-subif)#`, `Router(config-vlan)#`, `Router(config-router)#`, `Router(dhcp-config)#`.
+Modes work like the real thing: `Router>`, `Router#`, `Router(config)#`, `Router(config-if)#`, `Router(config-subif)#`, `Router(config-vlan)#`, `Router(config-router)#`, `Router(dhcp-config)#`, `Router(config-ext-nacl)#`, `Router(config-line)#`, `Router(config-isakmp)#`, `Router(config-crypto-map)#` and `FW(config-network-object)#`.
 
-**Shared behaviour:**
-- Unique abbreviations are accepted (`conf t`, `int g0/1`, `sh ip int br`).
-- `?` shows the valid next words, and Tab completes.
-- `no <command>` negates a command.
-- `do <command>` runs an exec command from config mode.
-- `end` or `Ctrl-Z` returns to privileged mode, and `exit` goes up one level.
-- Errors match IOS style: `% Invalid input detected at '^' marker.`
+**Shared behaviour:** unique abbreviations work (`conf t`, `int g0/1`, `sh ip int br`), `?` shows what fits next, Tab completes, `no` negates, `do` runs an exec command from config mode, a global command typed in a sub-mode leaves the sub-mode, and errors point at the problem with `^`.
 
 | Area | Commands |
 |---|---|
-| Exec | `enable`, `disable`, `configure terminal`, `show running-config`, `show startup-config`, `show ip interface brief`, `show interfaces`, `show vlan brief`, `show interfaces trunk`, `show mac address-table`, `show ip route`, `show ip arp`, `show access-lists`, `show ip nat translations`, `show ip dhcp binding`, `show ip ospf neighbor`, `show spanning-tree`, `show port-security`, `ping`, `traceroute`, `copy running-config startup-config`, `write memory`, `reload`, `clear ip nat translation *` |
-| Global config | `hostname`, `interface`, `vlan`, `ip route`, `ip routing`, `router ospf`, `access-list`, `ip access-list extended`, `ip nat inside source`, `ip nat inside source static`, `ip dhcp pool`, `ip dhcp excluded-address`, `spanning-tree mode`, `enable secret`, `banner motd` |
-| Interface | `ip address`, `shutdown` and `no shutdown`, `description`, `switchport mode access` and `trunk`, `switchport access vlan`, `switchport trunk allowed vlan [add\|remove]`, `switchport trunk native vlan`, `encapsulation dot1q`, `ip helper-address`, `ip access-group in\|out`, `ip nat inside\|outside`, `switchport port-security` (`maximum`, `mac-address sticky`, `violation`), `spanning-tree portfast` |
-| Router OSPF | `network <ip> <wildcard> area <n>`, `router-id`, `passive-interface` |
-| DHCP pool | `network`, `default-router`, `dns-server`, `lease` |
+| Exec | `enable`, `configure terminal`, `show running-config`, `show startup-config`, `show interfaces`, `show ip interface brief`, `show vlan brief`, `show interfaces trunk`, `show mac address-table`, `show spanning-tree`, `show port-security`, `show ip route`, `show ip arp`, `show access-lists`, `show ip nat translations`, `show ip dhcp binding`, `show ip ospf neighbor`, `show ip ospf interface`, `show crypto isakmp sa`, `show crypto ipsec sa`, `show conn`, `show nameif`, `ping`, `traceroute`, `copy running-config startup-config`, `reload` |
+| Global | `hostname`, `interface`, `interface range`, `vlan`, `ip route`, `ip routing`, `ip default-gateway`, `router ospf`, `access-list`, `ip access-list`, `ip nat inside source`, `ip dhcp pool`, `ip dhcp excluded-address`, `spanning-tree vlan`, `enable secret`, `username`, `ip domain-name`, `crypto key generate rsa`, `line vty`, `ntp server`, `logging host`, `snmp-server community`, `crypto isakmp policy`, `crypto isakmp key`, `crypto ipsec transform-set`, `crypto map` |
+| Interface | `ip address`, `shutdown`, `description`, `switchport mode`, `switchport access vlan`, `switchport trunk allowed vlan`, `switchport trunk native vlan`, `switchport port-security`, `spanning-tree portfast`, `spanning-tree bpduguard`, `encapsulation dot1q`, `ip helper-address`, `ip access-group`, `ip nat inside\|outside`, `ip ospf cost`, `ip ospf hello-interval`, `tunnel source`, `tunnel destination`, `crypto map` |
+| OSPF | `network`, `router-id`, `passive-interface`, `default-information originate` |
+| Firewall | `nameif`, `security-level`, `route`, `object network`, `host`, `subnet`, `nat`, `access-list ... extended`, `access-group` |
+| IPv6 | `ipv6 unicast-routing`, `ipv6 address`, `ipv6 route`, `ipv6 access-list`, `ipv6 traffic-filter`, `show ipv6 interface brief`, `show ipv6 route`, `show ipv6 neighbors` |
+| Wi-Fi | `dot11 ssid`, `vlan`, `authentication open\|wpa2\|wpa3\|enterprise`, `client-isolation`, `interface Dot11Radio0\|1`, `channel`, `ssid`, `radius-server host`, `show dot11 associations`, `show dot11 neighbors`, `show dot11 radio` |
 
 ### 9.4 Engine model
 
 ```text
 engines/netsim/
-  model/       Device, Interface, Link, Vlan, Route, Acl, NatRule, DhcpPool
-  cli/         mode state machine, tokenizer, abbreviation matcher, per-mode command table
-  config/      running config <-> model (show run printer and config parser are inverses)
-  l2/          frame switching: MAC learning, flooding, VLAN tags, trunks, STP
-  l3/          ARP, IP forwarding with longest prefix match, TTL, ICMP
-  services/    DHCP (DORA), DNS, HTTP stub, NAT/PAT, ACL evaluation
-  routing/     static, connected, OSPF (link-state database + SPF), administrative distance
-  sim/         discrete-event scheduler: tick(), step(), run-until-idle; event log for animation
-  faults/      injectors: cut link, shut port, remove VLAN, wrong mask, bad route, ACL above permit
-  check/       goal assertions used by missions and tests
+  addr.js      addresses as numbers: masks, wildcards, MACs, ports
+  device.js    what a device is: its ports and config, with nothing about packets
+  grammar.js   the command patterns behind abbreviations, ?, Tab and the ^ marker
+  ios.js       modes, the command tables, show commands, and the running config
+  acl.js       parsing access lists, and first match wins
+  host.js      the Linux tools on PCs and servers
+  net.js       config to network: ports, spanning tree, VLANs, routes, OSPF, DHCP, IPsec
+  forward.js   a packet's journey hop by hop: NAT, firewall state, tunnels, round trips
+  faults.js    breaking a working network on purpose, for drills
+  check.js     the goals a lab can ask
+  index.js     the Lab: consoles, cables, saving, and gradeLab
 ```
 
-- **Determinism:** time is simulated in ticks, events are ordered `(tick, sequence)`, and any random parts (such as port numbers) come from a seeded RNG.
-- **Event log:** every frame or packet step is recorded: `{tick, device, port, action: forward|flood|drop|deliver, reason}`. The UI animates from this log. "Simulation mode" lets you step through events one by one, like a debugger for packets.
-- **Simplifications, documented in-game:**
-  - OSPF computes routes after a short convergence delay, without real timers.
-  - STP elects the root by bridge priority and MAC, with no timer states.
-  - Wi-Fi is just an SSID-to-VLAN mapping.
-- **Saving:** a lab is saved as running configs, startup configs, cable list and device positions, all as text and JSON.
+- **The config is the whole truth:** everything derives from each device's running config and the cable list. Printing a config and loading it are inverses, which is tested on every lab.
+- **Determinism:** there's no clock or randomness. Packets are walked one at a time, and port numbers come from a counter.
+- **Simplifications, documented in-game where they show:**
+  - OSPF converges instantly, with no timers, and areas aren't enforced beyond marking routes.
+  - Spanning tree builds one tree for all VLANs, with no timer states.
+  - IPsec is judged from config and reachability, and comes up as soon as both sides agree.
+  - A firewall tracks ICMP as a connection, and access lists don't filter routing protocols.
+  - A static route won't resolve its next hop through a default route.
+  - Wi-Fi is modelled by distance on the map and channel numbers, with no real radio physics. Channels within 4 of each other overlap on 2.4 GHz.
+  - IPv6 has static routing and no OSPFv3, firewalls here pass IPv4 only, and there's no DHCPv6: hosts use SLAAC or a typed address.
+- **Saving:** a lab saves as running configs, startup configs and, where the lab is about cabling, the cable list.
 
-### 9.5 Topology canvas (UI)
+### 9.5 Topology map (UI)
 
-- Devices are icons on a grid. In sandbox mode you can drag devices from a palette, and in missions the topology is fixed unless the goal says otherwise.
-- To cable, click a port, then another port. The link light is amber while negotiating, green when up and red when down.
-- Click a device to open its console in a dockable panel. Several consoles can be open at once as tabs.
-- The top bar has Realtime / Simulation mode, Step, Play, a speed control and Reset lab.
-- Packets animate along links. Hover a dropped packet to see the reason, such as `ACL 110 line 20 deny` or `no route to 10.40.50.0`.
+- Devices are drawn in code on a fixed map that scales to the room. Links are green when up, red when down and dotted amber when blocked by spanning tree, with a legend. Each cable is labelled with its ports.
+- Choosing a device, on the map or in the tabs, switches to its console. Each device keeps its own output and history.
+- In a lab with wiring, and in the sandbox, each device shows its ports. Drag from one port to another and a sagging cable follows your hand, the target port lights up as you reach it, and it clicks in. The link is amber for a moment, then green if it's up. Pull a plugged cable to unplug it. Letting go on a device takes its first free port, which is kinder on a phone. The Cables panel does the same by keyboard ([ADR 0013](adr/0013-wires-by-hand.md)).
+- After a ping or similar, a packet runs along the cables, with a word over each device where something happened, such as NAT or Dropped. An answer is green, encrypted traffic is violet, and a drop bursts red. The last packet can be stepped through with Back, Next and Replay, showing each decision and the packet as it looked at that moment, including NAT changes and encryption. With reduced motion, it goes straight to the end and the buttons still work.
+- Wi-Fi clients join with a dashed line to their access point.
+- Goals fill a progress bar on each check. Clearing a lab sends a surge along every cable before the debrief, and all of this stops for reduced motion.
 
 ### 9.6 Grading labs
 
-Each lab YAML lists goals as assertions that the `check/` module evaluates against the engine:
+Each lab's goals are assertions, held on the server, each with a label the player can see:
 
 ```yaml
-goals:
-  - reach: {from: PC-ENG-1, to: SRV-WEB, proto: icmp}          # must succeed
-  - reach: {from: GUEST-1, to: PC-FIN-1, proto: tcp, port: 445, expect: blocked}
-  - reach: {from: PC-ENG-1, to: INTERNET, proto: tcp, port: 443}
-  - config: {device: SW1, contains: "switchport trunk allowed vlan 10,20,30,40", interface: Gi0/24}
-  - dhcp_lease: {host: PC-ENG-2, in: 10.40.30.0/24}
-  - saved: {device: R1}                                         # startup config matches running
+expect:
+  - label: Guests can't reach finance
+    reach: {from: GUEST-1, to: FIN-1, expect: blocked}
+  - label: With ISP-A cut, it uses ISP-B
+    survives:
+      cut: [{device: EDGE, port: Gi0/1}]
+      then: [{route: {device: EDGE, to: 8.8.8.8, via: 192.0.2.1}}]
 ```
 
-The Check button runs all goals and shows each one as a pass or fail with the reason, so the lab itself teaches you.
+Goals available: `reach`, `config`, `saved`, `after_reload`, `dhcp`, `dns`, `ospf_neighbors`, `route`, `vpn_up`, `encrypted`, `tunnel_up`, `stp_root`, `iface_up`, `err_disabled`, `mac_on`, `fits`, `no_overlap`, `v6_addr`, `wifi_assoc`, `wifi_clean` and `survives`.
 
-### 9.7 Sandbox
+The Check button sends the configs, the server runs the same engine on them in Node, and each goal comes back as a pass or fail with the reason. A check that fails costs nothing.
 
-`/netlab/sandbox` is a free-build lab with no mission. It's available during sessions only, and it costs session time like everything else, so the economy stays intact.
+### 9.7 Fault drills
+
+On a lab you've cleared, you can start from the finished network with one or three things broken, and find them. The server applies the lab's solution and then breaks config, keeping a fault only if it really makes a goal fail, and each one breaks something by itself. It keeps what it broke until you choose to see it. Like any replay, a drill costs nothing and earns nothing ([ADR 0012](adr/0012-free-replays-and-a-complete-netlab.md)). A lab whose goals are only about config has nothing to break.
+
+### 9.8 Sandbox
+
+`/sandbox` opens after LAB-05. It's your own network with no goals: add any device, drag it, cable it and configure it. It saves to your account, tests every ping between machines, and can break something for you to find. It costs nothing, earns nothing, and waits while a focus block runs.
 
 ---
 
@@ -900,9 +948,9 @@ uptime-arcade/
 │       └── sound/                    Web Audio cues
 ├── engines/                          framework-free JS, shared by frontend and runner
 │   ├── package.json
-│   ├── fs/  shell/  vi/  netsim/
+│   ├── fs/  shell/  vi/  netsim/     netsim is listed in section 9.4
 │   └── test/                         Vitest for every engine
-├── runner/                           grading service (M9): Node + sandbox launcher
+├── runner/                           grade_lab.mjs and lab_drill.mjs for NetLab now, and the sandbox launcher in M9
 ├── content/                          the curriculum, as data
 │   ├── schema/mission.schema.json
 │   ├── tracks.yaml
@@ -910,7 +958,6 @@ uptime-arcade/
 │   ├── build/                        generated by tools/compile_content.mjs, not committed
 │   ├── missions/{shell,vi,python,go,networking,beyond,netlab,ops}/*.yaml
 │   ├── fixtures/fs/*.yaml            virtual files per mission or shared
-│   ├── topologies/*.yaml             NetLab labs
 │   └── packs/                        post-launch content packs
 ├── tools/
 │   ├── verify_content.mjs            runs every solution through the engines, python3, Skulpt and `go run`
@@ -997,7 +1044,7 @@ The legacy JS (`t_shell.js`, `t_rest.js`, `learn.js`) is converted to YAML by a 
 | `fs`, `vi` | v1: the browser sends its changed files, and the server applies the `expect` rules to them. M9: runner replays a log and re-checks | Expect rules stay server-side, and the browser receives only pass or fail |
 | `py` | v1: Skulpt in the browser runs the tests, and the server stores the code. M9: sandbox re-runs the tests | Test cases are visible, which is part of learning |
 | `go-out`, `go-fix` | Server, like `answer` | Code only |
-| `net` | v1: browser engine evaluates goals and submits configs. M9: runner rebuilds the lab from configs and re-checks | Goal list is visible, and pass logic runs in the shared engine |
+| `net` | The browser submits only configs, and the server re-runs the same engine on them in Node ([ADR 0011](adr/0011-netlab.md)) | Each goal's label and, after a check, its result and reason. The assertions stay server-only |
 
 - **Debrief:** the solution and debrief come from `GET /missions/:id/debrief/`, which only works once the mission is solved.
 - **Rewind:** tasks are sent without their answers. A wrong answer returns only that it was wrong. The hint and the answer are added to a task only once they've been earned (section 6.5).
@@ -1013,7 +1060,6 @@ erDiagram
   TRACK ||--o{ CHAPTER : contains
   CHAPTER ||--o{ MISSION : contains
   MISSION ||--o{ MISSION_PREREQ : requires
-  MISSION ||--o| TOPOLOGY : uses
   USER ||--o{ MISSION_PROGRESS : tracks
   MISSION ||--o{ MISSION_PROGRESS : for
   MISSION_PROGRESS ||--o{ SUBMISSION : records
@@ -1036,10 +1082,9 @@ erDiagram
 | `Player` | user (1:1), display_name, xp, peak_cleared, season, streak, best_streak, shields, last_streak_day, time_zone, time_zone_changed_at, sound_on, avatar_index, oncall_resolved |
 | `Track` | code (SH, VI, PY, GO, NET, LAB, OPS, BX), name, subtitle, order, after_archmage, season, requires |
 | `Chapter` | track, name, order |
-| `Mission` | code (sh-15), track, chapter, order, skill, title, from_dept, difficulty, check_type, xp, par_kind, par_value, lesson_text, lesson_example, brief, goal, hints (JSON), play (JSON), topology (FK), teaches (JSON), content_version, status (draft, published, retired). Server-only: answer_spec, expect, debrief and rewind (all JSON) |
+| `Mission` | code (sh-15), track, chapter, order, skill, title, from_dept, difficulty, check_type, xp, par_kind, par_value, lesson_text, lesson_example, brief, goal, hints (JSON), play (JSON, including a lab's topology and goal labels), teaches (JSON), content_version, status (draft, published, retired). Server-only: answer_spec, expect, debrief and rewind (all JSON) |
 | `FixtureFile`, `ContentRelease` | path, content, mode; version, difficulties, mission_count |
-| `MissionPrereq` | mission, requires |
-| `Topology` | code, yaml, version |
+| `MissionPrereq` | mission, requires. A lab opens from the mission that teaches it, rebuilt from `requires` in the YAML on each import |
 | `MissionProgress` | player, mission, season, state (open, solved, cleared), tries, hints_used, commands, keys, par_bonus, worth, xp_awarded, solved_at, cleared_at. Unique on (player, mission, season) |
 | `Submission` | progress, payload (JSON), result, created_at |
 | `RewindProgress` | progress (1:1), queue (JSON), correct, misses (JSON) |
@@ -1053,7 +1098,9 @@ erDiagram
 | `StreakDay` | user, date. Unique together |
 | `StreakReward` | user, milestone, claimed_at |
 | `UserBadge` | player, code, earned_at. The list of badges is in `rules.py` |
-| `LabState` | user, mission (nullable for sandbox), state (JSON), updated_at |
+| `LabState` | player, mission, state (JSON: configs and cables), updated_at. Unique together, and never trusted for grading on its own |
+| `LabDrill` | player, mission, faults (JSON, server-only until asked for), started_at. Unique together |
+| `Sandbox` | player (1:1), topology (JSON), state (JSON), updated_at |
 | `OnCallShift` | user, seed, started_at, finished_at, incidents (JSON, answers server-only), correct |
 
 **Why ledgers:** play time and XP are never edited in place. Each change is a ledger row, so balances can be audited, rebuilt and explained, which is the same idea as accounting.
@@ -1076,7 +1123,7 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 | GET | `missions/{code}/` | Briefing: lesson, brief, goal, par, worth, state |
 | GET | `missions/{code}/play/` | Play payload: fixtures, starter, topology, hints already revealed. **Needs a session** |
 | POST | `missions/{code}/hint/` | Reveal the next hint, lowering what the mission will pay. **Session** |
-| POST | `missions/{code}/submit/` | `{answer}`, `{state}` or `{code, passed}` returns pass or fail, and what it will pay when cleared. **Session** |
+| POST | `missions/{code}/submit/` | `{answer}`, `{state}` or `{code, passed}` returns pass or fail, and what it will pay when cleared. A lab's `{state}` is its configs, and the answer also lists each goal with why it failed. **Session**, unless it's a replay |
 | POST | `missions/{code}/check/` | `{state}` for terminal and vi goals, sent after each command. A check that fails costs nothing. **Session** |
 | GET | `missions/{code}/debrief/` | Why, solution, job. Only after it's solved |
 | GET | `missions/{code}/rewind/` | Current task (without its answer), progress, and a hint or answer once earned |
@@ -1093,7 +1140,9 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 | POST | `sessions/open/` | Opens with the full bank |
 | POST | `sessions/close/` | Returns unused seconds |
 | GET | `rewards/` | Streak ladder, levels and badges with the player's status |
-| GET, PUT | `netlab/{code}/state/` | Load or save lab state |
+| GET, PUT, DELETE | `netlab/{code}/state/` | Load, save or reset where you've got to in a lab. Saving and resetting need a session |
+| POST, GET | `netlab/{code}/drill/` | On a cleared lab: start a fault drill `{faults}`, which returns a broken network's configs, or ask what was broken |
+| GET, PUT, DELETE | `netlab/sandbox/` | Your sandbox. It needs LAB-05 cleared and no session |
 | POST | `oncall/shifts/` | Start a shift |
 | GET | `oncall/shifts/current/` | Current incident without its answer |
 | POST | `oncall/shifts/current/answer/` | Answer the current incident |
@@ -1101,7 +1150,7 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 | GET | `fixtures/` | The starting file tree, with its content version |
 | GET | `health/` | Public health check |
 
-**Responses carry events:** every mutating game endpoint returns an `events` array, such as `[{type: "level_up", level: 4, title: "Operator"}, {type: "unlocked", mission: "SH-16"}]`. The UI plays animations from these, so the server stays the source of truth for what happened.
+**Responses carry events:** every mutating game endpoint returns an `events` array, such as `[{type: "level_up", level: 4, title: "Operator"}, {type: "unlocked", mission: "SH-16"}]`. An `unlocked` event is only sent for something that really just opened, and a lab's also has a `preview` of where its devices and cables are. The UI plays animations from these, so the server stays the source of truth for what happened.
 
 ---
 
@@ -1148,12 +1197,12 @@ Each milestone is one or more pull requests and ends with `make check` passing a
 | M3 | HUD shell (done, with Play and Rewind on the API too, ADR 0007) | Design tokens, fonts, HUD kit, Deck, Focus, Missions, Briefing, Rewards, System screens on real API data, plus login | Screens match section 4 at 1400px and 400px. Keyboard accessible. No answers in the bundle |
 | M4 | Play and engines | `engines/` package with fs, shell and vi ported, Python runner, Go reader, Play screen, submit, hints, debrief | All 100 legacy missions playable and passing in CI through engine scripts |
 | M5 | Rewind and progression | Server-side rewind generation, Rewind screen, unlocks, levels, badges, events and animations, Redis cache | Unlock-after-five works. Level-up and unlock animations play from API events |
-| M6 | NetLab v1 | Engine (L2, VLANs, trunks, routing, static routes, ACL, NAT, DHCP, DNS), CLI, canvas, simulation mode, goals | LAB-01 to LAB-23 playable. Golden reachability tests pass |
-| M7 | Curriculum to 200 | OPS-01 to OPS-20 with multi-stage play, and NetLab content from M6 and M8. The five other tracks reached 30 early (ADR 0004) | All of section 8 is in YAML and verified in CI |
-| M8 | NetLab v2 | OSPF, STP, port security, L3 switch, fault injection, Blackout capstone | LAB-24 to LAB-30 playable |
+| M6 | NetLab (done, with M8's OSPF, spanning tree, port security and layer 3 switch, ADR 0011) | Engine, CLI, map, consoles, goals, and labs from daily work | Every lab's solution passes through the real grader in CI. No lab passes untouched |
+| M7 | Curriculum | OPS-01 to OPS-20 with multi-stage play. The core reached 213 early, with Networking at 49 and NetLab at 44 (ADR 0011, ADR 0012) | All of section 8 is in YAML and verified in CI |
+| M8 | NetLab v2 (done, ADR 0012) | Fault drills, stepping through packets, Wi-Fi and IPv6 | Every lab can be drilled, and every fault saves and loads cleanly |
 | M9 | Runner | Celery, runner service, sandbox for Python and Go, server re-verification for `fs`, `vi` and `net` | Tampered client submissions are rejected (tested). Go missions upgrade to real code |
 | M10 | Launch | Deploy to the Contabo server per `DEPLOYMENT.md`, backups, uptime monitor, import from the offline game | Live over HTTPS, a backup is restored once, the offline save imports |
-| M11 | Polish | PWA offline shell, sound pack, on-call, sandbox lab. Profile charts and seasons came early (ADR 0009, ADR 0010) | Lighthouse 90+ on performance and accessibility |
+| M11 | Polish | PWA offline shell, sound pack, on-call. Profile charts, seasons and the sandbox lab came early (ADR 0009, ADR 0010, ADR 0012) | Lighthouse 90+ on performance and accessibility |
 
 ---
 

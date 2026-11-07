@@ -2,7 +2,7 @@ id: net-13
 track: NET
 skill: networking
 chapter: Transport
-order: 13
+order: 18
 title: The TCP handshake
 from: Network
 difficulty: medium

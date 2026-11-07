@@ -4,7 +4,9 @@ import { BadgeEmblem } from '../../ui/BadgeEmblem.jsx';
 import { MissionNode } from '../../ui/MissionNode.jsx';
 import { BEYOND, CHAPTERS, COMING, DIFFICULTIES, S, TK, TRACKS, TRACK_LOCKS, bump, byId, clearedIn, difficultyLabel, missionPath, stateOf, toast, ui } from '../../api/game.js';
 
-const EMBLEM = { SH: 'tSH', VI: 'tVI', PY: 'tPY', GO: 'tGO', NET: 'tNET', BX: 'bx5' };
+import { LabProgressMap } from './LabProgressMap.jsx';
+
+const EMBLEM = { SH: 'tSH', VI: 'tVI', PY: 'tPY', GO: 'tGO', NET: 'tNET', LAB: 'tLAB', BX: 'bx5' };
 const CYCLE_MS = 2800;
 
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -69,8 +71,8 @@ function ChapterRow({ code, chapter, startOpen }) {
                 flash={ui.flash === m.id}
                 difficulty={m.difficulty}
                 difficultyLabel={difficultyLabel(m.difficulty)}
-                sub={st === 'rewind' ? `Questions ${m.answered}/5` : null}
-                onClick={() => (st === 'locked' ? toast(TRACK_LOCKS[code] || 'Clear the mission before this one first') : navigate(missionPath(m)))}
+                sub={st === 'rewind' ? `Questions ${m.answered}/5` : st === 'locked' && m.lockedBecause ? m.lockedBecause : null}
+                onClick={() => (st === 'locked' ? toast(TRACK_LOCKS[code] || m.lockedBecause || 'Clear the mission before this one first') : navigate(missionPath(m)))}
               />
             );
           })}
@@ -81,6 +83,7 @@ function ChapterRow({ code, chapter, startOpen }) {
 }
 
 function TrackCard({ code, name, sub, index }) {
+  const navigate = useNavigate();
   const list = TK[code];
   const chapters = chaptersOf(code);
   const done = clearedIn(code);
@@ -124,10 +127,14 @@ function TrackCard({ code, name, sub, index }) {
       ) : next ? (
         <Link className="btn go tcard-go" to={missionPath(next)}>{stateOf(next) === 'rewind' ? 'Finish the questions' : 'Continue'}: {next.title}</Link>
       ) : (
-        <p className="tcard-lock good">Path cleared. Open it to revisit any mission.</p>
+        <p className="tcard-lock good">Path cleared. Open it to replay any mission, free.</p>
       )}
+      {code === 'LAB' && (byId('lab-05')?.state === 'cleared'
+        ? <Link className="btn tcard-go" id="openSandbox" to="/sandbox">Open the sandbox: build your own network, free</Link>
+        : <p className="tcard-lock" id="sandboxLocked">The free sandbox opens after Make it stick (LAB-05).</p>)}
       {open && (
         <div className="tcard-body">
+          {code === 'LAB' && <LabProgressMap chapters={chapters} onOpen={navigate} />}
           {chapters.map((c) => <ChapterRow key={c.name} code={code} chapter={c} startOpen={c.name === nextChapter} />)}
         </div>
       )}

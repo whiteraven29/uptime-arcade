@@ -7,7 +7,8 @@ import { F, fs, HOME, HOST, norm, pad } from '../../../engines/fs/index.js';
 import { sh, runLine } from '../../../engines/shell/index.js';
 import { COMMANDS, MAN } from '../../../engines/shell/commands.js';
 import { VI, viKey, viSelection } from '../../../engines/vi/index.js';
-import { ensureAudio, playCheckIn, playLevelUp, playTimerEnd, playUnlock, setMuted } from '../sound/cues.js';
+import { createLab, injectFaults, reachabilityGoals } from '../../../engines/netsim/index.js';
+import { ensureAudio, playCheckIn, playLevelUp, playNetworkUp, playTimerEnd, playUnlock, setMuted } from '../sound/cues.js';
 import { ApiError, del, get, patch, post, put, refreshAccess, setAccess, setSignedOutHandler } from './client.js';
 
 export { S, VI, viSelection };
@@ -47,6 +48,7 @@ export const ui = {
   current: null, // the mission being played, with its workspace
   openTrack: null, // the category open on the Missions screen
   plan: null, // the study plan, today against it, and the weekly and monthly goals
+  lab: null, // the NetLab being played: its simulator, consoles and last check
   briefings: {},
 };
 
@@ -111,6 +113,8 @@ export const beyondOpen = () => (S.peak || 0) >= TICKETS.length && TICKETS.lengt
 export const levelIdx = () => ui.level.index - 1;
 export const level = () => ui.level.title;
 export const sessionOn = () => !!S.sessionEndsAt && Date.now() < S.sessionEndsAt;
+/* A replay costs nothing, so it needs no session. It only waits for a focus block to end. */
+export const canPlay = () => sessionOn() || ((!!ui.current?.revisit || !!ui.lab?.sandbox) && !S.focus && !S.claim);
 export const mult = () => 1 + Math.min(S.streak || 0, 10) * 0.05;
 /* The screens speak in open, locked, rewind and clear. */
 export const stateOf = (m) => ({ solved: 'rewind', cleared: 'clear' }[m.state] || m.state);
@@ -212,7 +216,7 @@ function applyTracks(data) {
     const chapters = [];
     TK[t.code] = t.missions.map((m, pos) => {
       if (chapters.at(-1)?.[0] !== m.chapter) chapters.push([m.chapter, pos]);
-      const card = { id: m.code, track: t.code, pos, title: m.title, chapter: m.chapter, difficulty: m.difficulty, xp: m.xp, state: m.state, answered: m.answered };
+      const card = { id: m.code, track: t.code, pos, title: m.title, chapter: m.chapter, difficulty: m.difficulty, xp: m.xp, state: m.state, answered: m.answered, lockedBecause: m.locked_because };
       ALL.set(m.code, card);
       if (!t.after_archmage) TICKETS.push(card);
       return card;
@@ -274,6 +278,7 @@ function signedOut() {
   ui.current = null;
   ui.debrief = null;
   ui.overlay = null;
+  overlayQueue = [];
   ui.plan = null;
   clearToasts();
 }
@@ -413,8 +418,14 @@ function restoreFixtures(files) {
 /** Gets a mission ready to play. It needs an open session, so it runs again when one opens. */
 export async function enterMission(id) {
   const brief = await loadBriefing(id);
-  if (!sessionOn()) {
-    ui.current = { ...toPlayable(brief), ready: false };
+  const replay = byId(id)?.state === 'cleared';
+  // A running session's clock would spend play time on a replay that's meant to be free.
+  if (replay && sessionOn()) {
+    await closeSession(true);
+    toast('Replays are free. Your session is paused and its time is back in the bank.');
+  }
+  if (replay ? (S.focus || S.claim) : !sessionOn()) {
+    ui.current = { ...toPlayable(brief), revisit: replay, ready: false };
     bump();
     return;
   }
@@ -425,18 +436,21 @@ export async function enterMission(id) {
     else endPractice();
     S.cwd = HOME;
     restoreFixtures(play.workspace.fixtures);
+    if (t.kind === 'net') await startLab(t);
   }
   ui.current = t;
   saveMachine();
   bump();
 }
 export const leaveCurrent = () => {
+  flushLab();
   ui.current = null;
+  ui.lab = null;
   endPractice();
 };
 const toPlayable = (b) => ({
   id: b.code, track: b.track, skill: b.skill, title: b.title, from: b.from_dept, difficulty: b.difficulty, xp: b.xp, check: b.check_type,
-  kind: b.check_type === 'py' ? 'py' : GOAL_CHECKS.has(b.check_type) ? 'auto' : 'answer',
+  kind: b.check_type === 'py' ? 'py' : b.check_type === 'net' ? 'net' : GOAL_CHECKS.has(b.check_type) ? 'auto' : 'answer',
   par_kind: b.par_kind, par_value: b.par_value, learn: [b.lesson.text, b.lesson.example], brief: b.brief, goal: b.goal, hintsShown: [], hintsTotal: 0,
 });
 const toWorkspace = (p) => {
@@ -444,6 +458,10 @@ const toWorkspace = (p) => {
   const out = { hintsShown: p.hints, hintsTotal: p.hints_total };
   if (w.file) out.file = w.file.replace(/^~/, HOME);
   if (w.go) out.program = w.go.program;
+  if (w.lab) {
+    out.labSpec = w.lab;
+    out.goals = w.goals;
+  }
   if (w.python) {
     out.starter = w.python.starter;
     out.tests = w.python.tests.map((x) => [x.expr, x.want, x.label]);
@@ -471,7 +489,7 @@ function meta(a) {
   if (!t) return pr('Pick a mission from the Missions screen.', 'd');
   if (c === 'brief') return pr(`${t.title}\n${t.brief}\nGoal: ${t.goal}`, 's');
   if (c === 'hint') return showHint();
-  if (c === 'status') return pr(`${level()}, XP ${S.xp}. Cleared ${cleared()}/${TICKETS.length}. Session left ${mmss((S.sessionEndsAt - Date.now()) / 1000)}.`);
+  if (c === 'status') return pr(`${level()}, XP ${S.xp}. Cleared ${cleared()}/${TICKETS.length}. ${sessionOn() ? `Session left ${mmss((S.sessionEndsAt - Date.now()) / 1000)}.` : 'This replay is free.'}`);
   if (c === 'exit') return pr('Use the Leave button, or close the session in System.', 'd');
   return submitAnswer(a.slice(1).join(' '));
 }
@@ -547,7 +565,7 @@ let checking = false;
 let checkAgain = false;
 export async function checkGoal() {
   const t = T();
-  if (!isGoalMission(t) || t.solved || !sessionOn()) return;
+  if (!isGoalMission(t) || t.solved || !canPlay()) return;
   if (checking) {
     checkAgain = true;
     return;
@@ -696,6 +714,256 @@ export function viPress(key, ctrl) {
   bump();
 }
 
+/* ---------- NetLab ---------- */
+/* The simulator runs here so every keystroke answers at once. Only the configs go to the server, which re-runs the
+   same engine on them to decide a pass (ADR 0011). */
+const SAVE_LAB_AFTER = 1200;
+const WIN_MOMENT = 1100; // the network lights up before the debrief covers it
+let labSaveTimer = null;
+function freshLabUi(t, saved) {
+  const lab = createLab(t.labSpec, saved);
+  const names = [...lab.devices.values()].filter((d) => !d.locked).map((d) => d.name);
+  return {
+    drill: null, won: false, checks: 0, lab, id: t.id, device: names[0] ?? null, goals: t.goals, results: null, checking: false, trace: null, version: 0, save: !t.revisit, cabling: !!t.labSpec.cabling,
+    consoles: Object.fromEntries(names.map((n) => [n, []])), histories: Object.fromEntries(names.map((n) => [n, []])),
+  };
+}
+async function startLab(t) {
+  // A revisit is practice: it starts clean, and leaves your finished lab as it was.
+  let saved = null;
+  if (!t.revisit) {
+    try {
+      saved = (await get(`/netlab/${t.id}/state/`)).state;
+    } catch { /* start from the beginning: nothing is lost, and the next save writes it again */ }
+  }
+  ui.lab = freshLabUi(t, saved);
+}
+function saveLabNow() {
+  clearTimeout(labSaveTimer);
+  labSaveTimer = null;
+  const lab = ui.lab;
+  if (lab?.sandbox) {
+    const devices = lab.lab.topology.devices.map(({ name, kind, x, y, ports }) => ({ name, kind, x, y, ports }));
+    put('/netlab/sandbox/', { topology: { devices }, state: lab.lab.serialize() }).catch(() => { /* the next change saves it again */ });
+    return;
+  }
+  if (!lab?.save || !sessionOn()) return;
+  put(`/netlab/${lab.id}/state/`, { state: lab.lab.serialize() }).catch(() => { /* the next change saves it again */ });
+}
+const flushLab = () => {
+  if (labSaveTimer) saveLabNow();
+};
+function queueLabSave() {
+  clearTimeout(labSaveTimer);
+  labSaveTimer = setTimeout(saveLabNow, SAVE_LAB_AFTER);
+}
+function labPrint(device, text, cls) {
+  const lab = ui.lab;
+  lab.consoles[device].push({ id: ++spanId, t: text.endsWith('\n') ? text : `${text}\n`, c: cls });
+  lab.version++;
+}
+const outputClass = (out) => (/^\s*\^|^%|Why:|command not found/m.test(out) ? 'e' : '');
+export const labView = () => ui.lab.lab.view();
+export function labSelect(device) {
+  ui.lab.device = device;
+  ui.lab.version++;
+  bump();
+}
+export function labRun(line) {
+  const lab = ui.lab;
+  if (!lab || !canPlay()) return;
+  const { device } = lab;
+  const src = line.trim();
+  labPrint(device, lab.lab.promptOf(device), 'pr');
+  // A password isn't echoed or kept in history, the same as on a real device.
+  const secret = lab.lab.devices.get(device).pending === 'enable';
+  labPrint(device, secret ? '' : line, 'cmd');
+  if (src) {
+    if (!secret) lab.histories[device].push(src);
+    const t = T();
+    if (t && !t.solved && !secret) S.cmds[t.id] = (S.cmds[t.id] || 0) + 1;
+    const before = lab.lab.trace;
+    const out = lab.lab.run(device, src);
+    if (lab.lab.trace !== before) lab.trace = lab.lab.trace;
+    if (out) labPrint(device, out, outputClass(out));
+  }
+  if (lab.save) queueLabSave();
+  saveMachine();
+  bump();
+}
+export function labComplete(value, caret) {
+  const lab = ui.lab;
+  if (caret !== value.length) return null;
+  const line = lab.lab.complete(lab.device, value);
+  return line ? { value: line, caret: line.length } : null;
+}
+export function labClear() {
+  const lab = ui.lab;
+  lab.consoles[lab.device] = [];
+  lab.version++;
+  bump();
+}
+export function labPlug(a, pa, b, pb) {
+  const err = ui.lab.lab.plug(a, pa, b, pb);
+  if (err) toast(err);
+  if (!err) ui.lab.won = false;
+  if (!err && ui.lab.save) queueLabSave();
+  bump();
+  return err;
+}
+export function labUnplug(device, port) {
+  ui.lab.lab.unplug(device, port);
+  ui.lab.won = false;
+  if (ui.lab.save) queueLabSave();
+  bump();
+}
+export async function labCheck() {
+  const t = T();
+  const lab = ui.lab;
+  if (!t || !lab || lab.checking || t.solved) return;
+  lab.checking = true;
+  bump();
+  try {
+    const res = await post(`/missions/${t.id}/submit/`, { state: lab.lab.serialize(), commands: commandsOn(t) });
+    lab.results = res.goals;
+    lab.checks++;
+    if (res.result === 'pass') {
+      lab.won = true;
+      playNetworkUp();
+    }
+    if (res.revisit) {
+      // A replay stays open, so it can be broken and fixed again.
+      if (res.result === 'pass') {
+        if (lab.drill) lab.drill.fixed = true;
+        toast(lab.drill ? 'Fixed. A replay earns nothing and costs nothing.' : 'Every goal passes. A replay earns nothing and costs nothing.');
+      }
+    } else if (res.result === 'pass') {
+      clearTimeout(labSaveTimer);
+      labSaveTimer = null;
+      bump();
+      await new Promise((resolve) => { setTimeout(resolve, WIN_MOMENT); });
+      await afterSolved(t, res);
+    }
+  } catch (e) {
+    complain(e);
+    if (e.code === 'no_active_session') await refreshPlayer();
+  }
+  lab.checking = false;
+  bump();
+}
+export async function labReset() {
+  const t = T();
+  if (!t) return;
+  clearTimeout(labSaveTimer);
+  labSaveTimer = null;
+  ui.lab = freshLabUi(t, null);
+  if (!t.revisit) del(`/netlab/${t.id}/state/`).catch(() => {});
+  bump();
+}
+
+/* A fault drill: the finished lab, broken by the server, which keeps what it broke until you ask. */
+export async function labStartDrill(count) {
+  const t = T();
+  if (!t) return;
+  try {
+    const d = await post(`/netlab/${t.id}/drill/`, { faults: count });
+    ui.lab = freshLabUi(t, d.state);
+    ui.lab.drill = { count: d.count, faults: null, fixed: false };
+  } catch (e) {
+    complain(e);
+  }
+  bump();
+}
+export async function labRevealDrill() {
+  const t = T();
+  if (!t || !ui.lab?.drill) return;
+  try {
+    ui.lab.drill.faults = (await get(`/netlab/${t.id}/drill/`)).faults;
+  } catch (e) {
+    complain(e);
+  }
+  bump();
+}
+
+/* ---------- the sandbox: your own network, free, with no goals ---------- */
+const NAME_FOR = { pc: 'PC', laptop: 'LAP', server: 'SRV', switch: 'SW', l3switch: 'L3', router: 'R', firewall: 'FW', ap: 'AP' };
+const MAX_SANDBOX_DEVICES = 24;
+export async function enterSandbox() {
+  const d = await get('/netlab/sandbox/');
+  const topology = d.topology ? { ...d.topology, cabling: true } : { devices: [], cables: [], cabling: true };
+  ui.lab = { ...freshLabUi({ id: 'sandbox', labSpec: topology, goals: [], revisit: true }, d.state), sandbox: true, save: true, tests: null, faults: [], showFaults: false, message: '' };
+  bump();
+}
+function touchSandbox() {
+  const lab = ui.lab;
+  lab.tests = null;
+  queueLabSave();
+  bump();
+}
+export function sandboxAdd(kind) {
+  const lab = ui.lab;
+  if (lab.lab.devices.size >= MAX_SANDBOX_DEVICES) {
+    lab.message = `A sandbox holds up to ${MAX_SANDBOX_DEVICES} devices.`;
+    bump();
+    return;
+  }
+  let n = 1;
+  while (lab.lab.devices.has(`${NAME_FOR[kind]}-${n}`)) n++;
+  const name = `${NAME_FOR[kind]}-${n}`;
+  // New devices fill the map in rows, so none lands on top of another.
+  const count = lab.lab.devices.size;
+  // Eight ports is plenty for practice, and they stay big enough to grab.
+  const ports = kind === 'switch' || kind === 'l3switch' ? { ports: 8 } : {};
+  lab.lab.addDevice({ name, kind, x: 8 + ((count * 21) % 90), y: 12 + (Math.floor(count / 5) * 26) % 80, ...ports });
+  lab.consoles[name] = [];
+  lab.histories[name] = [];
+  lab.device = name;
+  touchSandbox();
+}
+export function sandboxRemove(name) {
+  const lab = ui.lab;
+  lab.lab.removeDevice(name);
+  delete lab.consoles[name];
+  delete lab.histories[name];
+  lab.device = [...lab.lab.devices.keys()][0] ?? null;
+  touchSandbox();
+}
+export function sandboxMove(name, x, y) {
+  ui.lab.lab.moveDevice(name, x, y);
+  touchSandbox();
+}
+export async function sandboxReset() {
+  clearTimeout(labSaveTimer);
+  labSaveTimer = null;
+  await del('/netlab/sandbox/').catch(() => {});
+  await enterSandbox();
+}
+export function sandboxTest() {
+  const lab = ui.lab;
+  // Every machine with an address, tried against every other one.
+  lab.tests = lab.lab.check(reachabilityGoals(lab.lab));
+  lab.message = lab.tests.length ? '' : 'Give two machines addresses first, so there is something to test.';
+  bump();
+}
+export function sandboxBreak() {
+  const lab = ui.lab;
+  const working = reachabilityGoals(lab.lab).filter((g) => lab.lab.check([g])[0].ok);
+  if (!working.length) {
+    lab.message = 'Get two machines talking first, so there is something to break.';
+    bump();
+    return;
+  }
+  const done = injectFaults(lab.lab, working, Math.floor(Math.random() * 2 ** 31), 1);
+  lab.faults = [...lab.faults, ...done];
+  lab.showFaults = false;
+  lab.message = done.length ? 'Something just broke. Test every ping, then find it.' : 'Nothing here could be broken just now.';
+  touchSandbox();
+}
+export function sandboxRevealFaults() {
+  ui.lab.showFaults = true;
+  bump();
+}
+
 /* ---------- Python ---------- */
 export function saveCode(t, src) {
   S.code[t.id] = src;
@@ -778,24 +1046,38 @@ export function unpickOrder(i) {
   bump();
 }
 
+/* Big moments take turns: a level-up first, and then the lab it opened. */
+let overlayQueue = [];
+function showOverlay(o) {
+  if (ui.overlay) overlayQueue.push(o);
+  else ui.overlay = o;
+}
+function flash(mission) {
+  ui.flash = mission;
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => {
+    ui.flash = null;
+    bump();
+  }, 1600);
+}
 /* The server says what happened, and this plays it (section 16). */
 function applyEvents(events) {
+  let earned = 0;
   for (const e of events || []) {
     if (e.type === 'cleared') {
+      earned = e.xp;
       toast(`+${e.xp} XP`);
     } else if (e.type === 'unlocked') {
       const next = byId(e.mission);
-      ui.flash = e.mission;
-      clearTimeout(flashTimer);
-      flashTimer = setTimeout(() => {
-        ui.flash = null;
-        bump();
-      }, 1600);
+      flash(e.mission);
       playUnlock();
-      if (next) toast(`Unlocked: ${next.title}`);
+      if (e.preview) showOverlay({ kind: 'unlock', mission: e.mission, preview: e.preview, xp: earned });
+      else if (next) toast(`Unlocked: ${next.title}`);
+    } else if (e.type === 'lab_waiting') {
+      toast(`The next lab opens after ${e.needs_title} (${e.needs.toUpperCase()}) in Networking.`);
     } else if (e.type === 'level_up') {
       playLevelUp();
-      ui.overlay = e.level === LEVELS.length ? { kind: 'finale' } : { kind: 'level', i: e.level - 1 };
+      showOverlay(e.level === LEVELS.length ? { kind: 'finale' } : { kind: 'level', i: e.level - 1 });
     } else if (e.type === 'badge') {
       toast(`Badge earned: ${e.name}`, e.code);
     } else if (e.type === 'shield_used') {
@@ -809,9 +1091,15 @@ function applyEvents(events) {
   bump();
 }
 export const closeOverlay = () => {
-  ui.overlay = null;
+  ui.overlay = overlayQueue.shift() ?? null;
   bump();
 };
+/* Back to the Missions screen with the NetLab card open, so the new lab is seen popping into its place. */
+export function leaveReveal(mission) {
+  ui.openTrack = byId(mission)?.track ?? ui.openTrack;
+  flash(mission);
+  closeOverlay();
+}
 
 /* ---------- focus and sessions ---------- */
 export function setLen(n) {

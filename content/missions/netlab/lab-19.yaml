@@ -1,0 +1,161 @@
+id: lab-19
+track: LAB
+skill: networking
+chapter: The edge
+order: 19
+title: Publish the web server
+from: Web Team
+difficulty: hard
+check: net
+requires: net-25
+par:
+  kind: commands
+  value: 14
+lesson:
+  text: To let the internet reach a server behind NAT, add a static mapping with ip nat inside source static. Mapping one port, called port forwarding, exposes only the service you mean to. Traffic to the public address on that port goes to the private server, and everything else on that address gets nothing.
+  example: ip nat inside source static tcp 10.70.19.80 80 192.0.2.10 80
+brief: The new site runs on WEB-1 at 10.40.19.80, and it should answer on public address 203.0.113.10, port 80. SSH on that server must stay private.
+goal: The internet reaches the website on the public address, and nothing else.
+hints:
+- The line is ip nat inside source static tcp, then private address, port, public address, port.
+- Mapping just the port keeps SSH private.
+debrief:
+  why: A static port mapping opens exactly one door. A one-to-one mapping of the whole address would have exposed SSH too.
+  solution: |-
+    [EDGE]
+    enable
+    configure terminal
+    ip nat inside source static tcp 10.40.19.80 80 203.0.113.10 80
+    end
+  job: Port forwarding is how small sites publish a service, and it should always be as narrow as possible.
+teaches:
+- ip nat inside source static
+lab:
+  devices:
+  - name: WEB-1
+    kind: server
+    x: 12
+    y: 25
+    config: |-
+      ip addr add 10.40.19.80/24 dev eth0
+      ip route add default via 10.40.19.1
+      service http start
+      service ssh start
+  - name: EDGE
+    kind: router
+    x: 42
+    y: 25
+    config: |-
+      interface Gi0/0
+       ip address 10.40.19.1 255.255.255.0
+       ip nat inside
+       no shutdown
+      interface Gi0/1
+       ip address 203.0.113.2 255.255.255.0
+       ip nat outside
+       no shutdown
+      ip route 0.0.0.0 0.0.0.0 203.0.113.1
+  - name: ISP
+    kind: router
+    x: 70
+    y: 25
+    locked: true
+    config: |-
+      interface Gi0/0
+       ip address 203.0.113.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 198.51.100.1 255.255.255.0
+       no shutdown
+  - name: INTERNET
+    kind: server
+    x: 92
+    y: 25
+    locked: true
+    config: |-
+      ip addr add 198.51.100.10/24 dev eth0
+      ip route add default via 198.51.100.1
+      service http start
+  cables:
+  - - WEB-1
+    - eth0
+    - EDGE
+    - Gi0/0
+  - - EDGE
+    - Gi0/1
+    - ISP
+    - Gi0/0
+  - - INTERNET
+    - eth0
+    - ISP
+    - Gi0/1
+expect:
+- label: The internet reaches the site
+  reach:
+    from: INTERNET
+    to: 203.0.113.10
+    proto: tcp
+    port: 80
+- label: SSH stays private
+  reach:
+    from: INTERNET
+    to: 203.0.113.10
+    proto: tcp
+    port: 22
+    expect: blocked
+- label: Only port 80 is mapped
+  config:
+    device: EDGE
+    contains: ip nat inside source static tcp 10.40.19.80 80 203.0.113.10 80
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does a static NAT mapping allow that overload doesn't?
+  options:
+  - Connections started from the internet
+  - Faster speeds
+  - More addresses
+  - Encryption
+  answer: Connections started from the internet
+  hint: Inbound.
+- type: mc
+  level: medium
+  label: Narrow
+  q: Why map only port 80?
+  options:
+  - So other services on that server stay private
+  - So the site is faster
+  - So DNS works
+  - It's the only option
+  answer: So other services on that server stay private
+  hint: Least exposure.
+- type: mc
+  level: medium
+  label: Reading
+  q: In static tcp 10.40.19.80 80 203.0.113.10 80, which is the public address?
+  options:
+  - 203.0.113.10
+  - 10.40.19.80
+  - '80'
+  - tcp
+  answer: 203.0.113.10
+  hint: Inside first, then outside.
+- type: text
+  level: medium
+  label: The word
+  q: Which word follows source to make a fixed mapping?
+  answer:
+  - static
+  hint: Not dynamic.
+- type: mc
+  level: hard
+  label: Test
+  q: From inside the office, the site doesn't open on its public address. Why might that be, even when it works from outside?
+  options:
+  - Traffic from inside doesn't pass through outside to be translated
+  - The server is down
+  - The site is banned
+  - DNS is required
+  answer: Traffic from inside doesn't pass through outside to be translated
+  hint: Hairpin.

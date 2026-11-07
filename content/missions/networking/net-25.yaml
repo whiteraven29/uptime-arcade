@@ -2,7 +2,7 @@ id: net-25
 track: NET
 skill: networking
 chapter: Edge
-order: 25
+order: 35
 title: Read the NAT table
 from: Network
 difficulty: hard

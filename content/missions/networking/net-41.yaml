@@ -1,0 +1,84 @@
+id: net-41
+track: NET
+skill: networking
+chapter: Security
+order: 40
+title: Wildcard masks
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'Router access lists and OSPF network lines don''t use subnet masks. They use wildcard masks, which are the opposite: a 0 bit means this bit must match, and a 1 bit means it doesn''t matter. To turn a mask into a wildcard, take each octet from 255. So a /24 mask of 255.255.255.0 becomes 0.0.0.255. One host is 0.0.0.0 and everything is 255.255.255.255. Firewalls, confusingly, use normal masks.'
+  example: |-
+    255.255.255.0   ->  0.0.0.255
+    255.255.255.252 ->  0.0.0.3
+brief: What is the wildcard mask for a /26, whose mask is 255.255.255.192?
+goal: 'Run: submit <answer>'
+hints:
+- 255 minus each octet.
+- 255 - 192.
+debrief:
+  why: 'A wildcard is the inverse of a mask: 0 means match and 1 means ignore. Take each octet from 255 and you can''t go wrong.'
+  solution: submit 0.0.0.63
+  job: You'll write these every time you touch an access list, and getting one wrong opens or closes far more than you meant.
+teaches:
+- wildcard
+answer:
+  accept:
+  - 0.0.0.63
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: In a wildcard mask, what does a 0 bit mean?
+  options:
+  - This bit must match
+  - This bit doesn't matter
+  - The port is closed
+  - The host is down
+  answer: This bit must match
+  hint: It's the opposite of a mask.
+- type: mc
+  level: easy
+  label: Converting
+  q: What is the wildcard for 255.255.255.0?
+  options:
+  - 0.0.0.255
+  - 255.255.255.0
+  - 0.0.0.0
+  - 255.0.0.0
+  answer: 0.0.0.255
+  hint: 255 minus each octet.
+- type: mc
+  level: medium
+  label: One host
+  q: Which wildcard matches exactly one host?
+  options:
+  - 0.0.0.0
+  - 255.255.255.255
+  - 0.0.0.255
+  - 0.255.255.255
+  answer: 0.0.0.0
+  hint: Every bit must match.
+- type: text
+  level: medium
+  label: Work it out
+  q: What is the wildcard for 255.255.255.252?
+  answer:
+  - 0.0.0.3
+  hint: 255 - 252.
+- type: mc
+  level: hard
+  label: At work
+  q: Someone writes permit 10.0.0.0 255.255.255.0 on a router, meaning one /24. What really happens?
+  options:
+  - It matches on the wrong bits, because a router reads it as a wildcard
+  - It works as they meant
+  - The router rewrites it
+  - The router reboots
+  answer: It matches on the wrong bits, because a router reads it as a wildcard
+  hint: Routers read wildcards.

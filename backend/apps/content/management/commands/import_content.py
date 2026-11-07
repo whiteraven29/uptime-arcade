@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from apps.content.loader import ContentError, load, worth
-from apps.content.models import Chapter, ContentRelease, FixtureFile, Mission, Track
+from apps.content.models import Chapter, ContentRelease, FixtureFile, Mission, MissionPrereq, Track
 
 
 def _play(m):
@@ -16,6 +16,10 @@ def _play(m):
         play["python"] = m["python"]
     if "go" in m:
         play["go"] = {"program": m["go"]["program"]}  # "prints" would give a go-fix answer away
+    if "lab" in m:
+        # What each goal says is public, and how it's tested isn't.
+        play["lab"] = m["lab"]
+        play["goals"] = [g["label"] for g in m["expect"]]
     return play
 
 
@@ -69,6 +73,11 @@ def run_import(content):
                 "rewind": m["rewind"],
             },
         )
+    # A lab opens from the mission that teaches it. Rebuilt each time, so it always matches the YAML.
+    MissionPrereq.objects.all().delete()
+    for m in content["missions"]:
+        if m.get("requires"):
+            MissionPrereq.objects.create(mission=Mission.objects.get(code=m["id"]), requires=Mission.objects.get(code=m["requires"]))
     codes = {m["id"] for m in content["missions"]}
     retired = Mission.objects.exclude(code__in=codes).exclude(status=Mission.Status.RETIRED).update(status=Mission.Status.RETIRED)
     paths = set()

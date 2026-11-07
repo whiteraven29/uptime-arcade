@@ -2,7 +2,7 @@ id: net-17
 track: NET
 skill: networking
 chapter: Services
-order: 17
+order: 22
 title: Follow a DNS lookup
 from: Support
 difficulty: medium

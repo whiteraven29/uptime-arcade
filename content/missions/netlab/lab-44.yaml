@@ -1,0 +1,174 @@
+id: lab-44
+track: LAB
+skill: networking
+chapter: IPv6
+order: 36
+title: 'Fault: the hole in the firewall rules'
+from: Security
+difficulty: hard
+check: net
+requires: net-49
+par:
+  kind: commands
+  value: 18
+lesson:
+  text: An IPv4 access list does nothing to IPv6. To filter IPv6, make a list with ipv6 access-list, with lines like deny tcp any host and an address, and apply it with ipv6 traffic-filter, naming in or out. Lists end with an invisible deny here too, so finish with permit ipv6 any any if others should pass. Test a port with nc -z and the address and port.
+  example: |-
+    ipv6 access-list GUARD
+     deny tcp any host 2001:db8:c::5 eq 22
+     permit ipv6 any any
+    interface Gi0/0
+     ipv6 traffic-filter GUARD in
+brief: 'Pen test finding: "SSH to the database server is blocked over IPv4 as required, but is wide open over IPv6." When IPv6 was turned on, nobody added a rule. Close the hole on R1, on the staff side, and leave the database''s own traffic on port 3306 working over both.'
+goal: SSH to DB-1 is blocked on both IPv4 and IPv6, and the database port still works.
+hints:
+- 'Test it first: nc -z 2001:db8:71::5 22 from STAFF-1.'
+- The new list needs its own name, and ipv6 traffic-filter to apply it.
+debrief:
+  why: The IPv4 rule was correct and did nothing for IPv6. Every rule you have needs an IPv6 twin the moment IPv6 is on.
+  solution: |-
+    [STAFF-1]
+    nc -z 2001:db8:71::5 22
+    [R1]
+    enable
+    configure terminal
+    ipv6 access-list STAFF6
+    deny tcp any host 2001:db8:71::5 eq 22
+    permit ipv6 any any
+    interface Gi0/0
+    ipv6 traffic-filter STAFF6 in
+    end
+    show access-lists
+  job: This is a real finding on real penetration tests, and it's one line to check.
+teaches:
+- ipv6 access-list
+- ipv6 traffic-filter
+- nc
+lab:
+  devices:
+  - name: STAFF-1
+    kind: pc
+    x: 12
+    y: 50
+    config: |-
+      ip addr add 10.70.70.10/24 dev eth0
+      ip route add default via 10.70.70.1
+      ip -6 addr add 2001:db8:70::10/64 dev eth0
+      ip -6 route add default via 2001:db8:70::1
+  - name: R1
+    kind: router
+    x: 48
+    y: 50
+    config: |-
+      ipv6 unicast-routing
+      interface Gi0/0
+       ip address 10.70.70.1 255.255.255.0
+       ipv6 address 2001:db8:70::1/64
+       ip access-group STAFF in
+       no shutdown
+      interface Gi0/1
+       ip address 10.70.71.1 255.255.255.0
+       ipv6 address 2001:db8:71::1/64
+       no shutdown
+      ip access-list extended STAFF
+       10 deny tcp any host 10.70.71.5 eq 22
+       20 permit ip any any
+  - name: DB-1
+    kind: server
+    x: 85
+    y: 50
+    config: |-
+      ip addr add 10.70.71.5/24 dev eth0
+      ip route add default via 10.70.71.1
+      service ssh start
+      service mysql start
+      ip -6 addr add 2001:db8:71::5/64 dev eth0
+      ip -6 route add default via 2001:db8:71::1
+  cables:
+  - - STAFF-1
+    - eth0
+    - R1
+    - Gi0/0
+  - - DB-1
+    - eth0
+    - R1
+    - Gi0/1
+expect:
+- label: SSH is blocked over IPv4
+  reach:
+    from: STAFF-1
+    to: 10.70.71.5
+    proto: tcp
+    port: 22
+    expect: blocked
+- label: SSH is blocked over IPv6
+  reach:
+    from: STAFF-1
+    to: 2001:db8:71::5
+    proto: tcp
+    port: 22
+    expect: blocked
+- label: The database still works over IPv4
+  reach:
+    from: STAFF-1
+    to: 10.70.71.5
+    proto: tcp
+    port: 3306
+- label: The database still works over IPv6
+  reach:
+    from: STAFF-1
+    to: 2001:db8:71::5
+    proto: tcp
+    port: 3306
+rewind:
+- type: mc
+  level: easy
+  label: The fault
+  q: Why was SSH open?
+  options:
+  - The rule was IPv4 only, and IPv6 had no rule
+  - The password was weak
+  - SSH ignores rules
+  - The server was down
+  answer: The rule was IPv4 only, and IPv6 had no rule
+  hint: Two protocols.
+- type: text
+  level: medium
+  label: Apply it
+  q: Which interface command applies an IPv6 list? Two words.
+  answer:
+  - ipv6 traffic-filter
+  hint: Traffic something.
+- type: mc
+  level: medium
+  label: Ending
+  q: What does an IPv6 list do with anything it doesn't mention?
+  options:
+  - Denies it
+  - Permits it
+  - Logs it
+  - Sends it to IPv4
+  answer: Denies it
+  hint: The same invisible line.
+- type: order
+  level: medium
+  label: Order them
+  q: Put the lines in the right order.
+  scrambled:
+  - permit ipv6 any any
+  - deny tcp any host 2001:db8:71::5 eq 22
+  answer:
+  - deny tcp any host 2001:db8:71::5 eq 22
+  - permit ipv6 any any
+  hint: First match wins.
+- type: mc
+  level: hard
+  label: Habit
+  q: What should you check whenever IPv6 is turned on somewhere?
+  options:
+  - That every IPv4 rule has an IPv6 twin
+  - That channels don't overlap
+  - That hostnames are short
+  - That NAT is on
+  answer: That every IPv4 rule has an IPv6 twin
+  hint: Rules for both.

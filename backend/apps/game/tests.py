@@ -17,7 +17,7 @@ class TestRulesNumbers:
         assert rules.BONUS_CAP == 3600
         assert rules.STARTER_BANK == 300
 
-    @pytest.mark.parametrize("cleared,title", [(0, "Noob"), (7, "Noob"), (8, "Initiate"), (149, "Sage"), (150, "Archmage"), (500, "Archmage")])
+    @pytest.mark.parametrize("cleared,title", [(0, "Noob"), (9, "Noob"), (10, "Initiate"), (212, "Sage"), (213, "Archmage"), (500, "Archmage")])
     def test_level_from_cleared_count(self, cleared, title):
         assert rules.LEVELS[rules.level_index(cleared)][1] == title
 

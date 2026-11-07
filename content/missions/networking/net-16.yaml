@@ -2,7 +2,7 @@ id: net-16
 track: NET
 skill: networking
 chapter: Services
-order: 16
+order: 21
 title: DNS records
 from: Network
 difficulty: medium

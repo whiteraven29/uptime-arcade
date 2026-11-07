@@ -1,0 +1,91 @@
+id: net-44
+track: NET
+skill: networking
+chapter: Security
+order: 43
+title: Hardening a device
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A default device is too trusting. Telnet sends passwords as plain text, so use SSH, which is encrypted. Use an enable secret, which is hashed, rather than an enable password. Keep named users instead of one shared password, and limit who can log in at all with an access list on the remote login lines. Turn off what you don't use, such as the built-in web server. On switches, port security stops an unknown machine or rogue switch using a port.
+  example: |-
+    enable secret S0me-Long-Phrase
+    username ops secret An0ther-Phrase
+    line vty 0 15
+     transport input ssh
+     login local
+     access-class 10 in
+brief: 'Which remote login protocol sends passwords in plain text: Telnet or SSH?'
+goal: 'Run: submit <answer>'
+hints:
+- Which one is encrypted?
+- The lesson says to avoid it.
+debrief:
+  why: 'Hardening removes easy wins: no clear-text logins, no shared passwords, nothing listening that doesn''t need to be, and login only from where you expect it.'
+  solution: submit telnet
+  job: Security audits check exactly these, and they're quick to fix.
+teaches:
+- Telnet
+- SSH
+- enable secret
+- port security
+answer:
+  accept:
+  - telnet
+reasoned: true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why use SSH instead of Telnet?
+  options:
+  - SSH is encrypted, so passwords aren't readable on the wire
+  - SSH is older
+  - Telnet has no commands
+  - SSH needs no password
+  answer: SSH is encrypted, so passwords aren't readable on the wire
+  hint: Think about who can listen.
+- type: mc
+  level: easy
+  label: Secrets
+  q: Which is safer in a config?
+  options:
+  - enable secret, which is hashed
+  - enable password, which is readable
+  - Neither has a difference
+  - No password at all
+  answer: enable secret, which is hashed
+  hint: One is readable.
+- type: mc
+  level: medium
+  label: Limits
+  q: What does an access-class on the login lines do?
+  options:
+  - Limits which addresses can log in
+  - Encrypts the session
+  - Changes the password
+  - Blocks all traffic through the router
+  answer: Limits which addresses can log in
+  hint: Who, from where.
+- type: text
+  level: medium
+  label: The feature
+  q: What feature stops an unknown machine using a switch port? Two words.
+  answer:
+  - port security
+  hint: The lesson names it.
+- type: mc
+  level: hard
+  label: At work
+  q: An audit finds a shared admin password. Why are named users better?
+  options:
+  - You can see who did what, and remove one person without changing it for all
+  - They're shorter
+  - They disable SSH
+  - They need no secret
+  answer: You can see who did what, and remove one person without changing it for all
+  hint: Think about someone leaving.

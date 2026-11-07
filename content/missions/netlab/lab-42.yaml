@@ -1,0 +1,207 @@
+id: lab-42
+track: LAB
+skill: networking
+chapter: IPv6
+order: 34
+title: Dual stack
+from: Web Team
+difficulty: hard
+check: net
+requires: net-49
+par:
+  kind: commands
+  value: 22
+lesson:
+  text: Dual stack means running IPv4 and IPv6 together, so nothing has to change at once. Give the server an IPv6 address alongside its IPv4 one, using ip -6 addr add and ip -6 route add default via. Publish it with an AAAA record, using dns add with AAAA, next to the A record. A machine with IPv6 prefers it when both exist. Machines with only IPv4 carry on as before.
+  example: |-
+    ip -6 addr add 2001:db8:b::80/64 dev eth0
+    ip -6 route add default via 2001:db8:b::1
+    dns add www.corp.test AAAA 2001:db8:b::80
+brief: 'The intranet runs on IPv4 and needs IPv6 too, without breaking anyone. R1 has IPv6 on neither side yet: use 2001:db8:60::1/64 towards the PCs and 2001:db8:61::1/64 towards the servers. WEB-1 should be 2001:db8:61::80. Add its AAAA record to DNS-1, and let PC-NEW configure itself. PC-OLD stays on IPv4 only.'
+goal: PC-NEW uses IPv6 to the site, and PC-OLD still uses IPv4.
+hints:
+- R1 needs unicast-routing and an IPv6 address on both sides.
+- WEB-1 needs an address and a gateway, and DNS-1 needs one AAAA line.
+debrief:
+  why: Nothing was switched off. New machines take IPv6 where it's offered and old ones carry on, which is how real networks move across.
+  solution: |-
+    [R1]
+    enable
+    configure terminal
+    ipv6 unicast-routing
+    interface Gi0/0
+    ipv6 address 2001:db8:60::1/64
+    interface Gi0/1
+    ipv6 address 2001:db8:61::1/64
+    end
+    [WEB-1]
+    ip -6 addr add 2001:db8:61::80/64 dev eth0
+    ip -6 route add default via 2001:db8:61::1
+    [DNS-1]
+    dns add intranet.corp.test AAAA 2001:db8:61::80
+    [PC-NEW]
+    rdisc6 eth0
+    dig intranet.corp.test
+    curl intranet.corp.test
+  job: Almost every IPv6 rollout is dual stack, often for years.
+teaches:
+- dns add
+lab:
+  devices:
+  - name: PC-NEW
+    kind: pc
+    x: 10
+    y: 25
+    config: |-
+      ip addr add 10.70.60.10/24 dev eth0
+      ip route add default via 10.70.60.1
+      nameserver 10.70.61.53
+  - name: PC-OLD
+    kind: pc
+    x: 10
+    y: 75
+    config: |-
+      ip addr add 10.70.60.11/24 dev eth0
+      ip route add default via 10.70.60.1
+      nameserver 10.70.61.53
+  - name: SW1
+    kind: switch
+    x: 32
+    y: 50
+    ports: 8
+    config: ''
+  - name: R1
+    kind: router
+    x: 55
+    y: 50
+    config: |-
+      interface Gi0/0
+       ip address 10.70.60.1 255.255.255.0
+       no shutdown
+      interface Gi0/1
+       ip address 10.70.61.1 255.255.255.0
+       no shutdown
+  - name: SW2
+    kind: switch
+    x: 75
+    y: 50
+    ports: 8
+    config: ''
+  - name: WEB-1
+    kind: server
+    x: 92
+    y: 20
+    config: |-
+      ip addr add 10.70.61.80/24 dev eth0
+      ip route add default via 10.70.61.1
+      service http start
+  - name: DNS-1
+    kind: server
+    x: 92
+    y: 80
+    config: |-
+      ip addr add 10.70.61.53/24 dev eth0
+      ip route add default via 10.70.61.1
+      service dns start
+      dns add intranet.corp.test A 10.70.61.80
+  cables:
+  - - PC-NEW
+    - eth0
+    - SW1
+    - Gi0/1
+  - - PC-OLD
+    - eth0
+    - SW1
+    - Gi0/2
+  - - R1
+    - Gi0/0
+    - SW1
+    - Gi0/8
+  - - R1
+    - Gi0/1
+    - SW2
+    - Gi0/8
+  - - WEB-1
+    - eth0
+    - SW2
+    - Gi0/1
+  - - DNS-1
+    - eth0
+    - SW2
+    - Gi0/2
+expect:
+- label: The site has an AAAA record
+  dns:
+    from: PC-NEW
+    name: intranet.corp.test
+    answer: 2001:db8:61::80
+- label: The A record is still there
+  dns:
+    from: PC-OLD
+    name: intranet.corp.test
+    answer: 10.70.61.80
+- label: PC-NEW reaches the site over IPv6
+  reach:
+    from: PC-NEW
+    to: intranet.corp.test
+    family: 6
+    proto: tcp
+    port: 80
+- label: PC-OLD still reaches it by name
+  reach:
+    from: PC-OLD
+    to: intranet.corp.test
+    proto: tcp
+    port: 80
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What does dual stack mean?
+  options:
+  - Running IPv4 and IPv6 together
+  - Two routers
+  - Two VLANs
+  - Two DNS servers
+  answer: Running IPv4 and IPv6 together
+  hint: Side by side.
+- type: text
+  level: medium
+  label: The record
+  q: Which DNS record type holds an IPv6 address?
+  answer:
+  - AAAA
+  hint: Four of a letter.
+- type: mc
+  level: medium
+  label: Preference
+  q: A host has both, and a name has both records. Which does it use?
+  options:
+  - IPv6
+  - IPv4
+  - It picks at random
+  - Neither
+  answer: IPv6
+  hint: It prefers the newer.
+- type: mc
+  level: medium
+  label: Old machines
+  q: What happened to PC-OLD?
+  options:
+  - 'Nothing: it carried on over IPv4'
+  - It lost the site
+  - It needed a new address
+  - It needed NAT
+  answer: 'Nothing: it carried on over IPv4'
+  hint: Nothing broke.
+- type: mc
+  level: hard
+  label: Reasoning
+  q: Why not switch everything to IPv6 at once?
+  options:
+  - Old devices would break, and dual stack lets you move gradually
+  - IPv6 is slower
+  - IPv6 can't do web traffic
+  - It needs new cables
+  answer: Old devices would break, and dual stack lets you move gradually
+  hint: Gradual.
