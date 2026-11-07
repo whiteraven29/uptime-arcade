@@ -1,0 +1,82 @@
+id: bx-35
+track: BX
+skill: networking
+chapter: Medium
+order: 20
+title: Point-to-point links
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A link between two routers usually gets a /30, which holds two usable hosts. Each extra prefix bit doubles how many fit.
+  example: A /28 holds four /30s
+brief: How many /30 point-to-point links can you carve from one /27?
+goal: "Run: submit <answer>"
+hints:
+  - 30 minus 27 is 3.
+  - 2 to the power of 3.
+debrief:
+  why: Three extra bits gives eight blocks. The same sum works for any two prefixes.
+  solution: submit 8
+  job: Router links get carved from a small reserved block like this.
+teaches:
+  - beyond
+answer:
+  accept:
+    - "8"
+verify: str(len(list(ipaddress.ip_network('10.0.0.0/27').subnets(new_prefix=30))))
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Point-to-point links". Which sentence best describes what it taught?
+    options:
+      - Compression is really about spotting runs. Forgetting the last run after the loop is the classic bug.
+      - Keeping the old value in a comment is a cheap rollback, and a macro does it for a whole file.
+      - The header is copied, the array is shared until append moves it. That split explains most surprises with slices in functions.
+      - Three extra bits gives eight blocks. The same sum works for any two prefixes.
+    answer: Three extra bits gives eight blocks. The same sum works for any two prefixes.
+    hint: Think about what "Point-to-point links" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: How many /30 point-to-point links can you carve from one /27?
+    options:
+      - "8"
+      - qayyPI# <Esc>jjq@a:wq<CR>
+      - "[9 2] 2"
+      - out += prev + str(n)
+    answer: "8"
+    hint: 2 to the power of 3.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Point-to-point links" taught you at work?
+    options:
+      - This bug shows up in almost every Go code review.
+      - Router links get carved from a small reserved block like this.
+      - Careful admins leave the old value right there during a risky change.
+      - Log compressors and image formats start from this.
+    answer: Router links get carved from a small reserved block like this.
+    hint: "It starts with: Router links get carved…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: Three extra bits gives eight blocks. The same sum works for any two ____.
+    answer:
+      - prefixes
+    hint: It starts with "p" and is 8 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: How many /30 point-to-point links can you carve from one /27?
+    answer:
+      - "8"
+    hint: It starts with "8" and is 1 characters long.

@@ -1,0 +1,87 @@
+id: bx-32
+track: BX
+skill: vi
+chapter: Medium
+order: 17
+title: Comment what matches
+from: Platform
+difficulty: medium
+check: vi
+par:
+  kind: keys
+  value: 21
+lesson:
+  text: :g can run a substitute instead of a delete. ^ matches the start of a line, so replacing it adds text there.
+  example: :g/DEBUG/s/^/# /
+brief: Comment out only the lines that contain TODO in ~/vi/todo.conf, with one command.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/todo.conf"
+hints:
+  - :g/TODO/ picks the lines.
+  - s/^/# / adds to the start of each.
+debrief:
+  why: :g picks the lines and s/^/ edits them, so one command touches exactly the lines that match.
+  solution: :g/TODO/s/^/# /<CR>:wq<CR>
+  job: Disabling every setting of one kind takes a single command.
+teaches:
+  - beyond
+file: ~/vi/todo.conf
+expect:
+  - file_equals:
+      path: ~/vi/todo.conf
+      content: |
+        alpha=1
+        # beta=2 TODO
+        gamma=3
+        # delta=4 TODO
+  - vi_saved: ~/vi/todo.conf
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Comment what matches". Which sentence best describes what it taught?
+    options:
+      - Filtering before grouping turns "how many errors" into "where are the errors", which is the question that matters.
+      - Network, then broadcast, then one below it. The same three steps work for any subnet.
+      - 0 and 3 differ in two bits, so the shared prefix is 22 bits, and the route also covers 10.0.1.0 and 10.0.2.0.
+      - :g picks the lines and s/^/ edits them, so one command touches exactly the lines that match.
+    answer: :g picks the lines and s/^/ edits them, so one command touches exactly the lines that match.
+    hint: Think about what "Comment what matches" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Comment out only the lines that contain TODO in ~/vi/todo.conf, with one command.
+    options:
+      - :g/TODO/s/^/# /<CR>:wq<CR>
+      - 10.0.0.0/22
+      - awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log | sort -rn | head -1
+      - 192.168.7.158
+    answer: :g/TODO/s/^/# /<CR>:wq<CR>
+    hint: s/^/# / adds to the start of each.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Comment what matches" taught you at work?
+    options:
+      - This is the second query of every incident.
+      - Firewall rules and static addresses need exact ends of a range.
+      - Disabling every setting of one kind takes a single command.
+      - Summaries often cover more than you meant, which can swallow traffic.
+    answer: Disabling every setting of one kind takes a single command.
+    hint: "It starts with: Disabling every setting of…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____<CR>:wq<CR>
+    answer:
+      - :g/TODO/s/^/# /
+    hint: "It starts with: :g/"
+  - type: text
+    level: hard
+    label: From memory
+    q: Which vi command saves the file and quits? Type it exactly, with the colon.
+    answer:
+      - :wq
+    hint: It starts with a colon, then w, then q.

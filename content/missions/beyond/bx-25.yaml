@@ -2,7 +2,7 @@ id: bx-25
 track: BX
 skill: networking
 chapter: Brainfuck
-order: 25
+order: 45
 title: The black hole
 from: CTO
 difficulty: brainfuck

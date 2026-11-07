@@ -1,0 +1,88 @@
+id: bx-42
+track: BX
+skill: vi
+chapter: Expert
+order: 37
+title: Cut a column
+from: Platform
+difficulty: expert
+check: vi
+par:
+  kind: keys
+  value: 11
+lesson:
+  text: Ctrl-v selects a rectangle, so d removes the same columns from every row. Move down for rows and right for width.
+  example: Ctrl-v  2j  3l  d
+brief: Remove the word old and its space from the front of all three lines in ~/vi/cutcol.txt, in one block delete.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/cutcol.txt"
+hints:
+  - Ctrl-v, then 2j covers three rows.
+  - 3l widens it to four columns, and d removes them.
+debrief:
+  why: Block mode works on columns, which line-based commands cannot do in one go.
+  solution: <C-v>2j3ld:wq<CR>
+  job: Tidying aligned output and tables is where this shines.
+teaches:
+  - beyond
+file: ~/vi/cutcol.txt
+expect:
+  - file_equals:
+      path: ~/vi/cutcol.txt
+      content: |
+        web1
+        web2
+        web3
+  - vi_saved: ~/vi/cutcol.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Cut a column". Which sentence best describes what it taught?
+    options:
+      - "This is why a fast link across an ocean can still feel slow: latency caps throughput until the window grows."
+      - Rules 10 to 30 only match guest sources, so the first full match is rule 40.
+      - Each call to counter makes a new n, and the closure keeps it alive, so a and b count separately.
+      - Block mode works on columns, which line-based commands cannot do in one go.
+    answer: Block mode works on columns, which line-based commands cannot do in one go.
+    hint: Think about what "Cut a column" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Remove the word old and its space from the front of all three lines in ~/vi/cutcol.txt, in one block delete.
+    options:
+      - <C-v>2j3ld:wq<CR>
+      - "40"
+      - "5.24"
+      - 1 2 1
+    answer: <C-v>2j3ld:wq<CR>
+    hint: 3l widens it to four columns, and d removes them.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - :wq<CR>
+      - 2j3ld
+      - <C-v>
+    answer:
+      - <C-v>
+      - 2j3ld
+      - :wq<CR>
+    hint: "The first one is: <C-v>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____2j3ld:wq<CR>
+    answer:
+      - <C-v>
+    hint: "It starts with: <C-"
+  - type: text
+    level: hard
+    label: From memory
+    q: Which vi command saves the file and quits? Type it exactly, with the colon.
+    answer:
+      - :wq
+    hint: It starts with a colon, then w, then q.

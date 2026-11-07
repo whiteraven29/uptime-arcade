@@ -1,89 +1,38 @@
-/* The game as it runs today: rules and state held in the browser.
-   This is the offline stand-in for the /api/v1 endpoints in section 16. M2 and M5 move
-   these rules to the server; screens only talk to this module, so they won't need to change much.
-   No React and no DOM, so tools/verify_content.mjs and the tests can run it in Node. */
-import { S, host, replaceState } from '../../../engines/host.js';
-import { fs, HOME, HOST, norm, pad } from '../../../engines/fs/index.js';
+/* What the screens talk to. The server holds the rules, the time, the XP and the answers, and this
+   module holds what it last said, plus the player's virtual machine: terminal history and files, which
+   stay on this device. Nothing here decides who earned what.
+   No React and no DOM beyond storage, so it can be tested in Node. */
+import { S, host } from '../../../engines/host.js';
+import { F, fs, HOME, HOST, norm, pad } from '../../../engines/fs/index.js';
 import { sh, runLine } from '../../../engines/shell/index.js';
 import { COMMANDS, MAN } from '../../../engines/shell/commands.js';
 import { VI, viKey, viSelection } from '../../../engines/vi/index.js';
-import { evalExpect } from '../../../engines/fs/expect.js';
-import { TK, TRACKS, BEYOND, CHAPTERS, TICKETS, ALL_MISSIONS, DIFFICULTIES, OLD_IDS } from '../../../content/index.mjs';
-import { genOncall } from './oncallGen.js';
 import { ensureAudio, playLevelUp, playTimerEnd, playUnlock, setMuted } from '../sound/cues.js';
+import { ApiError, del, get, patch, post, refreshAccess, setAccess, setSignedOutHandler } from './client.js';
 
-export { S, VI, viSelection, TK, TRACKS, BEYOND, CHAPTERS, TICKETS, DIFFICULTIES };
+export { S, VI, viSelection };
 
-/* ---------- rules (section 6; the ladder is section 6.4 scaled to 150 missions, see ADR 0004) ---------- */
-const KEY = 'uptime-arcade-v5';
-export const BANK_CAP = 30 * 60;
-const BONUS_CAP = 60 * 60;
-const STARTER = 5 * 60;
-export const GOAL_BONUS = 2;
-export const HINT_COST = 15;
-const PAR_BONUS = 20;
-const MIN_MISSION_XP = 10;
-/* A rewind task shows its hint once every task left has been failed, and its answer after this many misses. */
-const REVEAL_AFTER = 3;
-export const EARN = { 15: 5, 25: 8, 45: 15 };
-export const LEVELS = [[0, 'Noob'], [8, 'Initiate'], [19, 'Apprentice'], [34, 'Operator'], [52, 'Adept'], [71, 'Specialist'], [90, 'Technomancer'], [109, 'Sorcerer'], [128, 'Sage'], [150, 'Archmage']];
-export const STREAKS = [[3, 5, 50, 0], [7, 10, 150, 1], [14, 15, 300, 0], [21, 15, 500, 1], [30, 20, 1000, 0], [60, 30, 2000, 1], [100, 30, 5000, 1]];
-const parCount = () => Object.values(S.done).filter((d) => d.bonus > 0).length;
-/* Every mission in a chapter solved, with no hints used on any of them. */
-const cleanChapter = () => TRACKS.some(([k]) => CHAPTERS[k].some(([, start], i) => {
-  const end = CHAPTERS[k][i + 1] ? CHAPTERS[k][i + 1][1] : TK[k].length;
-  return TK[k].slice(start, end).every((m) => S.done[m.id] && !S.done[m.id].hints);
-}));
-/* Section 6.8. NetLab Master and Operator of Operations arrive with their content. */
-export const BADGES = [
-  ['firstblock', 'First Block', 'Finish a focus block', () => S.blocks >= 1],
-  ['clean10', 'Clean Ten', '10 blocks with no drifts', () => S.cleanBlocks >= 10],
-  ['hours10', 'Ten Hours', '10 hours of focus', () => S.focusMin >= 600],
-  ['hours100', 'Hundred Hours', '100 hours of focus', () => S.focusMin >= 6000],
-  ['week', 'Full Week', '7 day streak', () => S.bestStreak >= 7],
-  ['month', 'Iron Month', '30 day streak', () => S.bestStreak >= 30],
-  ['centurion', 'Centurion', '100 day streak', () => S.bestStreak >= 100],
-  ['first', 'First Clear', 'Clear one mission', () => cleared() >= 1],
-  // One for every level you climb. Archmage, the last of them, has its own badge below.
-  ...LEVELS.slice(1, -1).map(([, name], i) => [`lv${i + 2}`, name, `Reach level ${i + 2}`, () => levelIdx() >= i + 1]),
-  ...TRACKS.map(([k, l]) => ['t' + k, l + ' Master', 'Clear the ' + l + ' path', () => TK[k].every((m) => S.rewDone[m.id])]),
-  ['par50', 'Par Hunter', '50 missions at or under par', () => parCount() >= 50],
-  ['nohints', 'No Hints Needed', 'Clear a whole chapter without hints', cleanChapter],
-  ['night', 'Night Shift', 'Finish 25 on-call incidents', () => S.ocTotal >= 25],
-  ['arch', 'Archmage', `Clear all ${TICKETS.length} missions`, () => S.peak >= TICKETS.length],
-  // One for each tier of the missions that come after Archmage.
-  ...CHAPTERS.BX.map(([name], i) => [`bx${i + 1}`, `${name} Conquered`, `Clear the ${name} tier of Beyond`, () => tierDone(i)]),
-];
-function tierDone(i) {
-  const start = CHAPTERS.BX[i][1];
-  const end = CHAPTERS.BX[i + 1] ? CHAPTERS.BX[i + 1][1] : TK.BX.length;
-  return TK.BX.slice(start, end).every((m) => S.rewDone[m.id]);
-}
+/* ---------- what the server told us ---------- */
+export const TK = {};
+export const TRACKS = [];
+export let BEYOND = ['BX', 'Beyond', ''];
+export const CHAPTERS = {};
+export const TICKETS = [];
+export const DIFFICULTIES = [];
+export const LEVELS = [];
+export const STREAKS = [];
+export const BADGES = [];
+export let BANK_CAP = 1800;
+export let GOAL_BONUS = 2;
+export let HINT_COST = 15;
+export const EARN = {};
+const ALL = new Map();
 
-/* ---------- small helpers ---------- */
-export const mmss = (s) => {
-  s = Math.max(0, Math.ceil(s));
-  return pad(Math.floor(s / 60)) + ':' + pad(s % 60);
-};
-const dayKey = (d = new Date()) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-const dayGap = (a, b) => {
-  const d = (s) => {
-    const [y, m, dd] = s.split('-').map(Number);
-    return Date.UTC(y, m - 1, dd);
-  };
-  return Math.round((d(b) - d(a)) / 864e5);
-};
-
-const fresh = () => ({
-  v: 5, updatedAt: 0, xp: 0, focusMin: 0, blocks: 0, cleanBlocks: 0, streak: 0, bestStreak: 0, shields: 0, lastDay: null,
-  day: dayKey(), todayMin: 0, todayDrifts: 0, bank: STARTER, sessionEndsAt: null, focus: null, claim: null, len: 25,
-  cur: null, done: {}, rew: {}, rewDone: {}, hints: {}, cmds: {}, tries: {}, code: {}, viKeys: {}, viUsed: {}, overlay: {}, cwd: HOME, hist: [],
-  net: { gw: '10.40.3.1' }, season: 1, peak: 0, ended: false, claimed: {}, badges: {}, oc: null, ocShift: 0, ocStreak: 0, ocBest: 0, ocTotal: 0,
-  ranScript: false, muted: false,
-});
-
-/* ---------- transient UI state and change notification ---------- */
+/* ---------- things the screens watch ---------- */
 export const ui = {
+  auth: 'checking', // checking, in or out
+  account: null,
+  level: { index: 1, title: 'Noob', cleared: 0, next_title: null, next_at: null },
   term: [],
   termVersion: 0,
   toast: null,
@@ -91,15 +40,19 @@ export const ui = {
   debrief: null,
   overlay: null, // {kind:'level', i} or {kind:'finale'}
   flash: null, // mission id that just unlocked
-  rw: { id: null, tasks: null, fb: null, pick: [] },
+  rw: { id: null, task: null, next: null, nextState: null, correct: 0, total: 5, xpOnClear: 0, fb: null, pick: [], busy: false },
   py: { state: 'idle' },
+  current: null, // the mission being played, with its workspace
+  briefings: {},
 };
 
 let version = 0;
+let skew = 0; // server clock minus this device's clock
 const listeners = new Set();
 let navigate = () => {};
 let toastTimer = null;
 let flashTimer = null;
+const toastQueue = [];
 
 export const subscribe = (fn) => {
   listeners.add(fn);
@@ -115,115 +68,226 @@ export const setNavigator = (fn) => {
 };
 export const go = (path) => navigate(path);
 
-export function toast(text, badge = null) {
-  ui.toast = text;
-  ui.toastBadge = badge;
+function showNextToast() {
+  const next = toastQueue.shift();
+  ui.toast = next ? next.text : null;
+  ui.toastBadge = next ? next.badge : null;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    ui.toast = null;
-    ui.toastBadge = null;
-    bump();
-  }, 3500);
+  if (next) toastTimer = setTimeout(showNextToast, 3200);
   bump();
 }
+/** Several things can happen at once, like XP, an unlock and a badge, so they wait their turn. */
+export function toast(text, badge = null) {
+  toastQueue.push({ text, badge });
+  if (!ui.toast) showNextToast();
+}
+const complain = (e) => toast(e instanceof ApiError ? e.message : 'Something went wrong. Try again.');
+
+/* ---------- small helpers ---------- */
+export const mmss = (s) => {
+  s = Math.max(0, Math.ceil(s));
+  return pad(Math.floor(s / 60)) + ':' + pad(s % 60);
+};
+const local = (iso) => Date.parse(iso) - skew; // a server time, on this device's clock
 
 /* ---------- selectors ---------- */
-export const byId = (id) => ALL_MISSIONS.find((t) => t.id === id);
-export const T = () => S.oc || byId(S.cur);
-export const trackName = (k) => (k === BEYOND[0] ? BEYOND[1] : TRACKS.find((t) => t[0] === k)[1]);
-const isBeyond = (id) => id.startsWith('bx-');
-/* Levels count the core missions only, so Beyond never changes what Archmage means (section 6.10). */
-export const cleared = () => Object.keys(S.rewDone).filter((id) => !isBeyond(id)).length;
-export const beyondCleared = () => Object.keys(S.rewDone).filter(isBeyond).length;
-export const beyondOpen = () => Math.max(cleared(), S.peak) >= TICKETS.length;
-export const levelIdx = () => {
-  const c = Math.max(cleared(), S.peak);
-  let i = 0;
-  LEVELS.forEach((l, k) => {
-    if (c >= l[0]) i = k;
-  });
-  return i;
-};
-export const level = () => LEVELS[levelIdx()][1];
+export const byId = (id) => ALL.get(String(id).toLowerCase());
+export const T = () => ui.current;
+export const trackName = (k) => (k === BEYOND[0] ? BEYOND[1] : TRACKS.find((t) => t[0] === k)?.[1] ?? k);
+const isCleared = (m) => m.state === 'cleared';
+export const clearedIn = (k) => (TK[k] || []).filter(isCleared).length;
+export const cleared = () => TICKETS.filter(isCleared).length;
+export const beyondCleared = () => clearedIn(BEYOND[0]);
+export const beyondOpen = () => (S.peak || 0) >= TICKETS.length && TICKETS.length > 0;
+export const levelIdx = () => ui.level.index - 1;
+export const level = () => ui.level.title;
 export const sessionOn = () => !!S.sessionEndsAt && Date.now() < S.sessionEndsAt;
-export const mult = () => 1 + Math.min(S.streak, 10) * 0.05;
-const gain = (x) => {
-  const v = Math.round(x * mult());
-  S.xp += v;
-  return v;
-};
-export const stateOf = (m) => {
-  if (S.rewDone[m.id]) return 'clear';
-  if (S.done[m.id]) return 'rewind';
-  if (m.track === BEYOND[0] && !beyondOpen()) return 'locked';
-  const p = TK[m.track][m.pos - 1];
-  return !p || S.rewDone[p.id] ? 'open' : 'locked';
-};
+export const mult = () => 1 + Math.min(S.streak || 0, 10) * 0.05;
+/* The screens speak in open, locked, rewind and clear. */
+export const stateOf = (m) => ({ solved: 'rewind', cleared: 'clear' }[m.state] || m.state);
 export const nextUp = () => {
   let best = null;
   for (const k of [...TRACKS.map((t) => t[0]), BEYOND[0]]) {
-    const m = TK[k].find((x) => stateOf(x) === 'rewind') || TK[k].find((x) => stateOf(x) === 'open');
+    const list = TK[k] || [];
+    const m = list.find((x) => stateOf(x) === 'rewind') || list.find((x) => stateOf(x) === 'open');
     if (m && (!best || (stateOf(m) === 'rewind' && stateOf(best) !== 'rewind') || (stateOf(m) === stateOf(best) && m.pos < best.pos))) best = m;
   }
   return best;
 };
-export const parText = (t) => (t.parKind === 'keys' ? `${t.par} keys` : t.skill === 'SH' || t.kind === 'auto' ? `${t.par} command${t.par > 1 ? 's' : ''}` : 'first try');
+export const parText = (b) => (b.par_kind === 'keys' ? `${b.par_value} keys` : b.par_kind === 'commands' ? `${b.par_value} command${b.par_value > 1 ? 's' : ''}` : 'first try');
 export const difficultyLabel = (code) => DIFFICULTIES.find((d) => d.code === code)?.label ?? code;
-export const missionPath = (m) => {
-  const st = stateOf(m);
-  return st === 'rewind' ? `/missions/${m.id}/rewind` : `/missions/${m.id}`;
-};
-export const oncallUnlocked = () => cleared() >= TICKETS.length;
+export const missionPath = (m) => (stateOf(m) === 'rewind' ? `/missions/${m.id}/rewind` : `/missions/${m.id}`);
+/* Generated incidents need a server that keeps their answers. They arrive in M11 (ADR 0007). */
+export const oncallUnlocked = () => false;
 
-/* ---------- saving ---------- */
-/* v3 saves used the old numbered ids. Progress on missions that survived moves across, and missions
-   that were retired fall away. peak stays, so nobody loses a title. */
-function fromV3(o) {
-  const mapped = {};
-  for (const key of ['done', 'rew', 'rewDone', 'hints', 'cmds', 'tries', 'code']) {
-    mapped[key] = {};
-    for (const [id, value] of Object.entries(o[key] || {})) if (OLD_IDS[id]) mapped[key][OLD_IDS[id]] = value;
+/* ---------- this device's virtual machine ---------- */
+const MACHINE = { cwd: HOME, overlay: {}, hist: [], viKeys: {}, viUsed: {}, net: { gw: '10.40.3.1' }, ranScript: false, code: {}, cmds: {}, len: 25 };
+const machineKey = () => `uptime-machine-${ui.account?.username}`;
+function saveMachine() {
+  const m = {};
+  for (const k of Object.keys(MACHINE)) m[k] = S[k];
+  try {
+    localStorage.setItem(machineKey(), JSON.stringify(m));
+  } catch { /* private window or blocked storage: it still works until you leave */ }
+}
+function loadMachine() {
+  let saved = {};
+  try {
+    saved = JSON.parse(localStorage.getItem(machineKey())) || {};
+  } catch { /* see saveMachine */ }
+  Object.assign(S, structuredClone(MACHINE), saved);
+}
+function resetMachine() {
+  const { len } = S;
+  Object.assign(S, structuredClone(MACHINE), { len });
+  fs.reset(S.overlay);
+  saveMachine();
+}
+
+/* ---------- loading from the server ---------- */
+function applyPlayer(p) {
+  skew = Date.parse(p.server_time) - Date.now();
+  ui.level = p.level;
+  S.xp = p.xp;
+  S.bank = p.bank_seconds;
+  S.streak = p.streak;
+  S.bestStreak = p.best_streak;
+  S.shields = p.shields;
+  S.season = p.season;
+  S.peak = p.level.cleared;
+  S.todayMin = p.today_minutes;
+  S.todayDrifts = p.today_drifts;
+  S.focusMin = p.focus_minutes;
+  S.blocks = p.blocks_finished;
+  S.muted = !p.sound_on;
+  setMuted(S.muted);
+  S.sessionEndsAt = p.session ? local(p.session.expires_at) : null;
+  S.focus = null;
+  S.claim = null;
+  if (p.block) {
+    const block = { id: p.block.id, goal: p.block.goal, len: p.block.minutes, startedAt: local(p.block.started_at), endsAt: local(p.block.ends_at), drifts: p.block.drifts };
+    if (Date.now() >= block.endsAt) S.claim = block;
+    else S.focus = block;
   }
-  return { ...o, ...mapped, v: 4, cur: null };
 }
-/* v4 paid XP when a mission was solved and for each rewind answer. Those are already earned, so
-   nothing is paid again when an in-progress rewind finishes. */
-function fromV4(o) {
-  const done = {};
-  for (const [id, d] of Object.entries(o.done || {})) done[id] = { ...d, paid: true };
-  return { ...o, done, v: 5 };
+function applyTracks(data) {
+  DIFFICULTIES.length = 0;
+  DIFFICULTIES.push(...data.difficulties);
+  TRACKS.length = 0;
+  TICKETS.length = 0;
+  ALL.clear();
+  for (const t of data.tracks) {
+    if (t.after_archmage) BEYOND = [t.code, t.name, t.subtitle];
+    else TRACKS.push([t.code, t.name, t.subtitle]);
+    const chapters = [];
+    TK[t.code] = t.missions.map((m, pos) => {
+      if (chapters.at(-1)?.[0] !== m.chapter) chapters.push([m.chapter, pos]);
+      const card = { id: m.code, track: t.code, pos, title: m.title, chapter: m.chapter, difficulty: m.difficulty, xp: m.xp, state: m.state, answered: m.answered };
+      ALL.set(m.code, card);
+      if (!t.after_archmage) TICKETS.push(card);
+      return card;
+    });
+    CHAPTERS[t.code] = chapters;
+  }
 }
-function migrate(o) {
-  if (o && o.v === 5) return o;
-  if (o && o.v === 4) return fromV4(o);
-  if (o && o.v === 3) return fromV4(fromV3(o));
-  if (!o) return null;
-  const n = fresh();
-  for (const k of ['xp', 'focusMin', 'blocks', 'streak', 'lastDay', 'bank']) if (o[k] !== undefined) n[k] = o[k];
-  n.bestStreak = n.streak;
-  return n;
+function applyRewards(r) {
+  EARN[15] = r.config.earn_seconds[15] / 60;
+  EARN[25] = r.config.earn_seconds[25] / 60;
+  EARN[45] = r.config.earn_seconds[45] / 60;
+  GOAL_BONUS = r.config.goal_bonus_seconds / 60;
+  BANK_CAP = r.config.bank_cap;
+  HINT_COST = r.config.hint_cost;
+  LEVELS.length = 0;
+  LEVELS.push(...r.levels.map((l) => [l.cleared, l.title]));
+  STREAKS.length = 0;
+  STREAKS.push(...r.streak.map((s) => [s.days, s.seconds / 60, s.xp, s.shields]));
+  BADGES.length = 0;
+  BADGES.push(...r.badges.map((b) => [b.code, b.name, b.description]));
+  S.badges = Object.fromEntries(r.badges.filter((b) => b.earned_at).map((b) => [b.code, true]));
+  S.claimed = Object.fromEntries(r.streak.filter((s) => s.claimed).map((s) => [s.days, true]));
 }
-function loadLocal() {
+export const refreshPlayer = async () => {
+  applyPlayer(await get('/player/'));
+  bump();
+};
+const refreshTracks = async () => {
+  applyTracks(await get('/tracks/'));
+  bump();
+};
+const refreshRewards = async () => {
+  applyRewards(await get('/rewards/'));
+  bump();
+};
+const refreshAll = () => Promise.all([refreshPlayer(), refreshTracks(), refreshRewards()]);
+
+async function enterGame(account) {
+  ui.account = account;
+  loadMachine();
+  const [fixtures] = await Promise.all([get('/fixtures/'), refreshAll()]);
+  for (const f of fixtures.files) F(f.path, f.content, f.mode);
+  fs.reset(S.overlay);
+  ui.term = [];
+  pr("Whiteraven operator console. Your account is 'ops'.\nRun 'help' for the tools on this box.\n", 'd');
+  ui.auth = 'in';
+  bump();
+}
+
+/* ---------- accounts ---------- */
+function signedOut() {
+  setAccess(null);
+  ui.auth = 'out';
+  ui.account = null;
+  ui.current = null;
+  ui.debrief = null;
+  ui.overlay = null;
+  bump();
+}
+setSignedOutHandler(signedOut);
+
+export async function boot() {
   try {
-    for (const k of [KEY, 'uptime-arcade-v4', 'uptime-arcade-v3', 'uptime-arcade-v2']) {
-      const r = localStorage.getItem(k);
-      if (r) return migrate(JSON.parse(r));
-    }
-  } catch { /* private window or blocked storage: play without a save */ }
-  return null;
+    await refreshAccess();
+    const me = await get('/auth/me/');
+    await enterGame(me.account);
+  } catch {
+    signedOut();
+  }
 }
-function save() {
-  S.updatedAt = Date.now();
+export const usernameStatus = (name) => get(`/auth/username/?name=${encodeURIComponent(name)}`);
+export async function login(username, password) {
+  const d = await post('/auth/login/', { username, password });
+  setAccess(d.access);
+  await enterGame(d.account);
+}
+export async function register(username, email, password) {
+  const time_zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const d = await post('/auth/register/', { username, email, password, time_zone });
+  setAccess(d.access);
+  await enterGame(d.account);
+}
+export async function logout() {
   try {
-    localStorage.setItem(KEY, JSON.stringify(S));
-  } catch { /* see loadLocal */ }
+    await post('/auth/logout/');
+  } catch { /* the token is dropped below either way */ }
+  signedOut();
+  go('/login');
 }
-function rollDay() {
-  const d = dayKey();
-  if (S.day !== d) {
-    S.day = d;
-    S.todayMin = 0;
-    S.todayDrifts = 0;
+export async function deleteAccount(password) {
+  const key = machineKey();
+  await del('/auth/me/', { password });
+  try {
+    localStorage.removeItem(key);
+  } catch { /* see saveMachine */ }
+  signedOut();
+  go('/register');
+}
+export async function setTimeZone(time_zone) {
+  try {
+    const d = await patch('/auth/me/', { time_zone });
+    ui.account = d.account;
+    await refreshPlayer();
+  } catch (e) {
+    complain(e);
   }
 }
 
@@ -240,7 +304,7 @@ export function pr(t, c) {
 }
 const termErr = (t) => pr(t, 'e');
 export const promptText = () => {
-  const p = S.cwd === HOME ? '~' : S.cwd.startsWith(HOME + '/') ? '~' + S.cwd.slice(HOME.length) : S.cwd;
+  const p = S.cwd === HOME ? '~' : S.cwd?.startsWith(HOME + '/') ? '~' + S.cwd.slice(HOME.length) : S.cwd;
   return `ops@${HOST}:${p}$`;
 };
 export function echoCmd(l) {
@@ -253,9 +317,9 @@ export function clearTerm() {
   bump();
 }
 
-/* ---------- commands and missions ---------- */
-export const META = new Set(['help', 'man', 'clear', 'brief', 'hint', 'submit', 'status', 'exit']);
-const HELP = `Tools: ls cd pwd cat head tail wc grep sort uniq cut tr sed awk find
+/* ---------- playing a mission ---------- */
+const META = new Set(['help', 'man', 'clear', 'brief', 'hint', 'submit', 'status', 'exit']);
+const HELP = () => `Tools: ls cd pwd cat head tail wc grep sort uniq cut tr sed awk find
        mv cp rm mkdir touch chmod tee seq xargs echo paste diff tac rev nl
        for and while loops, if, pipes, >, >>, bash scripts
        vi ip ping dig netplan ss curl
@@ -266,10 +330,78 @@ Game:  brief        show the mission again
        status       your level and session time
 Keys:  Tab completes, Up and Down recall history, Ctrl+L clears.`;
 
+const GOAL_CHECKS = new Set(['fs', 'vi']);
+const isGoalMission = (t) => GOAL_CHECKS.has(t?.check);
+
+/** The lesson and brief. Works without a session, and caches because it doesn't change. */
+export async function loadBriefing(id) {
+  if (ui.briefings[id]) return ui.briefings[id];
+  const b = await get(`/missions/${id}/`);
+  ui.briefings[id] = b;
+  bump();
+  return b;
+}
+/** Why it works and the solution. The server only answers once the mission has been solved. */
+export const loadDebrief = (id) => get(`/missions/${id}/debrief/`);
+/* A mission's files come back if an earlier attempt deleted them. */
+function restoreFixtures(files) {
+  for (const [rel, content] of Object.entries(files || {})) {
+    const p = `${HOME}/${rel}`;
+    if (fs.get(p)) continue;
+    const parts = p.split('/');
+    for (let i = 2; i < parts.length; i++) {
+      const dir = parts.slice(0, i).join('/');
+      if (!fs.get(dir)) fs.put(dir, { t: 'd', m: 0o755, mt: 'Nov  6 09:00' });
+    }
+    fs.put(p, { t: 'f', c: content, m: 0o644, mt: 'Nov  6 09:00' });
+  }
+}
+/** Gets a mission ready to play. It needs an open session, so it runs again when one opens. */
+export async function enterMission(id) {
+  const brief = await loadBriefing(id);
+  if (!sessionOn()) {
+    ui.current = { ...toPlayable(brief), ready: false };
+    bump();
+    return;
+  }
+  const play = await get(`/missions/${id}/play/`);
+  const t = { ...toPlayable(brief), ...toWorkspace(play), ready: true };
+  if (ui.current?.id !== id) {
+    S.cwd = HOME;
+    restoreFixtures(play.workspace.fixtures);
+  }
+  ui.current = t;
+  saveMachine();
+  bump();
+}
+export const leaveCurrent = () => {
+  ui.current = null;
+};
+const toPlayable = (b) => ({
+  id: b.code, track: b.track, skill: b.skill, title: b.title, from: b.from_dept, difficulty: b.difficulty, xp: b.xp, check: b.check_type,
+  kind: b.check_type === 'py' ? 'py' : GOAL_CHECKS.has(b.check_type) ? 'auto' : 'answer',
+  par_kind: b.par_kind, par_value: b.par_value, learn: [b.lesson.text, b.lesson.example], brief: b.brief, goal: b.goal, hintsShown: [], hintsTotal: 0,
+});
+const toWorkspace = (p) => {
+  const w = p.workspace;
+  const out = { hintsShown: p.hints, hintsTotal: p.hints_total };
+  if (w.file) out.file = w.file.replace(/^~/, HOME);
+  if (w.go) out.program = w.go.program;
+  if (w.python) {
+    out.starter = w.python.starter;
+    out.tests = w.python.tests.map((x) => [x.expr, x.want, x.label]);
+    out.prelude = w.python.prelude;
+    out.wrap = w.python.wrap;
+    out.captureOutput = w.python.capture_output;
+    out.files = w.python.files;
+  }
+  return out;
+};
+
 function meta(a) {
   const c = a[0];
   const t = T();
-  if (c === 'help') return pr(HELP);
+  if (c === 'help') return pr(HELP());
   if (c === 'man') {
     const m = MAN[a[1]];
     return m ? pr(m) : termErr(`No entry for ${a[1] || 'that'}. Try: ${Object.keys(MAN).join(' ')}`);
@@ -284,79 +416,91 @@ function meta(a) {
   if (c === 'hint') return showHint();
   if (c === 'status') return pr(`${level()}, XP ${S.xp}. Cleared ${cleared()}/${TICKETS.length}. Session left ${mmss((S.sessionEndsAt - Date.now()) / 1000)}.`);
   if (c === 'exit') return pr('Use the Leave button, or close the session in System.', 'd');
-  return submit(a.slice(1).join(' '));
+  return submitAnswer(a.slice(1).join(' '));
 }
-function answersFor(t) {
-  if (t.kind === 'py') return ui.py.state === 'failed' ? [t.tests[0][1]] : null;
-  return t.answer || null;
+
+const commandsOn = (t) => S.cmds[t.id] || 0;
+async function afterSolved(t, res) {
+  ui.current = { ...t, solved: true };
+  const d = await get(`/missions/${t.id}/debrief/`);
+  const note = t.par_kind === 'keys' ? `${S.viKeys[t.file] || 0} keys, par ${t.par_value}` : t.par_kind === 'commands' ? `${commandsOn(t)} command${commandsOn(t) === 1 ? '' : 's'}, par ${t.par_value}` : res.tries <= 1 ? 'first try' : `${res.tries} tries`;
+  ui.debrief = { id: t.id, title: t.title, why: d.why, solution: d.solution, job: d.job, worth: d.xp_on_clear, bonus: res.par_bonus, note };
+  saveMachine();
+  await Promise.all([refreshTracks(), refreshPlayer()]);
 }
-export function submit(v) {
+async function submitAnswer(value) {
   const t = T();
-  if (S.done[t.id]) return pr('Already solved.', 'd');
-  const ans = answersFor(t);
-  if (!ans) return pr(t.kind === 'py' ? 'This mission is graded by Run tests.' : 'This mission completes itself when the goal is met.', 'd');
-  if (!v) return termErr('Usage: submit <answer>');
-  S.tries[t.id] = (S.tries[t.id] || 0) + 1;
-  const n = (s) => s.trim().replace(/\s+/g, ' ').replace(/'/g, '"').replace(/, /g, ',').toLowerCase();
-  if (ans.some((a) => n(a) === n(v))) return complete(t);
-  pr('Not that one. Check your work and try again.', 'e');
-  save();
-  return undefined;
-}
-export function showHint() {
-  const t = T();
-  if (!t || S.done[t.id]) return;
-  const n = S.hints[t.id] || 0;
-  if (n >= t.hints.length) {
-    pr('No more hints here. Read the lesson again or run man <tool>.', 'd');
-    bump();
-    return;
+  if (!t || t.solved) return pr('Already solved.', 'd');
+  if (t.kind === 'py') return pr('This mission is graded by Run tests.', 'd');
+  if (t.kind === 'auto') return pr('This mission completes itself when the goal is met.', 'd');
+  if (!value) return termErr('Usage: submit <answer>');
+  try {
+    const res = await post(`/missions/${t.id}/submit/`, { answer: value, commands: commandsOn(t) });
+    if (res.result === 'pass') await afterSolved(t, res);
+    else pr('Not that one. Check your work and try again.', 'e');
+  } catch (e) {
+    termErr(e.message);
+    if (e.code === 'no_active_session') await refreshPlayer();
   }
-  S.hints[t.id] = n + 1;
-  pr(`Hint ${n + 1}: ${t.hints[n]}`, 's');
-  save();
-  bump();
-}
-export function complete(t) {
-  if (t.oc) return completeOc(t);
-  if (S.done[t.id]) return undefined;
-  const used = S.hints[t.id] || 0;
-  let bonus = 0;
-  let note = '';
-  if (t.kind === 'py' || (t.kind === 'answer' && t.skill !== 'SH')) {
-    const n = S.tries[t.id] || 1;
-    note = n <= 1 ? 'first try' : `${n} tries`;
-    if (n <= 1) bonus = PAR_BONUS;
-  } else if (t.parKind === 'keys') {
-    const k = S.viKeys[t.file] || 0;
-    note = `${k} keys, par ${t.par}`;
-    if (k <= t.par) bonus = PAR_BONUS;
-  } else {
-    const c = S.cmds[t.id] || 0;
-    note = `${c} command${c === 1 ? '' : 's'}, par ${t.par}`;
-    if (c <= t.par) bonus = PAR_BONUS;
-  }
-  // Solving earns nothing yet. The XP is paid when the rewind is finished too.
-  const worth = Math.max(MIN_MISSION_XP, t.xp + bonus - used * HINT_COST);
-  S.done[t.id] = { worth, note, bonus, hints: used, paid: false };
-  checkBadges();
-  save();
-  ui.debrief = t.id;
   bump();
   return undefined;
+}
+export async function showHint() {
+  const t = T();
+  if (!t || t.solved) return;
+  try {
+    const d = await post(`/missions/${t.id}/hint/`);
+    t.hintsShown = [...t.hintsShown, d.hint];
+    pr(`Hint ${d.hints_used}: ${d.hint}`, 's');
+  } catch (e) {
+    pr(e.message, 'd');
+  }
+  bump();
 }
 export const closeDebrief = () => {
   ui.debrief = null;
   bump();
 };
 export function leaveMission() {
-  S.cur = null;
-  save();
+  ui.current = null;
   go('/missions');
 }
-function autoCheck() {
+
+/* The goal lives on the server, so after each command the browser reports where things stand. Only one
+   check runs at a time, and whatever happened meanwhile is covered by one more check afterwards. */
+const machineState = () => ({
+  files: S.overlay,
+  cwd: S.cwd,
+  gateway: S.net?.gw,
+  ran_script: S.ranScript || null,
+  vi_keys: S.viKeys,
+  vi_used: S.viUsed,
+});
+let checking = false;
+let checkAgain = false;
+export async function checkGoal() {
   const t = T();
-  if (t && !S.done[t.id] && t.expect && evalExpect(t.expect)) complete(t);
+  if (!isGoalMission(t) || t.solved || !sessionOn()) return;
+  if (checking) {
+    checkAgain = true;
+    return;
+  }
+  checking = true;
+  try {
+    const keys = t.file ? S.viKeys[t.file] || 0 : 0;
+    const res = await post(`/missions/${t.id}/check/`, { state: machineState(), commands: commandsOn(t), keys });
+    if (res.result === 'pass') await afterSolved(t, res);
+  } catch (e) {
+    if (e.code === 'no_active_session') await refreshPlayer();
+    // Anything else, like a rate limit, just means the next command checks again.
+  } finally {
+    checking = false;
+  }
+  bump();
+  if (checkAgain) {
+    checkAgain = false;
+    await checkGoal();
+  }
 }
 export function runCommand(line) {
   const src = line.trim();
@@ -367,12 +511,12 @@ export function runCommand(line) {
   const toks = src.split(/\s+/);
   if (META.has(toks[0])) {
     meta(toks);
-    save();
+    saveMachine();
     bump();
     return;
   }
   const t = T();
-  if (t && !S.done[t.id]) S.cmds[t.id] = (S.cmds[t.id] || 0) + 1;
+  if (t && !t.solved) S.cmds[t.id] = commandsOn(t) + 1;
   const buf = [];
   sh.sink = buf;
   sh.errSink = null;
@@ -383,13 +527,9 @@ export function runCommand(line) {
   }
   sh.sink = null;
   pr(buf.join(''));
-  if (VI.on) {
-    bump();
-    return;
-  }
-  autoCheck();
-  save();
+  saveMachine();
   bump();
+  if (!VI.on) checkGoal();
 }
 
 /** Tab completion for the terminal. Returns the new value and caret, or null if nothing changed. */
@@ -432,9 +572,9 @@ export function tabComplete(v, cur) {
 host.err = termErr;
 host.viShow = () => bump();
 host.afterVi = () => {
-  autoCheck();
-  save();
+  saveMachine();
   bump();
+  checkGoal();
 };
 export function viPress(key, ctrl) {
   if (!VI.on) return;
@@ -442,145 +582,113 @@ export function viPress(key, ctrl) {
   bump();
 }
 
-/* ---------- on-call ---------- */
-export function startOncall() {
-  if (!oncallUnlocked()) return;
-  S.ocShift = 0;
-  S.oc = genOncall();
-  S.cur = null;
-  pr('Pager: shift started. Five incidents, 60 XP each, plus 100 XP when you clear the shift.', 's');
-  save();
-  bump();
+/* ---------- Python ---------- */
+export function saveCode(t, src) {
+  S.code[t.id] = src;
+  saveMachine();
 }
-function completeOc(t) {
-  const first = (S.tries[t.id] || 1) <= 1;
-  S.ocStreak = first ? S.ocStreak + 1 : 0;
-  S.ocBest = Math.max(S.ocBest, S.ocStreak);
-  S.ocTotal++;
-  S.ocShift++;
-  gain(t.xp);
-  delete S.tries[t.id];
-  delete S.hints[t.id];
-  delete S.cmds[t.id];
-  pr(`[ok] Incident resolved. First-try streak ${S.ocStreak}, best ${S.ocBest}.\nHow it works: ${t.why}`, 'k');
-  if (S.ocShift >= 5) {
-    gain(100);
-    S.oc = null;
-    pr('Shift complete: +100 XP.', 's');
-    toast('Shift complete');
-    go('/missions');
-  } else {
-    S.oc = genOncall();
+/** The browser runs the tests and reports the result. The server keeps the code, and M9 re-runs it. */
+export async function reportPython(t, code, passed) {
+  try {
+    const res = await post(`/missions/${t.id}/submit/`, { code, passed });
+    if (res.result === 'pass') await afterSolved(t, res);
+  } catch (e) {
+    complain(e);
+    if (e.code === 'no_active_session') await refreshPlayer();
   }
-  save();
   bump();
 }
 
 /* ---------- rewind ---------- */
-export const normA = (v) => String(v).trim().replace(/\s+/g, ' ').replace(/'/g, '"').toLowerCase();
-export function startRewind(id) {
-  const rw = ui.rw;
-  if (rw.id !== id || !rw.tasks) {
-    rw.id = id;
-    rw.tasks = byId(id).rewind;
-    rw.fb = null;
-    rw.pick = [];
+const freshRewind = () => ({ id: null, task: null, next: null, nextState: null, correct: 0, total: 5, xpOnClear: 0, fb: null, pick: [], busy: false });
+export async function startRewind(id) {
+  if (ui.rw.id === id && (ui.rw.task || ui.rw.fb)) return;
+  ui.rw = { ...freshRewind(), id, loading: true };
+  bump();
+  try {
+    const d = await get(`/missions/${id}/rewind/`);
+    ui.rw = { ...ui.rw, task: d.task, correct: d.correct, total: d.total, xpOnClear: d.xp_on_clear, loading: false };
+  } catch (e) {
+    ui.rw = { ...ui.rw, loading: false };
+    complain(e);
   }
-  S.rew[id] = S.rew[id] || { q: rw.tasks.map((_, i) => i), ok: 0, miss: {} };
+  bump();
 }
-/* What help the current task gets. Hints wait until every task still left has been failed at least
-   once, and the answer itself appears only if the hint wasn't enough, so nobody can get stuck. */
-export function rewindHelp(id) {
-  const st = S.rew[id];
-  const i = st.q[0];
-  const t = ui.rw.tasks[i];
-  const miss = st.miss[i] || 0;
-  const answer = Array.isArray(t.answer) ? (t.type === 'order' ? t.answer.join('\n') : t.answer[0]) : t.answer;
-  return {
-    hint: st.q.every((j) => st.miss[j] > 0) ? t.hint : null,
-    answer: miss >= REVEAL_AFTER ? answer : null,
-  };
+/** The server adds these to a task only once they've been earned (section 6.5). */
+export function rewindHelp() {
+  const t = ui.rw.task;
+  if (!t) return { hint: null, answer: null };
+  return { hint: t.hint || null, answer: t.reveal === undefined ? null : Array.isArray(t.reveal) ? t.reveal.join('\n') : t.reveal };
 }
-export function answerRewind(val) {
+export async function answerRewind(value) {
   const rw = ui.rw;
-  const st = S.rew[rw.id];
-  const i = st.q[0];
-  const t = rw.tasks[i];
-  let ok;
-  if (t.type === 'mc') ok = val === t.answer;
-  else if (t.type === 'order') ok = val.join('\n') === t.answer.join('\n');
-  else ok = t.answer.some((a) => normA(a) === normA(val));
-  if (ok) {
-    st.q.shift();
-    st.ok++;
-    rw.fb = { ok: true };
-  } else {
-    st.miss[i] = (st.miss[i] || 0) + 1;
-    st.q.push(st.q.shift());
-    rw.fb = { ok: false };
+  if (rw.busy) return;
+  rw.busy = true;
+  try {
+    const d = await post(`/missions/${rw.id}/rewind/answer/`, { value });
+    rw.fb = { ok: d.correct, hintNext: !!d.task?.hint };
+    rw.correct = d.done;
+    rw.next = d.task;
+    rw.nextState = d;
+  } catch (e) {
+    complain(e);
+    if (e.code === 'no_active_session') await refreshPlayer();
   }
   rw.pick = [];
-  save();
+  rw.busy = false;
   bump();
 }
-export function afterRewindStep() {
+export async function afterRewindStep() {
   const rw = ui.rw;
+  if (rw.nextState?.state === 'cleared') {
+    const { id, nextState } = rw;
+    ui.rw = freshRewind();
+    await refreshAll();
+    go('/missions');
+    applyEvents(nextState.events, id);
+    return;
+  }
   rw.fb = null;
-  if (!S.rew[rw.id].q.length) return finishRewind();
+  rw.task = rw.next;
+  rw.next = null;
   bump();
-  return undefined;
 }
 export function pickOrder(o) {
   const rw = ui.rw;
   rw.pick.push(o);
-  const t = rw.tasks[S.rew[rw.id].q[0]];
-  if (rw.pick.length === t.scrambled.length) answerRewind([...rw.pick]);
+  if (rw.pick.length === rw.task.scrambled.length) answerRewind([...rw.pick]);
   else bump();
 }
 export function unpickOrder(i) {
   ui.rw.pick.splice(i, 1);
   bump();
 }
-function finishRewind() {
-  const id = ui.rw.id;
-  const m = byId(id);
-  const before = levelIdx();
-  S.rewDone[id] = true;
-  delete S.rew[id];
-  // The whole task is finished, mission and rewind, so this is where the XP is earned.
-  const d = S.done[id];
-  let earned = 0;
-  if (d && !d.paid) {
-    earned = gain(d.worth);
-    d.xp = earned;
-    d.paid = true;
-  }
-  S.peak = Math.max(S.peak, cleared());
-  S.cur = null;
-  ui.rw = { id: null, tasks: null, fb: null, pick: [] };
-  checkBadges();
-  save();
-  const nx = TK[m.track][m.pos + 1];
-  go('/missions');
-  if (nx) {
-    ui.flash = nx.id;
-    clearTimeout(flashTimer);
-    flashTimer = setTimeout(() => {
-      ui.flash = null;
-      bump();
-    }, 1600);
-    playUnlock();
-  }
-  const paid = earned ? `+${earned} XP. ` : '';
-  toast(paid + (nx ? `Unlocked: ${nx.title}` : `${trackName(m.track)} path complete`));
-  if (levelIdx() !== before) {
-    ui.overlay = { kind: 'level', i: levelIdx() };
-    playLevelUp();
-  }
-  if (cleared() === TICKETS.length && !S.ended) {
-    S.ended = true;
-    save();
-    ui.overlay = { kind: 'finale' };
+
+/* The server says what happened, and this plays it (section 16). */
+function applyEvents(events) {
+  for (const e of events || []) {
+    if (e.type === 'cleared') {
+      toast(`+${e.xp} XP`);
+    } else if (e.type === 'unlocked') {
+      const next = byId(e.mission);
+      ui.flash = e.mission;
+      clearTimeout(flashTimer);
+      flashTimer = setTimeout(() => {
+        ui.flash = null;
+        bump();
+      }, 1600);
+      playUnlock();
+      if (next) toast(`Unlocked: ${next.title}`);
+    } else if (e.type === 'level_up') {
+      playLevelUp();
+      ui.overlay = e.level === LEVELS.length ? { kind: 'finale' } : { kind: 'level', i: e.level - 1 };
+    } else if (e.type === 'badge') {
+      toast(`Badge earned: ${e.name}`, e.code);
+    } else if (e.type === 'shield_used') {
+      toast(`Streak shield used. ${e.days} missed day${e.days > 1 ? 's' : ''} covered.`);
+    } else if (e.type === 'streak_reward') {
+      toast(`${e.days} day streak reward: +${mmss(e.seconds)} play, +${e.xp} XP${e.shields ? ', +1 shield' : ''}`);
+    }
   }
   bump();
 }
@@ -592,197 +700,127 @@ export const closeOverlay = () => {
 /* ---------- focus and sessions ---------- */
 export function setLen(n) {
   S.len = n;
-  save();
+  saveMachine();
   bump();
 }
-export function startBlock(goal) {
+export async function startBlock(goal) {
   const g = goal.trim();
   if (!g) return;
   ensureAudio();
-  if (S.sessionEndsAt) closeSession(true);
-  const now = Date.now();
-  S.focus = { goal: g, len: S.len, startedAt: now, endsAt: now + S.len * 60000, drifts: 0 };
-  save();
-  bump();
-}
-export function logDrift() {
-  if (!S.focus) return;
-  S.focus.drifts++;
-  S.todayDrifts++;
-  save();
-  bump();
-}
-export function abandonBlock() {
-  S.focus = null;
-  toast('Block ended early. Nothing earned.');
-  save();
-  bump();
-}
-export function closeSession(quiet) {
-  if (!S.sessionEndsAt) return;
-  S.bank = Math.min(BONUS_CAP, Math.round(Math.max(0, (S.sessionEndsAt - Date.now()) / 1000)));
-  S.sessionEndsAt = null;
-  VI.on = false;
-  if (!quiet) toast('Session closed. Time banked.');
-  save();
-  bump();
-}
-export function openSession() {
-  if (S.focus || S.claim || S.bank <= 0) return;
-  ensureAudio();
-  S.sessionEndsAt = Date.now() + S.bank * 1000;
-  S.bank = 0;
-  save();
-  bump();
-}
-function bumpStreak() {
-  const d = dayKey();
-  if (S.lastDay === d) return;
-  const gap = S.lastDay ? dayGap(S.lastDay, d) : 1;
-  if (gap === 1) S.streak++;
-  else if (gap > 1 && S.shields >= gap - 1) {
-    S.shields -= gap - 1;
-    S.streak++;
-    toast(`Streak shield used. ${gap - 1} missed day${gap > 2 ? 's' : ''} covered.`);
-  } else S.streak = 1;
-  S.lastDay = d;
-  S.bestStreak = Math.max(S.bestStreak, S.streak);
-  for (const [n, mins, xp, sh2] of STREAKS) {
-    if (S.streak >= n && !S.claimed[n]) {
-      S.claimed[n] = true;
-      S.bank = Math.min(BONUS_CAP, S.bank + mins * 60);
-      S.xp += xp;
-      S.shields += sh2;
-      toast(`${n} day streak reward: +${mins} min, +${xp} XP${sh2 ? ', +1 shield' : ''}`);
-    }
+  try {
+    await post('/focus/blocks/', { goal: g, minutes: S.len });
+    VI.on = false;
+    await refreshPlayer();
+  } catch (e) {
+    complain(e);
   }
 }
-export function claimBlock(done) {
+export async function logDrift() {
+  if (!S.focus) return;
+  try {
+    const d = await post(`/focus/blocks/${S.focus.id}/drift/`);
+    S.focus.drifts = d.block.drifts;
+    S.todayDrifts = (S.todayDrifts || 0) + 1;
+    bump();
+  } catch (e) {
+    complain(e);
+  }
+}
+export async function abandonBlock() {
+  if (!S.focus) return;
+  try {
+    await post(`/focus/blocks/${S.focus.id}/abandon/`);
+    toast('Block ended early. Nothing earned.');
+    await refreshPlayer();
+  } catch (e) {
+    complain(e);
+  }
+}
+export async function closeSession(quiet) {
+  try {
+    await post('/sessions/close/');
+    VI.on = false;
+    if (!quiet) toast('Session closed. Time banked.');
+  } catch (e) {
+    if (e.code !== 'no_active_session') complain(e);
+  }
+  await refreshPlayer();
+}
+export async function openSession() {
+  ensureAudio();
+  try {
+    await post('/sessions/open/');
+    await refreshPlayer();
+    if (ui.current) await enterMission(ui.current.id);
+  } catch (e) {
+    complain(e);
+  }
+}
+export async function claimBlock(done) {
   const c = S.claim;
   if (!c) return;
-  const earn = EARN[c.len] * 60 + (done ? GOAL_BONUS * 60 : 0);
-  S.bank = Math.max(S.bank, Math.min(BANK_CAP, S.bank + earn));
-  toast(`+${mmss(earn)} play time`);
-  S.focusMin += c.len;
-  S.blocks++;
-  S.todayMin += c.len;
-  if (!c.drifts) S.cleanBlocks++;
-  bumpStreak();
-  gain(c.len + (done ? 10 : 0));
-  S.claim = null;
-  checkBadges();
-  save();
-  bump();
-}
-function checkBadges() {
-  for (const [id, name, , test] of BADGES) {
-    if (!S.badges[id] && test()) {
-      S.badges[id] = true;
-      toast('Badge earned: ' + name, id);
-    }
+  try {
+    const d = await post(`/focus/blocks/${c.id}/claim/`, { done });
+    toast(`+${mmss(d.seconds_earned)} play time`);
+    await Promise.all([refreshPlayer(), refreshRewards()]);
+    applyEvents(d.events);
+  } catch (e) {
+    // This device's clock can run a moment ahead of the server's. Waiting is all it takes.
+    if (e.code === 'block_not_finished') toast('Almost. The server says a few more seconds.');
+    else complain(e);
+    await refreshPlayer();
   }
 }
+let refreshingAfterExpiry = false;
 export function tick() {
+  if (ui.auth !== 'in') return;
   const now = Date.now();
-  rollDay();
   let changed = false;
   if (S.focus) {
     changed = true;
     if (now >= S.focus.endsAt) {
-      S.claim = { goal: S.focus.goal, len: S.focus.len, drifts: S.focus.drifts };
+      S.claim = S.focus;
       S.focus = null;
       playTimerEnd();
-      save();
       go('/focus');
     }
   }
   if (S.sessionEndsAt) {
     changed = true;
-    if (now >= S.sessionEndsAt) {
-      S.sessionEndsAt = null;
-      S.bank = 0;
+    if (now >= S.sessionEndsAt && !refreshingAfterExpiry) {
+      refreshingAfterExpiry = true;
       VI.on = false;
       toast('Session over. Finish a focus block to earn more.');
-      save();
+      refreshPlayer().catch(() => {}).finally(() => {
+        refreshingAfterExpiry = false;
+      });
     }
   }
   if (changed) bump();
 }
 
 /* ---------- system ---------- */
-export function newSeason() {
-  Object.assign(S, {
-    cur: null, done: {}, rew: {}, rewDone: {}, hints: {}, cmds: {}, tries: {}, code: {}, viKeys: {}, viUsed: {}, overlay: {}, cwd: HOME,
-    net: { gw: '10.40.3.1' }, oc: null, ended: false, ranScript: false, season: S.season + 1,
-  });
-  fs.reset({});
-  ui.rw = { id: null, tasks: null, fb: null, pick: [] };
-  toast(`Season ${S.season} started`);
-  save();
-  go('/missions');
-}
-export function exportSave() {
-  return { filename: `uptime-arcade-save-${dayKey()}.json`, data: JSON.stringify(S) };
-}
-export function importSave(text) {
-  // Check the raw file: migrate() fills in defaults, so any JSON would pass afterwards and wipe the save.
-  const raw = JSON.parse(text);
-  if (!raw || typeof raw.xp !== 'number') throw new Error('not a save');
-  const o = migrate(raw);
-  o.sessionEndsAt = null;
-  adopt(o);
-  save();
-}
-function adopt(o) {
-  replaceState({ ...fresh(), ...o });
-  rollDay();
-  fs.reset(S.overlay);
-  setMuted(S.muted);
-  bump();
-}
-export function toggleMute() {
-  S.muted = !S.muted;
-  setMuted(S.muted);
-  save();
-  bump();
-}
-/* Each mission starts from home, with any files it needs put back if a past attempt removed them. */
-function restoreFixtures(t) {
-  for (const [rel, content] of Object.entries(t?.fixtures || {})) {
-    const p = `${HOME}/${rel}`;
-    if (fs.get(p)) continue;
-    const parts = p.split('/');
-    for (let i = 2; i < parts.length; i++) {
-      const dir = parts.slice(0, i).join('/');
-      if (!fs.get(dir)) fs.put(dir, { t: 'd', m: 0o755, mt: 'Nov  6 09:00' });
-    }
-    fs.put(p, { t: 'f', c: content, m: 0o644, mt: 'Nov  6 09:00' });
+export async function newSeason() {
+  try {
+    await post('/seasons/new/');
+    resetMachine();
+    ui.rw = freshRewind();
+    ui.current = null;
+    await refreshAll();
+    toast(`Season ${S.season} started`);
+    go('/missions');
+  } catch (e) {
+    complain(e);
   }
 }
-export function setCurrent(id) {
-  if (S.cur !== id) {
-    S.cur = id;
-    S.oc = null;
-    S.cwd = HOME;
-    const t = byId(id);
-    if (t && !S.done[id]) restoreFixtures(t);
+export async function toggleMute() {
+  try {
+    const d = await patch('/auth/me/', { sound_on: !!S.muted });
+    ui.account = d.account;
+    S.muted = !d.account.sound_on;
+    setMuted(S.muted);
+    bump();
+  } catch (e) {
+    complain(e);
   }
-}
-export function saveCode(t, src) {
-  S.code[t.id] = src;
-  save();
-}
-export function notePyAttempt(t) {
-  if (!S.done[t.id]) S.tries[t.id] = (S.tries[t.id] || 0) + 1;
-  save();
-}
-
-/* ---------- boot ---------- */
-export function boot(saved = loadLocal()) {
-  replaceState(saved ? { ...fresh(), ...saved } : fresh());
-  rollDay();
-  fs.reset(S.overlay);
-  setMuted(S.muted);
-  ui.term = [];
-  pr("Whiteraven operator console. Your account is 'ops'.\nRun 'help' for the tools on this box.\n", 'd');
 }

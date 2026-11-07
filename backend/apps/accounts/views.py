@@ -1,6 +1,10 @@
-"""Accounts. The access token comes back in the response and the browser keeps it in memory. The
+"""Accounts. A username is the public identity and how you log in, so saying whether one is free
+gives nothing away. An email is private: it isn't unique and nothing ever says whether it's in use.
+
+The access token comes back in the response and the browser keeps it in memory. The
 refresh token only ever travels in an HttpOnly, SameSite=Strict cookie, so a script on the page can't
 read it and another site can't send it."""
+import re
 from datetime import timedelta
 from zoneinfo import available_timezones
 
@@ -23,7 +27,7 @@ from apps.core.exceptions import GameError
 from apps.game import rules
 from apps.game.services import locked_player
 
-from .throttles import AuthThrottle, LoginEmailThrottle
+from .throttles import AuthThrottle, LoginAccountThrottle, UsernameCheckThrottle
 
 User = get_user_model()
 
@@ -41,7 +45,20 @@ def _clear_cookie(response):
 
 def _account(user):
     p = user.player
-    return {"email": user.email, "display_name": p.display_name, "time_zone": p.time_zone, "sound_on": p.sound_on}
+    return {"username": user.username, "email": user.email, "display_name": p.display_name, "time_zone": p.time_zone, "sound_on": p.sound_on}
+
+
+USERNAME = re.compile(r"^[A-Za-z0-9_-]{3,20}$")
+RESERVED = {"admin", "administrator", "root", "support", "system", "staff", "whiteraven", "uptime", "arcade", "me", "null", "none", "api"}
+
+
+def username_problem(name):
+    """Why a name can't be used, or None. Taken is checked separately, so this needs no database."""
+    if not USERNAME.match(name or ""):
+        return "invalid"
+    if name.lower() in RESERVED:
+        return "reserved"
+    return None
 
 
 def _valid_zone(value):
@@ -51,6 +68,7 @@ def _valid_zone(value):
 
 
 class Register(serializers.Serializer):
+    username = serializers.CharField(max_length=20)
     email = serializers.EmailField(max_length=150)
     password = serializers.CharField(max_length=128, trim_whitespace=False)
     display_name = serializers.CharField(max_length=40, required=False, allow_blank=True)
@@ -58,7 +76,7 @@ class Register(serializers.Serializer):
 
 
 class Login(serializers.Serializer):
-    email = serializers.CharField(max_length=254)
+    username = serializers.CharField(max_length=150)
     password = serializers.CharField(max_length=128, trim_whitespace=False)
 
 
@@ -74,6 +92,19 @@ class DeleteAccount(serializers.Serializer):
     password = serializers.CharField(max_length=128, trim_whitespace=False)
 
 
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([UsernameCheckThrottle])
+def username_available(request):
+    """Answers as you type. It only ever speaks about usernames, which are public anyway."""
+    name = request.query_params.get("name", "").strip()
+    problem = username_problem(name)
+    if not problem and User.objects.filter(username=name.lower()).exists():
+        problem = "taken"
+    return Response({"available": problem is None, "reason": problem})
+
+
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])
@@ -82,37 +113,41 @@ def register(request):
     body = Register(data=request.data)
     body.is_valid(raise_exception=True)
     data = body.validated_data
+    typed = data["username"].strip()
+    problem = username_problem(typed)
+    if problem:
+        raise GameError(f"username_{problem}", "That username can't be used.", status.HTTP_400_BAD_REQUEST)
+    username = typed.lower()
     email = data["email"].strip().lower()
-    candidate = User(username=email, email=email)
     try:
-        validate_password(data["password"], user=candidate)
+        validate_password(data["password"], user=User(username=username, email=email))
     except DjangoValidationError as e:
         raise serializers.ValidationError({"password": e.messages}) from e
     try:
         with transaction.atomic():
-            user = User.objects.create_user(username=email, email=email, password=data["password"])
+            user = User.objects.create_user(username=username, email=email, password=data["password"])
             player = user.player
-            player.display_name = data.get("display_name", "")
+            player.display_name = data.get("display_name") or typed
             if data.get("time_zone"):
                 player.time_zone = data["time_zone"]
             player.save(update_fields=["display_name", "time_zone"])
     except IntegrityError as e:
-        raise GameError("email_taken", "That email can't be used.", status.HTTP_400_BAD_REQUEST) from e
+        raise GameError("username_taken", "That username is taken.", status.HTTP_400_BAD_REQUEST) from e
     return _with_tokens(Response({"account": _account(user)}, status=status.HTTP_201_CREATED), RefreshToken.for_user(user))
 
 
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])
-@throttle_classes([AuthThrottle, LoginEmailThrottle])
+@throttle_classes([AuthThrottle, LoginAccountThrottle])
 def login(request):
     body = Login(data=request.data)
     body.is_valid(raise_exception=True)
-    email = body.validated_data["email"].strip().lower()
-    user = authenticate(request, username=email, password=body.validated_data["password"])
+    username = body.validated_data["username"].strip().lower()
+    user = authenticate(request, username=username, password=body.validated_data["password"])
     if user is None:
-        # One message whether the email exists or not, and Django runs the hasher either way.
-        raise GameError("bad_credentials", "Wrong email or password.", status.HTTP_401_UNAUTHORIZED)
+        # One message whether the username exists or not, and Django runs the hasher either way.
+        raise GameError("bad_credentials", "Wrong username or password.", status.HTTP_401_UNAUTHORIZED)
     return _with_tokens(Response({"account": _account(user)}), RefreshToken.for_user(user))
 
 

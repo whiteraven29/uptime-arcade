@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useGame } from '../api/useGame.js';
-import { S, level, mmss, setNavigator, tick, ui } from '../api/localGame.js';
+import { S, level, mmss, refreshPlayer, setNavigator, tick, ui } from '../api/game.js';
 import { ensureAudio } from '../sound/cues.js';
 import { SceneBackdrop } from '../ui/SceneBackdrop.jsx';
 import { Toast } from '../ui/Toast.jsx';
@@ -18,6 +18,7 @@ import { OnCallScreen } from '../features/oncall/OnCallScreen.jsx';
 import { RewardsScreen } from '../features/rewards/RewardsScreen.jsx';
 import { ProfileScreen } from '../features/profile/ProfileScreen.jsx';
 import { SystemScreen } from '../features/system/SystemScreen.jsx';
+import { AuthScreen } from '../features/auth/AuthScreen.jsx';
 
 const NAV = [['/', 'Deck'], ['/focus', 'Focus'], ['/missions', 'Missions'], ['/rewards', 'Rewards'], ['/system', 'System']];
 
@@ -56,8 +57,16 @@ export function App() {
   }, []);
   // Section 5: when a focus block finishes, every screen sends you to Focus to claim it.
   useEffect(() => {
-    if (S.claim && pathname !== '/focus') navigate('/focus');
+    if (ui.auth === 'in' && S.claim && pathname !== '/focus') navigate('/focus');
   }, [pathname, navigate]);
+  // Coming back to this tab picks up whatever another tab or device did.
+  useEffect(() => {
+    const onVisible = () => {
+      if (ui.auth === 'in' && !document.hidden) refreshPlayer().catch(() => {});
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   return (
     <div onPointerDown={ensureAudio}>
@@ -65,8 +74,18 @@ export function App() {
         <SceneBackdrop frameRef={frame} />
         <div className="scene-veil" />
         <div className="frame-scan" />
-        <TopBar />
-        <main>
+        {ui.auth === 'in' && <TopBar />}
+        {ui.auth === 'checking' && <main><p className="splash">Connecting...</p></main>}
+        {ui.auth === 'out' && (
+          <main>
+            <Routes>
+              <Route path="/register" element={<AuthScreen />} />
+              <Route path="/login" element={<AuthScreen />} />
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </main>
+        )}
+        {ui.auth === 'in' && <main>
           <Routes>
             <Route path="/" element={<DeckScreen />} />
             <Route path="/focus" element={<FocusScreen />} />
@@ -81,9 +100,9 @@ export function App() {
             <Route path="/system" element={<SystemScreen />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </main>
+        </main>}
       </div>
-      <Overlays />
+      {ui.auth === 'in' && <Overlays />}
       <Toast text={ui.toast} badge={ui.toastBadge} />
     </div>
   );

@@ -2,7 +2,7 @@ id: bx-15
 track: BX
 skill: networking
 chapter: Hard
-order: 15
+order: 25
 title: Mismatched masks
 from: Network
 difficulty: hard

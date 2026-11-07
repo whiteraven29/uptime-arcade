@@ -1,0 +1,88 @@
+id: bx-37
+track: BX
+skill: vi
+chapter: Hard
+order: 27
+title: Dot on every line
+from: Platform
+difficulty: hard
+check: vi
+par:
+  kind: keys
+  value: 15
+lesson:
+  text: "An operator can use f as its motion: df_ deletes up to and including the next underscore. . repeats the whole thing on another line."
+  example: |-
+    df_
+    j0.
+brief: Remove the old_ prefix from every line of ~/vi/prefix.env using the dot command.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/prefix.env"
+hints:
+  - df_ removes up to and including the underscore.
+  - j0 goes to the next line start, and . repeats it.
+debrief:
+  why: An operator plus a motion is one change, so . can repeat it anywhere.
+  solution: df_j0.j0.:wq<CR>
+  job: Repeating one precise edit is faster than any search and replace you have to think about.
+teaches:
+  - beyond
+file: ~/vi/prefix.env
+expect:
+  - file_equals:
+      path: ~/vi/prefix.env
+      content: |
+        a=1
+        b=2
+        c=3
+  - vi_saved: ~/vi/prefix.env
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Dot on every line". Which sentence best describes what it taught?
+    options:
+      - An operator plus a motion is one change, so . can repeat it anywhere.
+      - Three extra bits gives eight blocks. The same sum works for any two prefixes.
+      - Reads never change a map, and comma-ok is the only way to tell "missing" from "zero".
+      - One slow request says little. An average per endpoint tells you where the real problem is.
+    answer: An operator plus a motion is one change, so . can repeat it anywhere.
+    hint: Think about what "Dot on every line" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Remove the old_ prefix from every line of ~/vi/prefix.env using the dot command.
+    options:
+      - df_j0.j0.:wq<CR>
+      - 1 false 0
+      - "8"
+      - awk '{s[$4]+=$6;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/logs/api-access.log | sort -rn | head -1
+    answer: df_j0.j0.:wq<CR>
+    hint: j0 goes to the next line start, and . repeats it.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Dot on every line" taught you at work?
+    options:
+      - Router links get carved from a small reserved block like this.
+      - Caches and sets in Go are built from maps like this.
+      - Repeating one precise edit is faster than any search and replace you have to think about.
+      - This is the first thing to run when an API feels slow.
+    answer: Repeating one precise edit is faster than any search and replace you have to think about.
+    hint: "It starts with: Repeating one precise edit…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____j0.j0.:wq<CR>
+    answer:
+      - df_
+    hint: It's 3 characters, and the lesson shows it.
+  - type: text
+    level: hard
+    label: From memory
+    q: Which vi command saves the file and quits? Type it exactly, with the colon.
+    answer:
+      - :wq
+    hint: It starts with a colon, then w, then q.

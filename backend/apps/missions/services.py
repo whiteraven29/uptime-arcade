@@ -53,6 +53,7 @@ def state_of(player, mission):
 def tracks_for(player):
     """The whole map in one go, with one query for missions and one for progress."""
     states = dict(MissionProgress.objects.filter(player=player, season=player.season).values_list("mission_id", "state"))
+    answered = dict(RewindProgress.objects.filter(progress__player=player, progress__season=player.season).values_list("progress__mission_id", "correct"))
     missions = Mission.objects.filter(status=Mission.Status.PUBLISHED).select_related("track", "chapter").defer("answer_spec", "expect", "debrief", "rewind", "play", "hints", "lesson_text", "lesson_example", "brief", "goal", "teaches")
     open_beyond = beyond_open(player)
     grouped, previous = {}, {}
@@ -65,7 +66,7 @@ def tracks_for(player):
                 state = "locked"
         previous[code] = state
         track = grouped.setdefault(code, {"code": code, "name": m.track.name, "subtitle": m.track.subtitle, "after_archmage": m.track.after_archmage, "missions": []})
-        track["missions"].append({"code": m.code, "chapter": m.chapter.name, "order": m.order, "title": m.title, "difficulty": m.difficulty, "xp": m.xp, "state": str(state)})
+        track["missions"].append({"code": m.code, "chapter": m.chapter.name, "order": m.order, "title": m.title, "difficulty": m.difficulty, "xp": m.xp, "state": str(state), "answered": answered.get(m.pk, 0)})
     return list(grouped.values())
 
 
@@ -146,6 +147,9 @@ def submit(user, code, data):
     keys = _count(data.get("keys"), "keys")
     passed, record = _grade(mission, data)
     progress = _progress_for_update(player, mission)
+    if not passed and mission.check_type in GOAL_CHECKS:
+        # Not there yet, which isn't a wrong answer. These run after every command, so they aren't kept.
+        return {"result": "fail", "tries": progress.tries, "events": []}
     progress.tries += 1
     progress.commands = commands
     progress.keys = keys
@@ -163,12 +167,21 @@ def submit(user, code, data):
     return {"result": "pass", "tries": progress.tries, "par_bonus": progress.par_bonus, "xp_on_clear": progress.worth, "events": [{"type": "solved", "mission": mission.code}]}
 
 
+def check_goal(user, code, data):
+    """For terminal and vi missions, whose goal the browser can't see."""
+    mission = get_mission(code)
+    if mission.check_type not in GOAL_CHECKS:
+        raise GameError("not_a_goal_mission", "This mission is answered with submit.", status.HTTP_400_BAD_REQUEST)
+    return submit(user, code, data)
+
+
 def debrief(user, code):
     player = user.player
     mission = get_mission(code)
     if state_of(player, mission) not in (State.SOLVED, State.CLEARED):
         raise GameError("not_solved", "The debrief opens once you've solved the mission.", status.HTTP_403_FORBIDDEN)
-    return mission.debrief
+    progress = progress_of(player, mission)
+    return {**mission.debrief, "xp_on_clear": progress.worth, "par_bonus": progress.par_bonus, "xp_awarded": progress.xp_awarded}
 
 
 PUBLIC_TASK_FIELDS = ("type", "level", "label", "q", "context", "show", "options", "scrambled", "code")

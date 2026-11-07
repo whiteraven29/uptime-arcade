@@ -1,0 +1,96 @@
+id: bx-28
+track: BX
+skill: python
+chapter: Easy
+order: 8
+title: Runner-up
+from: Data
+difficulty: easy
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: set() removes repeats, and sorted() orders what is left. x[-2] is the second item from the end.
+  example: "sorted(set([4, 4, 1]))   # [1, 4]"
+brief: Return the second largest distinct number. Repeats of the largest do not count.
+goal: Write second_largest(nums). Tests run when you press Run tests.
+hints:
+  - Remove the repeats first.
+  - sorted(set(nums))[-2]
+debrief:
+  why: Removing duplicates before sorting is what makes this right, because [7, 7, 2] has to give 2 and not 7.
+  solution: |-
+    def second_largest(nums):
+        return sorted(set(nums))[-2]
+  job: Rankings always have to decide how to treat ties.
+teaches:
+  - beyond
+python:
+  starter: |
+    def second_largest(nums):
+        # your code here
+        pass
+  tests:
+    - expr: second_largest([3, 9, 5])
+      want: "5"
+    - expr: second_largest([7, 7, 2])
+      want: "2"
+    - expr: second_largest([1, 2, 3, 3])
+      want: "2"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Runner-up". Which sentence best describes what it taught?
+    options:
+      - Pipelines are built from parts, so swapping the last part changes the question they answer.
+      - D saves you counting characters when everything to the end of the line has to go.
+      - Removing duplicates before sorting is what makes this right, because [7, 7, 2] has to give 2 and not 7.
+      - Division by zero is the classic crash in reporting code, so guard it first.
+    answer: Removing duplicates before sorting is what makes this right, because [7, 7, 2] has to give 2 and not 7.
+    hint: Think about what "Runner-up" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return the second largest distinct number. Repeats of the largest do not count.
+    options:
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | sed -n 2p
+      - return round(up / total * 100, 2)
+      - f#hD:wq<CR>
+      - return sorted(set(nums))[-2]
+    answer: return sorted(set(nums))[-2]
+    hint: sorted(set(nums))[-2]
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Runner-up" taught you at work?
+    options:
+      - The runner-up is often the next thing to fall over.
+      - Rankings always have to decide how to treat ties.
+      - Status pages show exactly this number.
+      - Cleaning up a line before committing a config is a daily edit.
+    answer: Rankings always have to decide how to treat ties.
+    hint: "It starts with: Rankings always have to…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def second_largest(nums):
+          return sorted(____(nums))[-2]
+    answer:
+      - set
+    hint: It starts with "s" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def second_largest(nums):
+          ____
+    answer:
+      - return sorted(set(nums))[-2]
+    hint: "It starts with: return sor"

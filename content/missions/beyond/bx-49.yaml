@@ -1,0 +1,145 @@
+id: bx-49
+track: BX
+skill: go
+chapter: Brainfuck
+order: 49
+title: Embedding is not inheritance
+from: CTO
+difficulty: brainfuck
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "A struct can embed another, and gets its methods. But an embedded method only ever sees the inner type: it has no idea it is inside something else, so there is no overriding like in other languages."
+  example: |-
+    type B struct{ A }
+    b.Hi()   // runs A.Hi, on the A inside b
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - Hi belongs to A, so its a.Name() means A.Name.
+  - b.Name() finds B first.
+debrief:
+  why: Hi was written on A, so it calls A.Name forever. Go has composition, not virtual methods, and that surprises everyone coming from other languages.
+  solution: submit hi A B A
+  job: This is the first real shock for anyone arriving at Go from Java or Python.
+teaches:
+  - beyond
+answer:
+  accept:
+    - hi A B A
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    type A struct{}
+
+    func (A) Name() string { return "A" }
+    func (a A) Hi() string  { return "hi " + a.Name() }
+
+    type B struct{ A }
+
+    func (B) Name() string { return "B" }
+
+    func main() {
+    	b := B{}
+    	fmt.Println(b.Hi(), b.Name(), b.A.Name())
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Embedding is not inheritance". Which sentence best describes what it taught?
+    options:
+      - "A count alone can hide this: ten errors spread over a day is fine, ten in a row is an outage. State between lines is what shows the difference."
+      - Hi was written on A, so it calls A.Name forever. Go has composition, not virtual methods, and that surprises everyone coming from other languages.
+      - "The trailing space is the catch: a macro does exactly what you recorded, so it has to clean up after itself."
+      - Whole-file commands first, then one careful macro. Everything you learned, with no room for waste.
+    answer: Hi was written on A, so it calls A.Name forever. Go has composition, not virtual methods, and that surprises everyone coming from other languages.
+    hint: Think about what "Embedding is not inheritance" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - qadwA <Esc>p$xj0q2@a:wq<CR>
+      - hi A B A
+      - :g/^#/d<CR>qaf,r:a "<Esc>A"<Esc>j0q3@a:wq<CR>
+      - awk '{if($5!=200){n++; if(n>m)m=n}else n=0} END{print m}' ~/logs/api-access.log
+    answer: hi A B A
+    hint: b.Name() finds B first.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      type A struct{}
+
+      func (A) Name() string { return "A" }
+      func (a A) Hi() string  { return "hi " + a.Name() }
+
+      type B struct{ A }
+
+      func (B) Name() string { return "B" }
+
+      func main() {
+      	b := B{}
+      	fmt.Println(b.Hi(), b.Name(), b.A.Name())
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Embedding is not inheritance" taught you at work?
+    options:
+      - This is the first real shock for anyone arriving at Go from Java or Python.
+      - Reshaping an export under pressure is where all those keys pay off.
+      - Alerting systems look for runs like this, not just totals.
+      - If you can do this, there is no column edit you cannot do over SSH.
+    answer: This is the first real shock for anyone arriving at Go from Java or Python.
+    hint: "It starts with: This is the first…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      b := B{}
+      fmt.____(b.Hi(), b.Name(), b.A.Name())
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      type A struct{}
+
+      func (A) Name() string { return "A" }
+      func (a A) Hi() string  { return "hi " + a.Name() }
+
+      type B struct{ A }
+
+      func (B) Name() string { return "B" }
+
+      func main() {
+      	b := B{}
+      	fmt.Println(b.Hi(), b.Name(), b.A.Name())
+      }
+    answer:
+      - hi A B A
+    hint: It starts with "h" and is 8 characters long.

@@ -2,7 +2,7 @@ id: bx-08
 track: BX
 skill: python
 chapter: Medium
-order: 8
+order: 13
 title: Run-length encoding
 from: Data
 difficulty: medium

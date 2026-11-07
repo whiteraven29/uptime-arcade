@@ -206,6 +206,23 @@ class TestPlayerAndRewards:
         assert body["level"]["title"] == "Noob"
         assert body["level"]["next_title"] == "Initiate"
         assert body["session"] is None
+        assert body["username"] == api.user.username
+        assert body["focus_minutes"] == 0 and body["blocks_finished"] == 0
+
+    def test_player_reports_the_servers_clock(self, api, clock):
+        assert api.get("/api/v1/player/").json()["server_time"].startswith("2026-11-06T08:00")
+
+    def test_today_counts_only_todays_blocks_in_the_players_zone(self, api, clock):
+        block = api.post("/api/v1/focus/blocks/", {"goal": "x", "minutes": 25}, format="json").json()["block"]
+        api.post(f"/api/v1/focus/blocks/{block['id']}/drift/")
+        clock.advance(minutes=26)
+        api.post(f"/api/v1/focus/blocks/{block['id']}/claim/", {"done": True}, format="json")
+        body = api.get("/api/v1/player/").json()
+        assert body["today_minutes"] == 25 and body["today_drifts"] == 1
+        assert body["focus_minutes"] == 25 and body["blocks_finished"] == 1
+        clock.advance(days=1)
+        body = api.get("/api/v1/player/").json()
+        assert body["today_minutes"] == 0 and body["focus_minutes"] == 25
 
     def test_rewards_list_everything(self, api):
         body = api.get("/api/v1/rewards/").json()

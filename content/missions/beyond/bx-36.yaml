@@ -1,0 +1,83 @@
+id: bx-36
+track: BX
+skill: shell
+chapter: Hard
+order: 26
+title: The slowest endpoint
+from: SRE
+difficulty: hard
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: One array sums and another counts, per key. Dividing them in END gives an average for each key, which you can then sort.
+  example: awk '{s[$1]+=$2;n[$1]++} END{for(k in s)print s[k]/n[k],k}' times.txt | sort -rn
+brief: Which path has the highest average response time in ~/logs/api-access.log? Path is field 4 and ms is field 6.
+goal: "Run: submit <path>"
+hints:
+  - s[$4]+=$6 and n[$4]++.
+  - Print s[k]/n[k] and k in END, then sort -rn.
+debrief:
+  why: One slow request says little. An average per endpoint tells you where the real problem is.
+  solution: awk '{s[$4]+=$6;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/logs/api-access.log | sort -rn | head -1
+  job: This is the first thing to run when an API feels slow.
+teaches:
+  - beyond
+answer:
+  accept:
+    - /v1/search
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The slowest endpoint". Which sentence best describes what it taught?
+    options:
+      - B thinks 10.0.0.5 is outside its /25, so it hands replies to the gateway, which gives odd one-way failures.
+      - Web input always arrives as text, so converting only what is safe to convert is the real job.
+      - Slicing the timestamp turns a list of events into a timeline, which is how you line an outage up with a deploy.
+      - One slow request says little. An average per endpoint tells you where the real problem is.
+    answer: One slow request says little. An average per endpoint tells you where the real problem is.
+    hint: Think about what "The slowest endpoint" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Which path has the highest average response time in ~/logs/api-access.log? Path is field 4 and ms is field 6.
+    options:
+      - awk '{s[$4]+=$6;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/logs/api-access.log | sort -rn | head -1
+      - out[k] = int(v) if v.isdigit() else v
+      - awk '$5==500{print substr($1,12,2)}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+      - b
+    answer: awk '{s[$4]+=$6;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/logs/api-access.log | sort -rn | head -1
+    hint: Print s[k]/n[k] and k in END, then sort -rn.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: This pipeline has been split at each | and mixed up. Tap the parts from first to last.
+    scrambled:
+      - head -1
+      - sort -rn
+      - awk '{s[$4]+=$6;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/logs/api-access.log
+    answer:
+      - awk '{s[$4]+=$6;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/logs/api-access.log
+      - sort -rn
+      - head -1
+    hint: "The first one is: awk '{s[$4]+=$6;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/logs/api-access.log"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: awk '{s[$4]+=$6;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/logs/api-access.log | sort ____ | head -1
+    answer:
+      - -rn
+    hint: It starts with "-" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Which path has the highest average response time in ~/logs/api-access.log? Path is field 4 and ms is field 6.
+    answer:
+      - /v1/search
+    hint: It starts with "/" and is 10 characters long.

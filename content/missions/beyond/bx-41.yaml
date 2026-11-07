@@ -1,0 +1,83 @@
+id: bx-41
+track: BX
+skill: shell
+chapter: Expert
+order: 36
+title: The real p95
+from: SRE
+difficulty: expert
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: A percentile comes from sorted data. With 1600 lines, the 95th percentile by nearest rank is line 1520, and sed -n 1520p prints exactly that line.
+  example: sort -k2 -n times.txt | sed -n 95p
+brief: What is the 95th percentile response time in ~/logs/api-access.log? There are 1600 lines, ms is field 6, and nearest rank means line 1520 once sorted.
+goal: "Run: submit <ms>"
+hints:
+  - sort -k6 -n puts them in order.
+  - sed -n 1520p picks the line, and cut -d' ' -f6 picks the number.
+debrief:
+  why: An average hides the slowest users. The 95th percentile shows what one request in twenty really feels like.
+  solution: sort -k6 -n ~/logs/api-access.log | sed -n 1520p | cut -d' ' -f6
+  job: Service targets are written in percentiles, not averages.
+teaches:
+  - beyond
+answer:
+  accept:
+    - "1101"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The real p95". Which sentence best describes what it taught?
+    options:
+      - An average hides the slowest users. The 95th percentile shows what one request in twenty really feels like.
+      - "This is why a fast link across an ocean can still feel slow: latency caps throughput until the window grows."
+      - Totals favour whoever is biggest. Averages show who is actually worth more, which is often a different answer.
+      - Rules 10 to 30 only match guest sources, so the first full match is rule 40.
+    answer: An average hides the slowest users. The 95th percentile shows what one request in twenty really feels like.
+    hint: Think about what "The real p95" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: What is the 95th percentile response time in ~/logs/api-access.log? There are 1600 lines, ms is field 6, and nearest rank means line 1520 once sorted.
+    options:
+      - "5.24"
+      - "40"
+      - awk -F, 'NR>1{s[$4]+=$5;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/data/customers.csv | sort -rn | head -1
+      - sort -k6 -n ~/logs/api-access.log | sed -n 1520p | cut -d' ' -f6
+    answer: sort -k6 -n ~/logs/api-access.log | sed -n 1520p | cut -d' ' -f6
+    hint: sed -n 1520p picks the line, and cut -d' ' -f6 picks the number.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: This pipeline has been split at each | and mixed up. Tap the parts from first to last.
+    scrambled:
+      - cut -d' ' -f6
+      - sort -k6 -n ~/logs/api-access.log
+      - sed -n 1520p
+    answer:
+      - sort -k6 -n ~/logs/api-access.log
+      - sed -n 1520p
+      - cut -d' ' -f6
+    hint: "The first one is: sort -k6 -n ~/logs/api-access.log"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: sort -k6 ____ ~/logs/api-access.log | sed -n 1520p | cut -d' ' -f6
+    answer:
+      - -n
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: What is the 95th percentile response time in ~/logs/api-access.log? There are 1600 lines, ms is field 6, and nearest rank means line 1520 once sorted.
+    answer:
+      - "1101"
+    hint: It starts with "1" and is 4 characters long.

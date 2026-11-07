@@ -1,49 +1,52 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { HudPanel } from '../../ui/HudPanel.jsx';
-import { S, TICKETS, closeSession, exportSave, importSave, newSeason, toggleMute } from '../../api/localGame.js';
+import { S, TICKETS, closeSession, deleteAccount, logout, newSeason, setTimeZone, toggleMute, ui } from '../../api/game.js';
+
+function DeleteAccount() {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  if (!open) return <div className="row"><button className="btn" type="button" onClick={() => setOpen(true)}>Delete my account</button></div>;
+  return (
+    <form
+      className="stack"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        try {
+          await deleteAccount(password);
+        } catch (x) {
+          setError(x.message);
+          setPassword('');
+        }
+      }}
+    >
+      <p className="bad" style={{ margin: 0 }}>This wipes your progress, XP, badges and focus history for good.</p>
+      <div>
+        <label className="small" htmlFor="deletePassword">Your password</label>
+        <input type="password" id="deletePassword" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+      </div>
+      {error && <p className="bad" role="alert" style={{ margin: 0 }}>{error}</p>}
+      <div className="row">
+        <button className="btn warn" type="submit">Delete everything</button>
+        <button className="btn" type="button" onClick={() => setOpen(false)}>Cancel</button>
+      </div>
+    </form>
+  );
+}
 
 export function SystemScreen() {
-  const [msg, setMsg] = useState('');
   const [confirming, setConfirming] = useState(false);
-  const file = useRef(null);
-
-  const backUp = () => {
-    const { filename, data } = exportSave();
-    try {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setMsg('Saved as ' + filename);
-    } catch {
-      setMsg("Backup didn't finish. Try again.");
-    }
-  };
-  const load = async (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    try {
-      importSave(await f.text());
-      setMsg('Save loaded.');
-    } catch {
-      setMsg("That file isn't an Uptime Arcade save.");
-    }
-    e.target.value = '';
-  };
-
+  const here = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const account = ui.account;
   return (
     <section className="screen" aria-label="System">
       <div className="grid2">
-        <HudPanel className="stack" label="Your save">
-          <p style={{ margin: 0 }}>Progress saves automatically in this browser. Back it up before you reinstall or change PC.</p>
-          <div className="row">
-            <button className="btn" type="button" onClick={backUp}>Back up save</button>
-            <button className="btn" type="button" onClick={() => file.current.click()}>Load save</button>
-            <input ref={file} type="file" accept=".json,application/json" hidden aria-label="Save file" onChange={load} />
-          </div>
-          <div className="small" role="status">{msg}</div>
+        <HudPanel className="stack" label="Your account">
+          <p style={{ margin: 0 }}>Logged in as <b>{account.username}</b>. Your email is private: {account.email}</p>
+          <p style={{ margin: 0 }} className="small">Your day runs on {account.time_zone}, which decides when your streak rolls over. You can change it once a day.</p>
+          {here !== account.time_zone && <div className="row"><button className="btn" type="button" onClick={() => setTimeZone(here)}>Use {here}</button></div>}
+          <div className="row"><button className="btn" type="button" id="logoutBtn" onClick={logout}>Log out</button></div>
+          <DeleteAccount />
         </HudPanel>
         <HudPanel className="stack" label="Sound">
           <p style={{ margin: 0 }} className="small">Chimes for the timer, unlocks and level-ups.</p>
@@ -64,7 +67,7 @@ export function SystemScreen() {
           </div>
         </HudPanel>
         <HudPanel label="About">
-          <p style={{ margin: 0 }} className="small">Whiteraven is a fictional company. The terminal is simulated and stays on your PC.</p>
+          <p style={{ margin: 0 }} className="small">Whiteraven is a fictional company. The terminal is simulated, and its files stay on this device. Your progress is kept on the server.</p>
         </HudPanel>
       </div>
     </section>

@@ -1,0 +1,140 @@
+id: bx-44
+track: BX
+skill: go
+chapter: Expert
+order: 39
+title: Reading a closed channel
+from: Backend
+difficulty: expert
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "A closed channel still hands over what is in its buffer. After that it never blocks: every read returns the zero value and false."
+  example: v, ok := <-ch   // ok is false once closed and empty
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - The buffered 5 comes out first.
+  - After that, reads give the zero value right away.
+debrief:
+  why: A read from a closed channel never blocks, which is exactly why closing one works as a signal to every goroutine at once.
+  solution: submit 5 true 0 false
+  job: Shutting down a whole group of workers uses this.
+teaches:
+  - beyond
+answer:
+  accept:
+    - 5 true 0 false
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	ch := make(chan int, 1)
+    	ch <- 5
+    	close(ch)
+    	a, ok1 := <-ch
+    	b, ok2 := <-ch
+    	fmt.Println(a, ok1, b, ok2)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Reading a closed channel". Which sentence best describes what it taught?
+    options:
+      - "The three-index slice is the fix for shared-array bugs: it forces append to copy instead of overwriting a neighbour."
+      - A read from a closed channel never blocks, which is exactly why closing one works as a signal to every goroutine at once.
+      - A cache is only useful if it keeps what people still want, and "used least recently" is the simple rule that works.
+      - This is the decision every router makes for every packet, written out in full.
+    answer: A read from a closed channel never blocks, which is exactly why closing one works as a signal to every goroutine at once.
+    hint: Think about what "Reading a closed channel" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - "[0 0 7 0] 2 9"
+      - "if to_int(ip) // size == to_int(net) // size and bits > best_bits:"
+      - "if len(self.order) > self.size:"
+      - 5 true 0 false
+    answer: 5 true 0 false
+    hint: After that, reads give the zero value right away.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	ch := make(chan int, 1)
+      	ch <- 5
+      	close(ch)
+      	a, ok1 := <-ch
+      	b, ok2 := <-ch
+      	fmt.Println(a, ok1, b, ok2)
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - ch <- 5
+      - b, ok2 := <-ch
+      - a, ok1 := <-ch
+      - ch := make(chan int, 1)
+      - close(ch)
+      - fmt.Println(a, ok1, b, ok2)
+    answer:
+      - ch := make(chan int, 1)
+      - ch <- 5
+      - close(ch)
+      - a, ok1 := <-ch
+      - b, ok2 := <-ch
+      - fmt.Println(a, ok1, b, ok2)
+    hint: "The first one is: ch := make(chan int, 1)"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      ch := ____(chan int, 1)
+      ch <- 5
+      close(ch)
+      a, ok1 := <-ch
+      b, ok2 := <-ch
+      fmt.Println(a, ok1, b, ok2)
+    answer:
+      - make
+    hint: It starts with "m" and is 4 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	ch := make(chan int, 1)
+      	ch <- 5
+      	close(ch)
+      	a, ok1 := <-ch
+      	b, ok2 := <-ch
+      	fmt.Println(a, ok1, b, ok2)
+      }
+    answer:
+      - 5 true 0 false
+    hint: It starts with "5" and is 14 characters long.

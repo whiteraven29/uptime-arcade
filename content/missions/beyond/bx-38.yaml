@@ -1,0 +1,124 @@
+id: bx-38
+track: BX
+skill: python
+chapter: Hard
+order: 28
+title: Sliding window limit
+from: Platform
+difficulty: hard
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Keep a list of accepted requests. For each new one, count how many accepted ones are still inside the time window.
+  example: |-
+    recent = [x for x in ok if x > t - 60]
+    if len(recent) < 5:
+        ok.append(t)
+brief: times holds sorted request seconds. Return how many are allowed if at most limit may pass in any window seconds. Rejected requests do not count.
+goal: Write allowed(times, limit, window). Tests run when you press Run tests.
+hints:
+  - Keep a list of accepted times.
+  - Count accepted times greater than t - window.
+debrief:
+  why: A sliding window avoids the spikes you get at the edges of fixed windows, and rate limiting protects a service from any one client.
+  solution: |-
+    def allowed(times, limit, window):
+        ok = []
+        for t in times:
+            recent = [x for x in ok if x > t - window]
+            if len(recent) < limit:
+                ok.append(t)
+        return len(ok)
+  job: Every public API has a limiter like this. This game has one too.
+teaches:
+  - beyond
+python:
+  starter: |
+    def allowed(times, limit, window):
+        # your code here
+        pass
+  tests:
+    - expr: allowed([1,2,3,4],2,3)
+      want: "3"
+    - expr: allowed([1,1,1],1,10)
+      want: "1"
+    - expr: allowed([0,10,20],1,5)
+      want: "3"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Sliding window limit". Which sentence best describes what it taught?
+    options:
+      - The hardest part of a macro is where it ends, because the next run depends on it.
+      - B thinks 10.0.0.5 is outside its /25, so it hands replies to the gateway, which gives odd one-way failures.
+      - Slicing the timestamp turns a list of events into a timeline, which is how you line an outage up with a deploy.
+      - A sliding window avoids the spikes you get at the edges of fixed windows, and rate limiting protects a service from any one client.
+    answer: A sliding window avoids the spikes you get at the edges of fixed windows, and rate limiting protects a service from any one client.
+    hint: Think about what "Sliding window limit" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: times holds sorted request seconds. Return how many are allowed if at most limit may pass in any window seconds. Rejected requests do not count.
+    options:
+      - b
+      - awk '$5==500{print substr($1,12,2)}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+      - recent = [x for x in ok if x > t - window]
+      - qaf=a"<Esc>A"<Esc>j0q2@a:wq<CR>
+    answer: recent = [x for x in ok if x > t - window]
+    hint: Count accepted times greater than t - window.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "        recent = [x for x in ok if x > t - window]"
+      - "    return len(ok)"
+      - "def allowed(times, limit, window):"
+      - "    ok = []"
+      - "            ok.append(t)"
+      - "    for t in times:"
+      - "        if len(recent) < limit:"
+    answer:
+      - "def allowed(times, limit, window):"
+      - "    ok = []"
+      - "    for t in times:"
+      - "        recent = [x for x in ok if x > t - window]"
+      - "        if len(recent) < limit:"
+      - "            ok.append(t)"
+      - "    return len(ok)"
+    hint: "The first one is: def allowed(times, limit, window):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def allowed(times, limit, window):
+          ok = []
+          for t in times:
+              recent = [x for x in ok if x > t - window]
+              if len(recent) < limit:
+                  ok.____(t)
+          return len(ok)
+    answer:
+      - append
+    hint: It starts with "a" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def allowed(times, limit, window):
+          ok = []
+          for t in times:
+              ____
+              if len(recent) < limit:
+                  ok.append(t)
+          return len(ok)
+    answer:
+      - recent = [x for x in ok if x > t - window]
+    hint: "It starts with: recent = [x fo"

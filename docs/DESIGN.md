@@ -190,11 +190,11 @@ Each screen is its own route, and the top bar shows the logo, navigation, level,
 | `/missions/:slug/play` | **Play** | Mission panel on the left, workspace on the right (terminal, vi, Python, Go reader or NetLab) |
 | `/missions/:slug/rewind` | **Rewind** | Five tasks with progress pips and feedback |
 | `/ops` | **Operations** | Multi-skill missions with their prerequisites shown as linked track icons |
-| `/oncall` | **On-call** | Endless incident shifts, unlocked after all track missions are cleared |
+| `/oncall` | **On-call** | Endless incident shifts, unlocked after all track missions are cleared. Arrives in M11 ([ADR 0007](adr/0007-the-game-runs-on-the-server.md)) |
 | `/rewards` | **Rewards** | Streak ladder, level ladder and badge grid |
 | `/profile` | **Profile** | Stats, history charts (focus minutes per day, XP per week), name |
-| `/system` | **System** | Sound, close session, new season, export or import of the offline save, logout |
-| `/login`, `/register` | Auth | Styled in the HUD |
+| `/system` | **System** | Account, time zone, sound, close session, new season, logout, delete account |
+| `/login`, `/register` | Auth | Styled in the HUD. Log in with a username, which shows available or taken as you type. Email stays private |
 
 **Locks:**
 - Play and Rewind need an active session. Without one, they show a panel with "Open session (MM:SS)" or "Go to Focus".
@@ -614,10 +614,62 @@ Each Operation has 2 to 4 stages, each in a different tool. The state carries ac
 
 ### 8.8 Beyond (BX): after Archmage
 
-These open when you reach Archmage, one at a time, and don't count towards levels ([ADR 0006](adr/0006-xp-difficulty-and-beyond.md)). There are five tiers, each with one mission per skill.
+These open when you reach Archmage, one at a time, and don't count towards levels ([ADR 0006](adr/0006-xp-difficulty-and-beyond.md)). There are five tiers of ten, with two missions per skill in each.
 
 | ID | Tier | Skill | Mission | XP | Check |
 |---|---|---|---|---|---|
+| BX-01 | Easy | Shell | Second place | 200 | answer |
+| BX-02 | Easy | vi | Swap two letters | 200 | vi |
+| BX-03 | Easy | Python | Uptime percent | 200 | py |
+| BX-04 | Easy | Go | Write through the index | 200 | go-out |
+| BX-05 | Easy | Networking | How many fit? | 200 | answer |
+| BX-26 | Easy | Shell | Least popular | 200 | answer |
+| BX-27 | Easy | vi | Cut the comment | 200 | vi |
+| BX-28 | Easy | Python | Runner-up | 200 | py |
+| BX-29 | Easy | Go | Skip and stop | 200 | go-out |
+| BX-30 | Easy | Networking | The last host | 200 | answer |
+| BX-06 | Medium | Shell | Where the errors live | 300 | answer |
+| BX-07 | Medium | vi | Keep the original | 300 | vi |
+| BX-08 | Medium | Python | Run-length encoding | 300 | py |
+| BX-09 | Medium | Go | What the function changed | 300 | go-out |
+| BX-10 | Medium | Networking | The covering route | 300 | answer |
+| BX-31 | Medium | Shell | Who uploads? | 300 | answer |
+| BX-32 | Medium | vi | Comment what matches | 300 | vi |
+| BX-33 | Medium | Python | Parse a query string | 300 | py |
+| BX-34 | Medium | Go | Delete and look again | 300 | go-out |
+| BX-35 | Medium | Networking | Point-to-point links | 300 | answer |
+| BX-11 | Hard | Shell | The worst hour | 400 | answer |
+| BX-12 | Hard | vi | Quote every value | 400 | vi |
+| BX-13 | Hard | Python | Deploy order | 400 | py |
+| BX-14 | Hard | Go | Two defers and a panic | 400 | go-out |
+| BX-15 | Hard | Networking | Mismatched masks | 400 | answer |
+| BX-36 | Hard | Shell | The slowest endpoint | 400 | answer |
+| BX-37 | Hard | vi | Dot on every line | 400 | vi |
+| BX-38 | Hard | Python | Sliding window limit | 400 | py |
+| BX-39 | Hard | Go | Counters that remember | 400 | go-out |
+| BX-40 | Hard | Networking | Which rule decides? | 400 | answer |
+| BX-16 | Expert | Shell | Averages, not totals | 500 | answer |
+| BX-17 | Expert | vi | Swap two values | 500 | vi |
+| BX-18 | Expert | Python | Longest prefix wins | 500 | py |
+| BX-19 | Expert | Go | Capacity decides everything | 500 | go-out |
+| BX-20 | Expert | Networking | The window limit | 500 | answer |
+| BX-41 | Expert | Shell | The real p95 | 500 | answer |
+| BX-42 | Expert | vi | Cut a column | 500 | vi |
+| BX-43 | Expert | Python | A small LRU cache | 500 | py |
+| BX-44 | Expert | Go | Reading a closed channel | 500 | go-out |
+| BX-45 | Expert | Networking | Filling a long pipe | 500 | answer |
+| BX-21 | Brainfuck | Shell | The VLAN nobody typed | 750 | answer |
+| BX-22 | Brainfuck | vi | CSV to config, under par | 750 | vi |
+| BX-23 | Brainfuck | Python | Write a Brainfuck interpreter | 750 | py |
+| BX-24 | Brainfuck | Go | Everything at once | 750 | go-out |
+| BX-25 | Brainfuck | Networking | The black hole | 750 | answer |
+| BX-46 | Brainfuck | Shell | The longest bad run | 750 | answer |
+| BX-47 | Brainfuck | vi | Swap every pair | 750 | vi |
+| BX-48 | Brainfuck | Python | Write a calculator | 750 | py |
+| BX-49 | Brainfuck | Go | Embedding is not inheritance | 750 | go-out |
+| BX-50 | Brainfuck | Networking | The firewall that never saw it | 750 | answer |
+
+---|---|---|---|---|---|
 | BX-01 | Easy | Shell | Second place | 200 | answer |
 | BX-02 | Easy | vi | Swap two letters | 200 | vi |
 | BX-03 | Easy | Python | Uptime percent | 200 | py |
@@ -816,7 +868,7 @@ uptime-arcade/
 ├── frontend/                         React + Vite
 │   ├── public/fonts/                 Oxanium, IBM Plex Mono (self-hosted)
 │   └── src/
-│       ├── api/client.js
+│       ├── api/client.js  game.js    the HTTP client, and everything screens need from the server
 │       ├── app/App.jsx               routes
 │       ├── ui/                       HudPanel, CoreRing, TimerRing, MissionNode, Toast, Overlay, ...
 │       │   └── scene/                  the landscape painter
@@ -831,7 +883,7 @@ uptime-arcade/
 ├── content/                          the curriculum, as data
 │   ├── schema/mission.schema.json
 │   ├── tracks.yaml
-│   ├── index.mjs                     the catalogue for the browser game and Node tools, until M3
+│   ├── index.mjs                     the catalogue for the Node tools. The browser never imports it
 │   ├── build/                        generated by tools/compile_content.mjs, not committed
 │   ├── missions/{shell,vi,python,go,networking,beyond,netlab,ops}/*.yaml
 │   ├── fixtures/fs/*.yaml            virtual files per mission or shared
@@ -840,6 +892,9 @@ uptime-arcade/
 ├── tools/
 │   ├── verify_content.mjs            runs every solution through the engines, python3, Skulpt and `go run`
 │   ├── compile_content.mjs           builds the catalogue from the YAML
+│   ├── machine.mjs, stack.mjs        the engines without a browser; the server and build together
+│   ├── e2e.mjs                       a real browser against a real server (section 18)
+│   ├── check_bundle.mjs              fails if an answer reaches the production bundle
 │   ├── check_taught_before_used.mjs  lesson order check (section 18)
 │   └── screenshots.mjs               every screen at 1400px and 400px
 ├── legacy/                           the original single-file game, for reference
@@ -953,7 +1008,7 @@ erDiagram
 
 | Model | Key fields |
 |---|---|
-| `Player` | user (1:1), xp, peak_cleared, season, streak, best_streak, shields, last_streak_day, time_zone, sound_on |
+| `Player` | user (1:1), display_name, xp, peak_cleared, season, streak, best_streak, shields, last_streak_day, time_zone, time_zone_changed_at, sound_on, oncall_resolved |
 | `Track` | code (SH, VI, PY, GO, NET, LAB, OPS), name, subtitle, order |
 | `Chapter` | track, name, order |
 | `Mission` | code (sh-15), track, chapter, order, skill, title, from_dept, difficulty, check_type, xp, par_kind, par_value, lesson_text, lesson_example, brief, goal, hints (JSON), play (JSON), topology (FK), teaches (JSON), content_version, status (draft, published, retired). Server-only: answer_spec, expect, debrief and rewind (all JSON) |
@@ -983,14 +1038,16 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `auth/register/`, `auth/login/`, `auth/refresh/`, `auth/logout/` | Auth (public). The refresh token is only ever in an HttpOnly cookie |
+| GET | `auth/username/?name=` | Whether a username is available (public, rate limited). Nothing ever says whether an email is in use |
+| POST | `auth/register/`, `auth/login/`, `auth/refresh/`, `auth/logout/` | Auth (public), by username. The refresh token is only ever in an HttpOnly cookie |
 | GET, PATCH, DELETE | `auth/me/` | Account. Delete needs the password and wipes everything |
-| GET | `player/` | Level, XP, bank, session, streak, shields, badges summary |
+| GET | `player/` | Level, XP, bank, session, running block, streak, shields, focus totals, badges summary and `server_time` |
 | GET | `tracks/` | Tracks, chapters and missions with the player's state per mission |
 | GET | `missions/{code}/` | Briefing: lesson, brief, goal, par, worth, state |
 | GET | `missions/{code}/play/` | Play payload: fixtures, starter, topology, hints already revealed. **Needs a session** |
 | POST | `missions/{code}/hint/` | Reveal the next hint, lowering what the mission will pay. **Session** |
 | POST | `missions/{code}/submit/` | `{answer}`, `{state}` or `{code, passed}` returns pass or fail, and what it will pay when cleared. **Session** |
+| POST | `missions/{code}/check/` | `{state}` for terminal and vi goals, sent after each command. A check that fails costs nothing. **Session** |
 | GET | `missions/{code}/debrief/` | Why, solution, job. Only after it's solved |
 | GET | `missions/{code}/rewind/` | Current task (without its answer), progress, and a hint or answer once earned |
 | POST | `missions/{code}/rewind/answer/` | `{value}` returns correct and the next task. The last one pays the XP and returns unlock, level and badge events. **Session** |
@@ -1038,10 +1095,11 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 | Economy | Claims before `ends_at` are rejected, double claims are rejected, a session can't be opened twice, close returns the right seconds |
 | Engines | Vitest for each command and behaviour. NetLab golden tests: topology plus configs give the expected reachability matrix |
 | Content | **Every mission's solution passes in CI**, through the engines, real `python3`, Skulpt and real `go run`. The taught-before-used check passes, and every file validates against the schema |
-| End to end | Playwright on a fresh account: focus block (with a faked clock) to session to SH-01 to rewind to unlock, plus one NetLab lab |
-| Visual | Playwright screenshots of every screen at 1400px and 400px |
+| End to end | `tools/e2e.mjs`: a real browser and a real server on a fresh account, from signing up through a focus block, session, mission and rewind to unlock, each kind of workspace, and attempts to cheat. NetLab joins it in M6 |
+| Trust | `tools/check_bundle.mjs` scans the production build for answers, and a backend test feeds real engine states to the server's grader |
+| Visual | `tools/screenshots.mjs`: every screen at 1400px and 400px, on a real server |
 
-`make check` runs everything except end-to-end tests, which run in CI.
+`make check` runs everything except end-to-end tests. `make e2e` runs those, and CI runs both.
 
 ---
 
@@ -1052,9 +1110,9 @@ Each milestone is one or more pull requests and ends with `make check` passing a
 | # | Milestone | Scope | Acceptance criteria |
 |---|---|---|---|
 | M0 | Foundation | New repo from the template, rename, `legacy/` folder, `docs/DESIGN.md`, CI green | `make check` passes, and the health endpoint answers |
-| M1 | Content system (done) | `content` app, YAML schema, `import_content`, conversion of the existing missions, admin views | 175 missions imported. Schema validation in CI. Answers absent from all public serializers (tested) |
+| M1 | Content system (done) | `content` app, YAML schema, `import_content`, conversion of the existing missions, admin views | 200 missions imported. Schema validation in CI. Answers absent from all public serializers (tested) |
 | M2 | Player and economy (done, plus server-side mission and rewind play from M4 and M5, ADR 0005) | `game` and `focus` apps, ledgers, focus blocks, sessions, streaks, shields, rules config | Every rule in sections 6.1, 6.2 and 6.7 has tests. Server time enforced |
-| M3 | HUD shell | Design tokens, fonts, HUD kit, Deck, Focus, Missions, Briefing, Rewards, System screens on real API data | Screens match section 4 at 1400px and 400px. Keyboard accessible |
+| M3 | HUD shell (done, with Play and Rewind on the API too, ADR 0007) | Design tokens, fonts, HUD kit, Deck, Focus, Missions, Briefing, Rewards, System screens on real API data, plus login | Screens match section 4 at 1400px and 400px. Keyboard accessible. No answers in the bundle |
 | M4 | Play and engines | `engines/` package with fs, shell and vi ported, Python runner, Go reader, Play screen, submit, hints, debrief | All 100 legacy missions playable and passing in CI through engine scripts |
 | M5 | Rewind and progression | Server-side rewind generation, Rewind screen, unlocks, levels, badges, events and animations, Redis cache | Unlock-after-five works. Level-up and unlock animations play from API events |
 | M6 | NetLab v1 | Engine (L2, VLANs, trunks, routing, static routes, ACL, NAT, DHCP, DNS), CLI, canvas, simulation mode, goals | LAB-01 to LAB-23 playable. Golden reachability tests pass |

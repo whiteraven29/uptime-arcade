@@ -1,0 +1,85 @@
+id: bx-40
+track: BX
+skill: networking
+chapter: Hard
+order: 30
+title: Which rule decides?
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "Read a firewall table from the top, and test every part of a rule: source, destination, protocol and port. A rule has to match all of them."
+  example: |-
+    10 deny tcp 10.0.1.0/24 any
+    20 permit ip any any
+brief: A finance PC at 10.40.20.9 opens TCP 443 to 1.1.1.1. Rules are in ~/net/fw-rules.txt. Which rule decides?
+goal: "Run: submit <rule number that decides>"
+hints:
+  - Rules 10, 20 and 30 are about the guest VLAN, 10.40.40.0/24.
+  - Is 10.40.20.9 inside 10.40.0.0/16?
+debrief:
+  why: Rules 10 to 30 only match guest sources, so the first full match is rule 40.
+  solution: |-
+    cat ~/net/fw-rules.txt
+    submit 40
+  job: Reading a rule table in order is most of firewall work.
+teaches:
+  - beyond
+answer:
+  accept:
+    - "40"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Which rule decides?". Which sentence best describes what it taught?
+    options:
+      - One slow request says little. An average per endpoint tells you where the real problem is.
+      - Each call to counter makes a new n, and the closure keeps it alive, so a and b count separately.
+      - A sliding window avoids the spikes you get at the edges of fixed windows, and rate limiting protects a service from any one client.
+      - Rules 10 to 30 only match guest sources, so the first full match is rule 40.
+    answer: Rules 10 to 30 only match guest sources, so the first full match is rule 40.
+    hint: Think about what "Which rule decides?" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: A finance PC at 10.40.20.9 opens TCP 443 to 1.1.1.1. Rules are in ~/net/fw-rules.txt. Which rule decides?
+    options:
+      - 1 2 1
+      - awk '{s[$4]+=$6;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/logs/api-access.log | sort -rn | head -1
+      - "40"
+      - recent = [x for x in ok if x > t - window]
+    answer: "40"
+    hint: Is 10.40.20.9 inside 10.40.0.0/16?
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Which rule decides?" taught you at work?
+    options:
+      - This is the first thing to run when an API feels slow.
+      - Every public API has a limiter like this. This game has one too.
+      - Middleware and handlers in Go servers rely on closures everywhere.
+      - Reading a rule table in order is most of firewall work.
+    answer: Reading a rule table in order is most of firewall work.
+    hint: "It starts with: Reading a rule table…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ ~/net/fw-rules.txt
+    answer:
+      - cat
+    hint: It starts with "c" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: A finance PC at 10.40.20.9 opens TCP 443 to 1.1.1.1. Rules are in ~/net/fw-rules.txt. Which rule decides?
+    answer:
+      - "40"
+    hint: It starts with "4" and is 2 characters long.

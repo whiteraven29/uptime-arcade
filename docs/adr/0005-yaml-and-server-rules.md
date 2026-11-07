@@ -1,6 +1,6 @@
 # ADR 0005: YAML is the only source, and the server owns the rules
 
-**Status:** accepted, 2026-11-07. Replaces the "Decision" list in ADR 0002 for the backend. The browser game described there keeps running until M3 connects it.
+**Status:** accepted, 2026-11-07. Replaces the "Decision" list in ADR 0002 for the backend. ADR 0007 connected the screens and changed login to usernames.
 
 ## Context
 
@@ -35,5 +35,5 @@ M1 and M2 were next. The owner also asked for XP to be earned only when a missio
 
 - **`fs`, `vi` and `py` results are reported by the browser** (section 14). Someone can fake those until M9's runner replays them. Time, bank, XP, unlocks and answers to `answer` and Go missions are safe now. This must be fixed before any leaderboard.
 - **Rate limit counters are per process** until Redis arrives in M5, so several workers would each allow the full rate.
-- **Registering with a taken email says so.** Hiding it needs email verification, which doesn't exist yet. There's also no password reset yet.
-- **The build file holds the answers.** It must stop being served to browsers when M3 lands.
+- **There's no password reset yet.**
+- **The build file holds the answers.** It's for the Node tools only, and `tools/check_bundle.mjs` proves it stays out of the browser.

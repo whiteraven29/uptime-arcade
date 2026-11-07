@@ -107,8 +107,10 @@ REST_FRAMEWORK = {
         "anon": "60/min",
         "user": "300/min",
         "auth": "10/min",  # section 17
-        "login_email": "10/min",
+        "login_account": "10/min",
+        "username_check": "60/min",
         "submit": "30/min",  # section 17
+        "goal_check": "120/min",  # runs after each command in a terminal mission
     },
     # 0 means "use the real connection address". Left unset, DRF trusts X-Forwarded-For from anyone,
     # and a client could dodge every rate limit by changing that header. Prod sets its proxy count.

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { HudPanel } from '../../ui/HudPanel.jsx';
 import { DifficultyTag } from '../../ui/DifficultyTag.jsx';
-import { S, afterRewindStep, answerRewind, byId, mmss, openSession, pickOrder, rewindHelp, sessionOn, startRewind, stateOf, ui, unpickOrder } from '../../api/localGame.js';
+import { S, afterRewindStep, answerRewind, byId, mmss, openSession, pickOrder, rewindHelp, sessionOn, startRewind, stateOf, ui, unpickOrder } from '../../api/game.js';
 
 function FreeAnswer({ task }) {
   const [value, setValue] = useState('');
@@ -25,8 +25,8 @@ function FreeAnswer({ task }) {
   );
 }
 
-function Help({ id }) {
-  const { hint, answer } = rewindHelp(id);
+function Help() {
+  const { hint, answer } = rewindHelp();
   if (!hint && !answer) return null;
   return (
     <div className="rw-help">
@@ -42,7 +42,7 @@ function Help({ id }) {
   );
 }
 
-function Task({ m, t }) {
+function Task({ t }) {
   const pick = ui.rw.pick;
   return (
     <>
@@ -53,7 +53,7 @@ function Task({ m, t }) {
       {t.context && <p className="small">The mission was: {t.context}</p>}
       <h2 className="title" style={{ fontSize: 24, textTransform: 'none', letterSpacing: 0 }}>{t.q}</h2>
       {t.show && <pre>{t.show}</pre>}
-      <Help id={m.id} />
+      <Help />
       {t.type === 'mc' && t.options.map((o) => (
         <button key={o} type="button" className={`opt${t.code ? ' code' : ''}`} onClick={() => answerRewind(o)}>{o}</button>
       ))}
@@ -74,40 +74,27 @@ export function RewindScreen() {
   const { slug } = useParams();
   const m = byId(slug);
   const st = m ? stateOf(m) : null;
+  useEffect(() => {
+    if (m && st === 'rewind') startRewind(m.id);
+  }, [m, st]);
   if (!m) return <Navigate to="/missions" replace />;
-  // Finishing a rewind lands here for a moment while the route change is still in flight.
-  // Showing the finished state avoids a blank flash between the last task and the Missions screen.
-  if (st === 'clear') {
-    return (
-      <section className="screen" aria-label="Rewind">
-        <Navigate to="/missions" replace />
-        <div className="narrow">
-          <HudPanel label={`Rewind: ${m.title}`}>
-            <div className="pips">{[0, 1, 2, 3, 4].map((i) => <i key={i} className="on" />)}</div>
-            <h2 className="title good" style={{ fontSize: 26 }}>All done</h2>
-          </HudPanel>
-        </div>
-      </section>
-    );
-  }
-  if (st !== 'rewind') return <Navigate to={`/missions/${m.id}`} replace />;
-  startRewind(m.id);
-  const state = S.rew[m.id];
-  const fb = ui.rw.fb;
+  if (st !== 'rewind') return <Navigate to={st === 'clear' ? '/missions' : `/missions/${m.id}`} replace />;
+  const rw = ui.rw;
   const canOpen = S.bank > 0 && !S.focus && !S.claim;
+  const total = rw.total;
   return (
     <section className="screen" aria-label="Rewind">
       <div className="narrow">
         <HudPanel label={`Questions on: ${m.title}`}>
-          <p className="small">{S.done[m.id]?.paid ? 'Answer all five to unlock the next mission.' : `Answer all five to earn ${S.done[m.id]?.worth ?? m.xp} XP and unlock the next mission. A wrong answer costs nothing and comes back later.`}</p>
-          <div className="pips" role="img" aria-label={`${state.ok} of 5 correct`}>
-            {[0, 1, 2, 3, 4].map((i) => <i key={i} className={i < state.ok ? 'on' : ''} />)}
+          <p className="small">Answer all {total} to earn {rw.xpOnClear || m.xp} XP and unlock the next mission. A wrong answer costs nothing and comes back later.</p>
+          <div className="pips" role="img" aria-label={`${rw.correct} of ${total} correct`}>
+            {Array.from({ length: total }, (_, i) => <i key={i} className={i < rw.correct ? 'on' : ''} />)}
           </div>
-          {fb ? (
+          {rw.fb ? (
             <>
-              <h2 className={`title ${fb.ok ? 'good' : 'bad'}`} style={{ fontSize: 26 }}>{fb.ok ? 'Correct' : 'Not quite'}</h2>
-              {!fb.ok && <p className="small">{state.q.every((j) => state.miss[j] > 0) ? 'Try again. You get a hint this time.' : "No problem. This one comes back after the others, with a hint if you still need it."}</p>}
-              <button className="btn go" type="button" id="rwNext" autoFocus onClick={afterRewindStep}>{state.q.length ? 'Next question' : 'Finish'}</button>
+              <h2 className={`title ${rw.fb.ok ? 'good' : 'bad'}`} style={{ fontSize: 26 }}>{rw.fb.ok ? 'Correct' : 'Not quite'}</h2>
+              {!rw.fb.ok && <p className="small">{rw.fb.hintNext ? 'Try again. You get a hint this time.' : 'No problem. This one comes back after the others, with a hint if you still need it.'}</p>}
+              <button className="btn go" type="button" id="rwNext" autoFocus onClick={afterRewindStep}>{rw.nextState?.state === 'cleared' ? 'Finish' : 'Next question'}</button>
             </>
           ) : !sessionOn() ? (
             <>
@@ -117,8 +104,10 @@ export function RewindScreen() {
                 <Link className="btn" to="/focus">Go to Focus</Link>
               </div>
             </>
+          ) : rw.task && rw.id === m.id ? (
+            <Task t={rw.task} />
           ) : (
-            <Task m={m} t={ui.rw.tasks[state.q[0]]} />
+            <p className="small">Loading...</p>
           )}
         </HudPanel>
       </div>

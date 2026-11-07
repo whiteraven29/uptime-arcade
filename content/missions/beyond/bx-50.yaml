@@ -1,0 +1,87 @@
+id: bx-50
+track: BX
+skill: networking
+chapter: Brainfuck
+order: 50
+title: The firewall that never saw it
+from: CTO
+difficulty: brainfuck
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A stateful firewall only allows replies to connections it saw start. If traffic leaves through one firewall and returns through another, the second has never seen the start. That is asymmetric routing.
+  example: |-
+    out via A, back via B
+    B has no record of it
+brief: Connections leave through fw-a and return through fw-b. Read ~/net/asymmetric.txt. Which packet of the TCP handshake does fw-b drop?
+goal: "Run: submit <the packet that gets dropped>"
+hints:
+  - Which packet is the first one to reach fw-b?
+  - Look at the second step of the handshake.
+debrief:
+  why: fw-b never saw the SYN, so to it the SYN-ACK is an unsolicited packet. Each firewall is doing its job, and the connection still dies.
+  solution: cat ~/net/asymmetric.txt
+  job: This takes down networks after a routing change, and both firewalls look perfectly healthy.
+teaches:
+  - beyond
+answer:
+  accept:
+    - syn-ack
+    - synack
+    - syn ack
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The firewall that never saw it". Which sentence best describes what it taught?
+    options:
+      - Grammar turns into functions almost line by line. Every language you use is parsed by something shaped like this.
+      - An interpreter is just a loop over instructions with some state. Writing one removes the magic from every language you use.
+      - Small packets pass and big ones vanish, so the path has a smaller MTU than the endpoints think, and the ICMP messages saying so are being dropped.
+      - fw-b never saw the SYN, so to it the SYN-ACK is an unsolicited packet. Each firewall is doing its job, and the connection still dies.
+    answer: fw-b never saw the SYN, so to it the SYN-ACK is an unsolicited packet. Each firewall is doing its job, and the connection still dies.
+    hint: Think about what "The firewall that never saw it" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: Connections leave through fw-a and return through fw-b. Read ~/net/asymmetric.txt. Which packet of the TCP handshake does fw-b drop?
+    options:
+      - v = v * factor() if op == "*" else v // factor()
+      - cells[p] = (cells[p] + 1) % 256
+      - syn-ack
+      - mtu
+    answer: syn-ack
+    hint: Look at the second step of the handshake.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "The firewall that never saw it" taught you at work?
+    options:
+      - Nobody writes Brainfuck at work. Everybody who has written an interpreter reads code differently.
+      - This takes down networks after a routing change, and both firewalls look perfectly healthy.
+      - VPNs and tunnels cause this often, and few people recognise it. Now you will.
+      - Config languages, query planners and spreadsheets all contain one of these.
+    answer: This takes down networks after a routing change, and both firewalls look perfectly healthy.
+    hint: "It starts with: This takes down networks…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ ~/net/asymmetric.txt
+    answer:
+      - cat
+    hint: It starts with "c" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Connections leave through fw-a and return through fw-b. Read ~/net/asymmetric.txt. Which packet of the TCP handshake does fw-b drop?
+    answer:
+      - syn-ack
+      - synack
+      - syn ack
+    hint: It starts with "s" and is 7 characters long.

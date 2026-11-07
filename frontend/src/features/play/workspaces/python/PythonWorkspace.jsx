@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CodeEditor } from '../../../../ui/CodeEditor.jsx';
-import { S, bump, complete, notePyAttempt, saveCode, sessionOn, ui } from '../../../../api/localGame.js';
+import { S, bump, reportPython, saveCode, sessionOn, ui } from '../../../../api/game.js';
 import { loadPython, runTests } from './runner.js';
 
 export function PythonWorkspace({ mission }) {
@@ -12,7 +12,7 @@ export function PythonWorkspace({ mission }) {
     setOutput('');
   }, [mission.id, mission.starter]);
   const state = ui.py.state;
-  const note = state === 'loading' ? 'Loading Python...' : !on ? 'Open a session to run code.' : 'Tests run on your PC.';
+  const note = state === 'loading' ? 'Loading Python...' : state === 'failed' ? "Python couldn't start. Reload the page to try again." : !on ? 'Open a session to run code.' : 'Tests run on your PC.';
   return (
     <CodeEditor
       value={code}
@@ -28,10 +28,9 @@ export function PythonWorkspace({ mission }) {
         if (!sessionOn()) return;
         saveCode(mission, code);
         setOutput('Running...');
-        notePyAttempt(mission);
         const r = await runTests(mission, code);
         setOutput(r.out);
-        if (r.passed) complete(mission);
+        await reportPython(mission, code, r.passed);
         bump();
       }}
     />

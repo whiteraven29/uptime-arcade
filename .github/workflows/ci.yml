@@ -20,3 +20,4 @@ jobs:
           go-version: stable
       - run: make setup
       - run: make check
+      - run: make e2e

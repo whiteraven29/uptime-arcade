@@ -6,14 +6,14 @@ import { StatTile } from '../../ui/StatTile.jsx';
 import { Meter } from '../../ui/Meter.jsx';
 import { PlayIcon, TimerIcon } from '../../ui/icons.jsx';
 import { pad } from '../../../../engines/fs/index.js';
-import { BEYOND, EARN, LEVELS, S, STREAKS, TK, TRACKS, beyondOpen, cleared, level, levelIdx, missionPath, mmss, mult, nextUp, sessionOn, stateOf, trackName } from '../../api/localGame.js';
+import { BEYOND, EARN, LEVELS, S, STREAKS, TK, TRACKS, beyondOpen, cleared, clearedIn, level, levelIdx, missionPath, mmss, mult, nextUp, sessionOn, stateOf, trackName } from '../../api/game.js';
 
 function nextAction() {
   if (S.focus) return { label: 'Back to Focus', to: '/focus', title: 'A focus block is running', sub: 'Missions stay locked until it ends' };
   if (S.claim) return { label: 'Claim your block', to: '/focus', title: 'Your block is finished', sub: 'Claim the play time you earned' };
   if (S.bank <= 0 && !sessionOn()) return { label: 'Start a block', to: '/focus', title: 'No play time banked', sub: 'Finish a focus block to earn some' };
   const m = nextUp();
-  if (!m) return { label: 'View rewards', to: '/rewards', title: 'All paths cleared', sub: 'On-call shifts are open' };
+  if (!m) return { label: 'View rewards', to: '/rewards', title: 'Every mission cleared', sub: 'Start a new season in System' };
   const rewind = stateOf(m) === 'rewind';
   return { label: rewind ? 'Continue rewind' : 'Open briefing', to: missionPath(m), title: m.title, sub: `${trackName(m.track)}, mission ${m.pos + 1}` };
 }
@@ -75,7 +75,7 @@ export function DeckScreen() {
           </Link>
           <HudPanel label="Skill paths">
             {[...TRACKS, ...(beyondOpen() ? [BEYOND] : [])].map(([k, l]) => {
-              const d = TK[k].filter((x) => S.rewDone[x.id]).length;
+              const d = clearedIn(k);
               return <Meter key={k} label={l} value={`${d}/${TK[k].length}`} fraction={d / TK[k].length} />;
             })}
           </HudPanel>

@@ -1,0 +1,84 @@
+id: bx-27
+track: BX
+skill: vi
+chapter: Easy
+order: 7
+title: Cut the comment
+from: SRE
+difficulty: easy
+check: vi
+par:
+  kind: keys
+  value: 9
+lesson:
+  text: D deletes from the cursor to the end of the line. Step back first with h if you want to take the space too.
+  example: f#  h  D
+brief: Remove the trailing comment from ~/vi/trailing.conf, and the space before it.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/trailing.conf"
+hints:
+  - f# lands on the hash.
+  - h steps onto the space, and D removes the rest.
+debrief:
+  why: D saves you counting characters when everything to the end of the line has to go.
+  solution: f#hD:wq<CR>
+  job: Cleaning up a line before committing a config is a daily edit.
+teaches:
+  - beyond
+file: ~/vi/trailing.conf
+expect:
+  - file_equals:
+      path: ~/vi/trailing.conf
+      content: |
+        port: 80
+  - vi_saved: ~/vi/trailing.conf
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Cut the comment". Which sentence best describes what it taught?
+    options:
+      - v is a copy, and writing through the index is the one that sticks.
+      - Dropping one flag turns "most popular" into "least popular". The rare ones are often the endpoints you can retire.
+      - D saves you counting characters when everything to the end of the line has to go.
+      - Pipelines are built from parts, so swapping the last part changes the question they answer.
+    answer: D saves you counting characters when everything to the end of the line has to go.
+    hint: Think about what "Cut the comment" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Remove the trailing comment from ~/vi/trailing.conf, and the space before it.
+    options:
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | sed -n 2p
+      - "[2 4 6]"
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -n | head -1
+      - f#hD:wq<CR>
+    answer: f#hD:wq<CR>
+    hint: h steps onto the space, and D removes the rest.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Cut the comment" taught you at work?
+    options:
+      - The runner-up is often the next thing to fall over.
+      - Knowing what nobody uses is how you safely remove things.
+      - A common loop in any Go code.
+      - Cleaning up a line before committing a config is a daily edit.
+    answer: Cleaning up a line before committing a config is a daily edit.
+    hint: "It starts with: Cleaning up a line…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: f#h____:wq<CR>
+    answer:
+      - D
+    hint: It's 1 characters, and the lesson shows it.
+  - type: text
+    level: hard
+    label: From memory
+    q: Which vi command saves the file and quits? Type it exactly, with the colon.
+    answer:
+      - :wq
+    hint: It starts with a colon, then w, then q.

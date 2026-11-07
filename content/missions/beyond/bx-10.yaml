@@ -2,7 +2,7 @@ id: bx-10
 track: BX
 skill: networking
 chapter: Medium
-order: 10
+order: 15
 title: The covering route
 from: Network
 difficulty: medium

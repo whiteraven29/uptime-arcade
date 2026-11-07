@@ -7,7 +7,7 @@ from apps.content.serializers import MissionBriefingSerializer
 from apps.focus.services import require_session
 
 from . import services
-from .throttles import SubmitThrottle
+from .throttles import GoalCheckThrottle, SubmitThrottle
 
 
 def _body(request):
@@ -61,6 +61,12 @@ def hint(request, code):
 @throttle_classes([SubmitThrottle])
 def submit(request, code):
     return Response(services.submit(request.user, code, _body(request)))
+
+
+@api_view(["POST"])
+@throttle_classes([GoalCheckThrottle])
+def check_goal(request, code):
+    return Response(services.check_goal(request.user, code, _body(request)))
 
 
 @api_view(["GET"])

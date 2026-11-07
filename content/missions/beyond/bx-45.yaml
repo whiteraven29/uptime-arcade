@@ -1,0 +1,84 @@
+id: bx-45
+track: BX
+skill: networking
+chapter: Expert
+order: 40
+title: Filling a long pipe
+from: SRE
+difficulty: expert
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: To keep a link full, TCP needs one round trip of data in flight. That is bandwidth times delay. Divide by 8 for bytes.
+  example: |-
+    100 Mbps with 20 ms:
+    100000000 * 0.02 / 8 = 250000 bytes
+brief: How big must the TCP window be, in megabytes, to fill a 1 Gbps link with a 50 ms round trip?
+goal: "Run: submit <megabytes, to 2 decimals>"
+hints:
+  - 1000000000 bits per second times 0.05 seconds.
+  - Divide by 8 for bytes, then by 1000000.
+debrief:
+  why: Bandwidth times delay is how much data is on the wire at once. A smaller window leaves the link idle, however fast it is.
+  solution: submit 6.25
+  job: Tuning long-distance transfers starts with this sum.
+teaches:
+  - beyond
+answer:
+  accept:
+    - "6.25"
+verify: str(1000000000*0.05/8/1000000)
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Filling a long pipe". Which sentence best describes what it taught?
+    options:
+      - Block mode works on columns, which line-based commands cannot do in one go.
+      - Bandwidth times delay is how much data is on the wire at once. A smaller window leaves the link idle, however fast it is.
+      - A cache is only useful if it keeps what people still want, and "used least recently" is the simple rule that works.
+      - An average hides the slowest users. The 95th percentile shows what one request in twenty really feels like.
+    answer: Bandwidth times delay is how much data is on the wire at once. A smaller window leaves the link idle, however fast it is.
+    hint: Think about what "Filling a long pipe" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: How big must the TCP window be, in megabytes, to fill a 1 Gbps link with a 50 ms round trip?
+    options:
+      - "if len(self.order) > self.size:"
+      - sort -k6 -n ~/logs/api-access.log | sed -n 1520p | cut -d' ' -f6
+      - <C-v>2j3ld:wq<CR>
+      - "6.25"
+    answer: "6.25"
+    hint: Divide by 8 for bytes, then by 1000000.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Filling a long pipe" taught you at work?
+    options:
+      - Redis, browsers and CPUs all use this idea.
+      - Tuning long-distance transfers starts with this sum.
+      - Service targets are written in percentiles, not averages.
+      - Tidying aligned output and tables is where this shines.
+    answer: Tuning long-distance transfers starts with this sum.
+    hint: "It starts with: Tuning long-distance transfers starts…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: ____ times delay is how much data is on the wire at once. A smaller window leaves the link idle, however fast it is.
+    answer:
+      - Bandwidth
+    hint: It starts with "B" and is 9 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: How big must the TCP window be, in megabytes, to fill a 1 Gbps link with a 50 ms round trip?
+    answer:
+      - "6.25"
+    hint: It starts with "6" and is 4 characters long.

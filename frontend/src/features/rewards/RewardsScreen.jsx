@@ -1,7 +1,7 @@
 import { HudPanel } from '../../ui/HudPanel.jsx';
 import { Badge } from '../../ui/Badge.jsx';
 import { LadderRow } from '../../ui/LadderRow.jsx';
-import { BADGES, LEVELS, S, STREAKS, levelIdx, mult } from '../../api/localGame.js';
+import { BADGES, LEVELS, S, STREAKS, levelIdx, mult } from '../../api/game.js';
 
 export function RewardsScreen() {
   const next = STREAKS.find((s) => !S.claimed[s[0]]);

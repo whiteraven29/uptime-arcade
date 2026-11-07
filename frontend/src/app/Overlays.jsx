@@ -1,20 +1,19 @@
 import { useNavigate } from 'react-router-dom';
 import { Overlay } from '../ui/Overlay.jsx';
-import { LEVELS, S, byId, cleared, closeDebrief, closeOverlay, leaveMission, ui } from '../api/localGame.js';
+import { LEVELS, S, closeDebrief, closeOverlay, cleared, leaveMission, ui } from '../api/game.js';
 
-function Debrief({ id }) {
+function Debrief({ d }) {
   const navigate = useNavigate();
-  const t = byId(id);
-  const d = S.done[id];
+  const { id } = d;
   return (
     <Overlay label="Mission complete">
       <p className="label">Mission complete</p>
-      <h2 className="title metal">{t.title}</h2>
+      <h2 className="title metal">{d.title}</h2>
       <p className="good">Solved. {d.note}{d.bonus ? ' (par bonus)' : ''}</p>
-      <p>{t.why}</p>
-      <pre>{t.sol}</pre>
-      <p className="small">On the job: {t.job}</p>
-      <p className="obj">{d.paid ? 'Answer five short questions to unlock the next mission.' : `Answer five short questions about it to earn ${d.worth} XP and unlock the next mission.`}</p>
+      <p>{d.why}</p>
+      <pre>{d.solution}</pre>
+      <p className="small">On the job: {d.job}</p>
+      <p className="obj">Answer five short questions about it to earn {d.worth} XP and unlock the next mission.</p>
       <div className="row">
         <button className="btn go" type="button" onClick={() => { closeDebrief(); navigate(`/missions/${id}/rewind`); }}>Start the questions</button>
         <button className="btn" type="button" onClick={() => { closeDebrief(); leaveMission(); }}>Later</button>
@@ -41,7 +40,7 @@ function Finale() {
       <p className="label">All paths complete</p>
       <div className="name metal">Archmage</div>
       <p>You rose from Noob to Archmage at Whiteraven with {S.focusMin} minutes of real focus across {S.blocks} blocks.</p>
-      <p className="small">The Beyond missions are now open, from Easy to Brainfuck. On-call shifts are unlocked too, and you can start a new season in System.</p>
+      <p className="small">The Beyond missions are now open, from Easy to Brainfuck. You can also start a new season in System.</p>
       <div className="row"><button className="btn go" type="button" onClick={closeOverlay}>Continue</button></div>
     </Overlay>
   );
@@ -50,7 +49,7 @@ function Finale() {
 export function Overlays() {
   return (
     <>
-      {ui.debrief && <Debrief id={ui.debrief} />}
+      {ui.debrief && <Debrief d={ui.debrief} />}
       {ui.overlay?.kind === 'level' && <LevelUp i={ui.overlay.i} />}
       {ui.overlay?.kind === 'finale' && <Finale />}
     </>

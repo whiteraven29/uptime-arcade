@@ -3,10 +3,10 @@
    lists what its lesson teaches, the lesson text has to mention it, and every command, flag, keyword or
    key its solution uses must be listed by this mission or an earlier one in the same track. */
 import { execFileSync } from 'node:child_process';
-import * as g from '../frontend/src/api/localGame.js';
-import { VI } from '../engines/vi/index.js';
+import { S } from '../engines/host.js';
+import { TK, TRACKS } from '../content/index.mjs';
+import { pressKeys, resetMachine, startMission } from './machine.mjs';
 
-const { TK, TRACKS } = g;
 const problems = [];
 
 const SHELL_SKIP = new Set(['submit', 'in', 'then', 'else', 'fi']);
@@ -80,17 +80,12 @@ function goTokens(t) {
   return out;
 }
 
-g.boot(null);
-g.setNavigator(() => {});
+resetMachine();
 const VI_ALWAYS = new Set(['Escape', 'Enter', ':']);
 function viTokens(t) {
-  g.setCurrent(t.id);
-  g.runCommand(`vi ${t.file}`);
-  for (const k of t.sol.match(/<CR>|<Esc>|<C-.>|[\s\S]/g)) {
-    if (k.startsWith('<C-')) g.viPress(k[3], true);
-    else g.viPress(k === '<CR>' ? 'Enter' : k === '<Esc>' ? 'Escape' : k, false);
-  }
-  const used = new Set((g.S.viUsed && g.S.viUsed[t.file]) || VI.used);
+  startMission(t);
+  pressKeys(t.file, t.sol);
+  const used = new Set(S.viUsed[t.file] || []);
   for (const k of [...used]) if (VI_ALWAYS.has(k)) used.delete(k);
   return used;
 }

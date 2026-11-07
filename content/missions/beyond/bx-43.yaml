@@ -1,0 +1,165 @@
+id: bx-43
+track: BX
+skill: python
+chapter: Expert
+order: 38
+title: A small LRU cache
+from: Backend
+difficulty: expert
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "An LRU cache drops whatever was used longest ago when it is full. Keep the keys in a list ordered by use: move a key to the end when it is touched, and drop from the front."
+  example: |-
+    order.remove(key)
+    order.append(key)
+    oldest = order.pop(0)
+brief: LRU(size) holds that many keys. put(key, value) stores one, and get(key) returns it or None. Using a key with get or put makes it the most recent. When full, drop the least recently used.
+goal: Write the LRU class. Tests run when you press Run tests.
+hints:
+  - Keep a dict for values and a list for order.
+  - Touching a key means remove it from the list and append it.
+debrief:
+  why: A cache is only useful if it keeps what people still want, and "used least recently" is the simple rule that works.
+  solution: |-
+    class LRU:
+        def __init__(self, size):
+            self.size = size
+            self.data = {}
+            self.order = []
+        def touch(self, key):
+            if key in self.order:
+                self.order.remove(key)
+            self.order.append(key)
+        def get(self, key):
+            if key not in self.data:
+                return None
+            self.touch(key)
+            return self.data[key]
+        def put(self, key, value):
+            self.data[key] = value
+            self.touch(key)
+            if len(self.order) > self.size:
+                oldest = self.order.pop(0)
+                del self.data[oldest]
+  job: Redis, browsers and CPUs all use this idea.
+teaches:
+  - beyond
+python:
+  starter: |
+    class LRU:
+        # your code here
+        pass
+  tests:
+    - expr: first
+      want: "1"
+      label: get returns a stored value
+    - expr: c.get("b")
+      want: None
+      label: the least recently used key was dropped
+    - expr: c.get("a")
+      want: "1"
+      label: a was used recently, so it stayed
+    - expr: c.get("c")
+      want: "3"
+      label: the newest key is there
+  prelude: |
+    c = LRU(2)
+    c.put("a", 1)
+    c.put("b", 2)
+    first = c.get("a")
+    c.put("c", 3)
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "A small LRU cache". Which sentence best describes what it taught?
+    options:
+      - Rules 10 to 30 only match guest sources, so the first full match is rule 40.
+      - A cache is only useful if it keeps what people still want, and "used least recently" is the simple rule that works.
+      - An average hides the slowest users. The 95th percentile shows what one request in twenty really feels like.
+      - "The three-index slice is the fix for shared-array bugs: it forces append to copy instead of overwriting a neighbour."
+    answer: A cache is only useful if it keeps what people still want, and "used least recently" is the simple rule that works.
+    hint: Think about what "A small LRU cache" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: LRU(size) holds that many keys. put(key, value) stores one, and get(key) returns it or None. Using a key with get or put makes it the most recent. When full, drop the least recently used.
+    options:
+      - sort -k6 -n ~/logs/api-access.log | sed -n 1520p | cut -d' ' -f6
+      - "40"
+      - "if len(self.order) > self.size:"
+      - "[0 0 7 0] 2 9"
+    answer: "if len(self.order) > self.size:"
+    hint: Touching a key means remove it from the list and append it.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "A small LRU cache" taught you at work?
+    options:
+      - Reading a rule table in order is most of firewall work.
+      - Service targets are written in percentiles, not averages.
+      - Redis, browsers and CPUs all use this idea.
+      - Libraries that hand out sub-slices use this to protect their data.
+    answer: Redis, browsers and CPUs all use this idea.
+    hint: "It starts with: Redis, browsers and CPUs…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      class LRU:
+          def __init__(self, size):
+              self.size = size
+              self.data = {}
+              self.order = []
+          def touch(self, key):
+              if key in self.order:
+                  self.order.remove(key)
+              self.order.append(key)
+          def ____(self, key):
+              if key not in self.data:
+                  return None
+              self.touch(key)
+              return self.data[key]
+          def put(self, key, value):
+              self.data[key] = value
+              self.touch(key)
+              if len(self.order) > self.size:
+                  oldest = self.order.pop(0)
+                  del self.data[oldest]
+    answer:
+      - get
+    hint: It starts with "g" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      class LRU:
+          def __init__(self, size):
+              self.size = size
+              self.data = {}
+              self.order = []
+          def touch(self, key):
+              if key in self.order:
+                  self.order.remove(key)
+              self.order.append(key)
+          def get(self, key):
+              if key not in self.data:
+                  return None
+              self.touch(key)
+              return self.data[key]
+          def put(self, key, value):
+              self.data[key] = value
+              self.touch(key)
+              ____
+                  oldest = self.order.pop(0)
+                  del self.data[oldest]
+    answer:
+      - "if len(self.order) > self.size:"
+    hint: "It starts with: if len(self"

@@ -1,0 +1,150 @@
+id: bx-39
+track: BX
+skill: go
+chapter: Hard
+order: 29
+title: Counters that remember
+from: Backend
+difficulty: hard
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A function can return another function. The inner one keeps the variables it uses, even after the outer one has finished. That is a closure, and each call to the outer function makes a new one.
+  example: |-
+    func f() func() int {
+    	n := 0
+    	return func() int { n++; return n }
+    }
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - a and b each have their own n.
+  - a is called twice, b once.
+debrief:
+  why: Each call to counter makes a new n, and the closure keeps it alive, so a and b count separately.
+  solution: submit 1 2 1
+  job: Middleware and handlers in Go servers rely on closures everywhere.
+teaches:
+  - beyond
+answer:
+  accept:
+    - 1 2 1
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func counter() func() int {
+    	n := 0
+    	return func() int {
+    		n++
+    		return n
+    	}
+    }
+
+    func main() {
+    	a := counter()
+    	b := counter()
+    	fmt.Println(a(), a(), b())
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Counters that remember". Which sentence best describes what it taught?
+    options:
+      - A sliding window avoids the spikes you get at the edges of fixed windows, and rate limiting protects a service from any one client.
+      - The hardest part of a macro is where it ends, because the next run depends on it.
+      - Each call to counter makes a new n, and the closure keeps it alive, so a and b count separately.
+      - One slow request says little. An average per endpoint tells you where the real problem is.
+    answer: Each call to counter makes a new n, and the closure keeps it alive, so a and b count separately.
+    hint: Think about what "Counters that remember" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - qaf=a"<Esc>A"<Esc>j0q2@a:wq<CR>
+      - awk '{s[$4]+=$6;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/logs/api-access.log | sort -rn | head -1
+      - 1 2 1
+      - recent = [x for x in ok if x > t - window]
+    answer: 1 2 1
+    hint: a is called twice, b once.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func counter() func() int {
+      	n := 0
+      	return func() int {
+      		n++
+      		return n
+      	}
+      }
+
+      func main() {
+      	a := counter()
+      	b := counter()
+      	fmt.Println(a(), a(), b())
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - fmt.Println(a(), a(), b())
+      - a := counter()
+      - b := counter()
+    answer:
+      - a := counter()
+      - b := counter()
+      - fmt.Println(a(), a(), b())
+    hint: "The first one is: a := counter()"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      a := counter()
+      b := counter()
+      fmt.____(a(), a(), b())
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func counter() func() int {
+      	n := 0
+      	return func() int {
+      		n++
+      		return n
+      	}
+      }
+
+      func main() {
+      	a := counter()
+      	b := counter()
+      	fmt.Println(a(), a(), b())
+      }
+    answer:
+      - 1 2 1
+    hint: It starts with "1" and is 5 characters long.

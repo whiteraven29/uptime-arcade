@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { HudPanel } from '../../ui/HudPanel.jsx';
 import { MissionNode } from '../../ui/MissionNode.jsx';
-import { BEYOND, CHAPTERS, DIFFICULTIES, S, TK, TRACKS, beyondOpen, difficultyLabel, missionPath, oncallUnlocked, stateOf, toast, ui } from '../../api/localGame.js';
+import { BEYOND, CHAPTERS, DIFFICULTIES, TK, TRACKS, beyondOpen, clearedIn, difficultyLabel, missionPath, stateOf, toast, ui } from '../../api/game.js';
 
 function TrackColumn({ code, name, sub, selected }) {
   const navigate = useNavigate();
   const chapters = CHAPTERS[code];
   const list = useRef(null);
-  const done = TK[code].filter((m) => S.rewDone[m.id]).length;
+  const done = clearedIn(code);
   // Thirty missions don't fit on screen, so each column opens on the one you're up to.
   useEffect(() => {
     const box = list.current;
@@ -36,7 +36,7 @@ function TrackColumn({ code, name, sub, selected }) {
                 flash={ui.flash === m.id}
                 difficulty={m.difficulty}
                 difficultyLabel={difficultyLabel(m.difficulty)}
-                sub={st === 'rewind' ? `Questions ${(S.rew[m.id] || { ok: 0 }).ok}/${m.rewind.length}` : null}
+                sub={st === 'rewind' ? `Questions ${m.answered}/5` : null}
                 onClick={() => (st === 'locked' ? toast(code === BEYOND[0] && !beyondOpen() ? 'Reach Archmage to open these' : 'Clear the mission before this one first') : navigate(missionPath(m)))}
               />
             </div>
@@ -51,12 +51,6 @@ export function MissionsScreen() {
   const [picked, setPicked] = useState(TRACKS[0][0]);
   return (
     <section className="screen flush missions" aria-label="Missions">
-      {oncallUnlocked() && (
-        <HudPanel label="On-call unlocked">
-          <p className="small">Endless random incidents. Resolved {S.ocTotal}, best first-try streak {S.ocBest}.</p>
-          <Link className="btn go" to="/oncall">Start shift</Link>
-        </HudPanel>
-      )}
       <div className="diff-legend" aria-label="Difficulty levels">
         {DIFFICULTIES.map((d) => <span key={d.code}><i className={`diff-dot diff-${d.code}`} />{d.label}</span>)}
       </div>

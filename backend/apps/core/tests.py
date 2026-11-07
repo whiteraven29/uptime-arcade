@@ -15,7 +15,7 @@ def test_health_is_public(anon):
 def test_every_other_endpoint_needs_login(anon):
     from django.urls import get_resolver
 
-    public = {"health/", "auth/register/", "auth/login/", "auth/refresh/", "auth/logout/"}
+    public = {"health/", "auth/username/", "auth/register/", "auth/login/", "auth/refresh/", "auth/logout/"}
     checked = 0
     def walk(patterns, prefix=""):
         for p in patterns:

@@ -1,0 +1,83 @@
+id: bx-31
+track: BX
+skill: shell
+chapter: Medium
+order: 16
+title: Who uploads?
+from: Compliance
+difficulty: medium
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: Filter with awk, then sort -u and wc -l. That is how you count distinct values among only some of the lines.
+  example: awk '$1=="cat"{print $2}' pets.txt | sort -u | wc -l
+brief: How many different client IPs used /v1/upload in ~/logs/api-access.log? The path is field 4 and the IP is field 2.
+goal: "Run: submit <count>"
+hints:
+  - $4=="/v1/upload" picks the lines.
+  - Print $2, then sort -u and wc -l.
+debrief:
+  why: Filter first and then count distinct, because counting the lines would count requests instead of clients.
+  solution: awk '$4=="/v1/upload"{print $2}' ~/logs/api-access.log | sort -u | wc -l
+  job: '"How many customers were affected?" is this query.'
+teaches:
+  - beyond
+answer:
+  accept:
+    - "24"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Who uploads?". Which sentence best describes what it taught?
+    options:
+      - Compression is really about spotting runs. Forgetting the last run after the loop is the classic bug.
+      - Network, then broadcast, then one below it. The same three steps work for any subnet.
+      - Keeping the old value in a comment is a cheap rollback, and a macro does it for a whole file.
+      - Filter first and then count distinct, because counting the lines would count requests instead of clients.
+    answer: Filter first and then count distinct, because counting the lines would count requests instead of clients.
+    hint: Think about what "Who uploads?" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: How many different client IPs used /v1/upload in ~/logs/api-access.log? The path is field 4 and the IP is field 2.
+    options:
+      - awk '$4=="/v1/upload"{print $2}' ~/logs/api-access.log | sort -u | wc -l
+      - out += prev + str(n)
+      - 192.168.7.158
+      - qayyPI# <Esc>jjq@a:wq<CR>
+    answer: awk '$4=="/v1/upload"{print $2}' ~/logs/api-access.log | sort -u | wc -l
+    hint: Print $2, then sort -u and wc -l.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: This pipeline has been split at each | and mixed up. Tap the parts from first to last.
+    scrambled:
+      - awk '$4=="/v1/upload"{print $2}' ~/logs/api-access.log
+      - wc -l
+      - sort -u
+    answer:
+      - awk '$4=="/v1/upload"{print $2}' ~/logs/api-access.log
+      - sort -u
+      - wc -l
+    hint: "The first one is: awk '$4==\"/v1/upload\"{print $2}' ~/logs/api-access.log"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: awk '$4=="/v1/upload"{print $2}' ~/logs/api-access.log | sort -u | wc ____
+    answer:
+      - -l
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: How many different client IPs used /v1/upload in ~/logs/api-access.log? The path is field 4 and the IP is field 2.
+    answer:
+      - "24"
+    hint: It starts with "2" and is 2 characters long.

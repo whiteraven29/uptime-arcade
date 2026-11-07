@@ -6,7 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.game.models import Player, TimeLedger
 
-GOOD = {"email": "Sara@Example.test", "password": "correct horse battery", "display_name": "Sara"}
+GOOD = {"username": "Sara_01", "email": "Sara@Example.test", "password": "correct horse battery"}
 COOKIE = settings.REFRESH_COOKIE["key"]
 
 
@@ -19,7 +19,7 @@ def registered(anon):
 
 class TestRegister:
     def test_gives_a_new_player_the_starter_bank(self, registered):
-        player = Player.objects.get(user__username="sara@example.test")
+        player = Player.objects.get(user__username="sara_01")
         assert player.bank() == 300
         assert TimeLedger.objects.filter(player=player, reason="starter").count() == 1
 
@@ -37,54 +37,103 @@ class TestRegister:
     def test_rejects_weak_passwords(self, anon, password):
         response = anon.post("/api/v1/auth/register/", {**GOOD, "password": password}, format="json")
         assert response.status_code == 400
-        assert not get_user_model().objects.filter(username="sara@example.test").exists()
+        assert not get_user_model().objects.filter(username="sara_01").exists()
 
-    def test_rejects_a_password_like_the_email(self, anon):
-        response = anon.post("/api/v1/auth/register/", {"email": "longusername@example.test", "password": "longusername1"}, format="json")
+    def test_rejects_a_password_like_the_username(self, anon):
+        response = anon.post("/api/v1/auth/register/", {"username": "longusername", "email": "a@example.test", "password": "longusername1"}, format="json")
         assert response.status_code == 400
 
-    def test_email_is_case_insensitive_and_unique(self, anon, registered):
-        again = anon.post("/api/v1/auth/register/", {**GOOD, "email": "SARA@example.test"}, format="json")
+    def test_username_ignores_capitals(self, anon, registered):
+        again = anon.post("/api/v1/auth/register/", {**GOOD, "username": "SARA_01", "email": "other@example.test"}, format="json")
         assert again.status_code == 400
-        assert again.json()["error"]["code"] == "email_taken"
+        assert again.json()["error"]["code"] == "username_taken"
+
+    def test_a_used_email_is_never_revealed(self, anon, registered):
+        again = APIClient().post("/api/v1/auth/register/", {**GOOD, "username": "someone_else"}, format="json")
+        fresh = APIClient().post("/api/v1/auth/register/", {**GOOD, "username": "third_person", "email": "never.used@example.test"}, format="json")
+        assert again.status_code == fresh.status_code == 201
+        assert set(again.json()) == set(fresh.json())
+
+    @pytest.mark.parametrize("name", ["ab", "x" * 21, "has space", "bad!name", "a@b.com", "../etc"])
+    def test_rejects_bad_usernames(self, anon, name):
+        response = anon.post("/api/v1/auth/register/", {**GOOD, "username": name}, format="json")
+        assert response.status_code == 400
+
+    @pytest.mark.parametrize("name", ["admin", "ROOT", "Whiteraven"])
+    def test_rejects_reserved_usernames(self, anon, name):
+        assert anon.post("/api/v1/auth/register/", {**GOOD, "username": name}, format="json").status_code == 400
 
     def test_rejects_an_unknown_time_zone(self, anon):
         assert anon.post("/api/v1/auth/register/", {**GOOD, "time_zone": "Mars/Olympus"}, format="json").status_code == 400
 
     def test_a_client_cant_set_its_own_xp(self, anon):
         anon.post("/api/v1/auth/register/", {**GOOD, "xp": 99999, "is_staff": True, "is_superuser": True}, format="json")
-        user = get_user_model().objects.get(username="sara@example.test")
+        user = get_user_model().objects.get(username="sara_01")
         assert user.player.xp == 0
         assert not user.is_staff and not user.is_superuser
 
     def test_stores_a_hash_not_the_password(self, registered):
-        user = get_user_model().objects.get(username="sara@example.test")
+        user = get_user_model().objects.get(username="sara_01")
         assert GOOD["password"] not in user.password
+
+
+class TestUsernameCheck:
+    def check(self, client, name):
+        return client.get("/api/v1/auth/username/", {"name": name}).json()
+
+    def test_says_free_or_taken(self, anon, registered):
+        assert self.check(anon, "brand_new") == {"available": True, "reason": None}
+        assert self.check(anon, "sara_01") == {"available": False, "reason": "taken"}
+
+    def test_ignores_capitals(self, anon, registered):
+        assert self.check(anon, "SARA_01")["available"] is False
+
+    def test_explains_names_that_cant_be_used(self, anon):
+        assert self.check(anon, "ab")["reason"] == "invalid"
+        assert self.check(anon, "admin")["reason"] == "reserved"
+
+    def test_is_public(self, anon):
+        assert anon.get("/api/v1/auth/username/", {"name": "brand_new"}).status_code == 200
+
+    def test_says_nothing_about_email(self, anon, registered):
+        assert self.check(anon, "sara@example.test")["reason"] == "invalid"
+
+    def test_is_rate_limited_so_nobody_can_list_players(self, anon):
+        codes = [anon.get("/api/v1/auth/username/", {"name": f"name{i}"}).status_code for i in range(61)]
+        assert codes[59] == 200 and codes[60] == 429
 
 
 class TestLogin:
     def test_right_password_gets_tokens(self, anon, registered):
         fresh = APIClient()
-        response = fresh.post("/api/v1/auth/login/", {"email": "sara@example.test", "password": GOOD["password"]}, format="json")
+        response = fresh.post("/api/v1/auth/login/", {"username": "sara_01", "password": GOOD["password"]}, format="json")
         assert response.status_code == 200
         assert response.json()["access"]
         assert COOKIE in response.cookies
+
+    def test_capitals_dont_matter(self, registered):
+        response = APIClient().post("/api/v1/auth/login/", {"username": "SARA_01", "password": GOOD["password"]}, format="json")
+        assert response.status_code == 200
+
+    def test_an_email_isnt_a_login(self, registered):
+        response = APIClient().post("/api/v1/auth/login/", {"username": "sara@example.test", "password": GOOD["password"]}, format="json")
+        assert response.status_code == 401
 
     def test_access_token_works(self, anon, registered):
         fresh = APIClient()
         fresh.credentials(HTTP_AUTHORIZATION=f"Bearer {registered.json()['access']}")
         assert fresh.get("/api/v1/player/").status_code == 200
 
-    def test_gives_the_same_answer_for_a_wrong_password_and_an_unknown_email(self, anon, registered):
+    def test_gives_the_same_answer_for_a_wrong_password_and_an_unknown_username(self, anon, registered):
         fresh = APIClient()
-        wrong = fresh.post("/api/v1/auth/login/", {"email": "sara@example.test", "password": "nope nope nope"}, format="json")
-        unknown = fresh.post("/api/v1/auth/login/", {"email": "nobody@example.test", "password": "nope nope nope"}, format="json")
+        wrong = fresh.post("/api/v1/auth/login/", {"username": "sara_01", "password": "nope nope nope"}, format="json")
+        unknown = fresh.post("/api/v1/auth/login/", {"username": "nobody", "password": "nope nope nope"}, format="json")
         assert wrong.status_code == unknown.status_code == 401
         assert wrong.json() == unknown.json()
 
     def test_a_disabled_account_cant_log_in(self, anon, registered):
-        get_user_model().objects.filter(username="sara@example.test").update(is_active=False)
-        response = APIClient().post("/api/v1/auth/login/", {"email": "sara@example.test", "password": GOOD["password"]}, format="json")
+        get_user_model().objects.filter(username="sara_01").update(is_active=False)
+        response = APIClient().post("/api/v1/auth/login/", {"username": "sara_01", "password": GOOD["password"]}, format="json")
         assert response.status_code == 401
 
 
@@ -116,14 +165,14 @@ class TestRefresh:
 
 
     def test_a_disabled_account_cant_refresh(self, registered):
-        get_user_model().objects.filter(username="sara@example.test").update(is_active=False)
+        get_user_model().objects.filter(username="sara_01").update(is_active=False)
         client = APIClient()
         client.cookies[COOKIE] = registered.cookies[COOKIE].value
         assert client.post("/api/v1/auth/refresh/").status_code == 401
 
     def test_a_deleted_account_cant_refresh(self, registered):
         token = registered.cookies[COOKIE].value
-        get_user_model().objects.filter(username="sara@example.test").delete()
+        get_user_model().objects.filter(username="sara_01").delete()
         client = APIClient()
         client.cookies[COOKIE] = token
         assert client.post("/api/v1/auth/refresh/").status_code == 401
@@ -148,24 +197,24 @@ class TestLogout:
 class TestRateLimits:
     def test_blocks_password_guessing(self):
         client = APIClient()
-        codes = [client.post("/api/v1/auth/login/", {"email": "a@example.test", "password": "x" * 12}, format="json").status_code for _ in range(11)]
+        codes = [client.post("/api/v1/auth/login/", {"username": "someone", "password": "x" * 12}, format="json").status_code for _ in range(11)]
         assert codes[:10] == [401] * 10
         assert codes[10] == 429
 
     def test_faking_x_forwarded_for_doesnt_dodge_the_limit(self):
         client = APIClient()
-        codes = [client.post("/api/v1/auth/login/", {"email": f"a{i}@example.test", "password": "x" * 12}, format="json", HTTP_X_FORWARDED_FOR=f"10.0.0.{i}").status_code for i in range(11)]
+        codes = [client.post("/api/v1/auth/login/", {"username": f"a{i}", "password": "x" * 12}, format="json", HTTP_X_FORWARDED_FOR=f"10.0.0.{i}").status_code for i in range(11)]
         assert codes[10] == 429
 
     def test_guessing_one_account_from_many_addresses_is_limited_too(self):
         client = APIClient()
-        codes = [client.post("/api/v1/auth/login/", {"email": "a@example.test", "password": "x" * 12}, format="json", REMOTE_ADDR=f"10.0.0.{i}").status_code for i in range(11)]
+        codes = [client.post("/api/v1/auth/login/", {"username": "someone", "password": "x" * 12}, format="json", REMOTE_ADDR=f"10.0.0.{i}").status_code for i in range(11)]
         assert codes[10] == 429
 
     def test_changing_capitals_doesnt_reset_the_account_limit(self):
         client = APIClient()
-        emails = ["a@example.test", "A@example.test", " a@EXAMPLE.test"]
-        codes = [client.post("/api/v1/auth/login/", {"email": emails[i % 3], "password": "x" * 12}, format="json", REMOTE_ADDR=f"10.0.0.{i}").status_code for i in range(11)]
+        names = ["someone", "Someone", " SOMEONE"]
+        codes = [client.post("/api/v1/auth/login/", {"username": names[i % 3], "password": "x" * 12}, format="json", REMOTE_ADDR=f"10.0.0.{i}").status_code for i in range(11)]
         assert codes[10] == 429
 
     def test_argon2_is_the_production_hasher(self):

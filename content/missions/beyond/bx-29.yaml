@@ -1,0 +1,153 @@
+id: bx-29
+track: BX
+skill: go
+chapter: Easy
+order: 9
+title: Skip and stop
+from: Backend
+difficulty: easy
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: continue skips to the next round of a loop. break leaves the loop completely.
+  example: |-
+    for i := 0; i < 9; i++ {
+    	if i == 2 {
+    		break
+    	}
+    }
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - i of 1 prints nothing, but the loop carries on.
+  - i of 3 ends the loop.
+debrief:
+  why: continue skips one round and break ends the loop, and mixing them up gives a loop that stops too soon or never.
+  solution: submit 0 2 end
+  job: Almost every filter loop uses one of these.
+teaches:
+  - beyond
+answer:
+  accept:
+    - 0 2 end
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	for i := 0; i < 5; i++ {
+    		if i == 1 {
+    			continue
+    		}
+    		if i == 3 {
+    			break
+    		}
+    		fmt.Print(i, " ")
+    	}
+    	fmt.Println("end")
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Skip and stop". Which sentence best describes what it taught?
+    options:
+      - Pipelines are built from parts, so swapping the last part changes the question they answer.
+      - v is a copy, and writing through the index is the one that sticks.
+      - Division by zero is the classic crash in reporting code, so guard it first.
+      - continue skips one round and break ends the loop, and mixing them up gives a loop that stops too soon or never.
+    answer: continue skips one round and break ends the loop, and mixing them up gives a loop that stops too soon or never.
+    hint: Think about what "Skip and stop" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - "[2 4 6]"
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | sed -n 2p
+      - 0 2 end
+      - return round(up / total * 100, 2)
+    answer: 0 2 end
+    hint: i of 3 ends the loop.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	for i := 0; i < 5; i++ {
+      		if i == 1 {
+      			continue
+      		}
+      		if i == 3 {
+      			break
+      		}
+      		fmt.Print(i, " ")
+      	}
+      	fmt.Println("end")
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Skip and stop" taught you at work?
+    options:
+      - The runner-up is often the next thing to fall over.
+      - Status pages show exactly this number.
+      - Almost every filter loop uses one of these.
+      - A common loop in any Go code.
+    answer: Almost every filter loop uses one of these.
+    hint: "It starts with: Almost every filter loop…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      for i := 0; i < 5; i++ {
+      	if i == 1 {
+      		continue
+      	}
+      	if i == 3 {
+      		break
+      	}
+      	fmt.Print(i, " ")
+      }
+      fmt.____("end")
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	for i := 0; i < 5; i++ {
+      		if i == 1 {
+      			continue
+      		}
+      		if i == 3 {
+      			break
+      		}
+      		fmt.Print(i, " ")
+      	}
+      	fmt.Println("end")
+      }
+    answer:
+      - 0 2 end
+    hint: It starts with "0" and is 7 characters long.

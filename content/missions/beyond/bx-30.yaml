@@ -1,0 +1,85 @@
+id: bx-30
+track: BX
+skill: networking
+chapter: Easy
+order: 10
+title: The last host
+from: Network
+difficulty: easy
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: The last usable host is one below the broadcast address. Many networks put a gateway or a printer there.
+  example: |-
+    10.0.0.64/28
+    broadcast 10.0.0.79
+    last host 10.0.0.78
+brief: What is the last usable address in the subnet of 192.168.7.130/27?
+goal: "Run: submit <answer>"
+hints:
+  - /27 blocks go up in 32s, so the network is .128.
+  - Broadcast is .159. One below that.
+debrief:
+  why: Network, then broadcast, then one below it. The same three steps work for any subnet.
+  solution: submit 192.168.7.158
+  job: Firewall rules and static addresses need exact ends of a range.
+teaches:
+  - beyond
+answer:
+  accept:
+    - 192.168.7.158
+verify: str(list(ipaddress.ip_interface('192.168.7.130/27').network.hosts())[-1])
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The last host". Which sentence best describes what it taught?
+    options:
+      - Network, then broadcast, then one below it. The same three steps work for any subnet.
+      - x keeps what it removed, so xp is a two-key typo fix.
+      - Every extra bit doubles the number of subnets and halves their size.
+      - D saves you counting characters when everything to the end of the line has to go.
+    answer: Network, then broadcast, then one below it. The same three steps work for any subnet.
+    hint: Think about what "The last host" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: What is the last usable address in the subnet of 192.168.7.130/27?
+    options:
+      - "4"
+      - lxp:wq<CR>
+      - 192.168.7.158
+      - f#hD:wq<CR>
+    answer: 192.168.7.158
+    hint: Broadcast is .159. One below that.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "The last host" taught you at work?
+    options:
+      - Firewall rules and static addresses need exact ends of a range.
+      - The quick sum behind every address plan.
+      - You will use xp for the rest of your life.
+      - Cleaning up a line before committing a config is a daily edit.
+    answer: Firewall rules and static addresses need exact ends of a range.
+    hint: "It starts with: Firewall rules and static…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: ____, then broadcast, then one below it. The same three steps work for any subnet.
+    answer:
+      - Network
+    hint: It starts with "N" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: What is the last usable address in the subnet of 192.168.7.130/27?
+    answer:
+      - 192.168.7.158
+    hint: It starts with "1" and is 13 characters long.

@@ -2,7 +2,7 @@ id: bx-21
 track: BX
 skill: shell
 chapter: Brainfuck
-order: 21
+order: 41
 title: The VLAN nobody typed
 from: Network
 difficulty: brainfuck

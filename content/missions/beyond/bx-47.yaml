@@ -1,0 +1,90 @@
+id: bx-47
+track: BX
+skill: vi
+chapter: Brainfuck
+order: 47
+title: Swap every pair
+from: CTO
+difficulty: brainfuck
+check: vi
+par:
+  kind: keys
+  value: 22
+lesson:
+  text: dw cuts a word with its space. Pasting at the end of the line moves it, but brings that space along, so one more cut is needed. A macro makes all of that repeatable.
+  example: |-
+    qa  dw  A <Esc>  p  $x  j0  q
+    2@a
+brief: Swap the two words on every line of ~/vi/pairs.txt. Record the edit once and replay it, and leave no trailing space.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/pairs.txt"
+hints:
+  - dw then A and a space, then Esc and p.
+  - The pasted word brings a trailing space, so $x removes it. End with j0.
+debrief:
+  why: "The trailing space is the catch: a macro does exactly what you recorded, so it has to clean up after itself."
+  solution: qadwA <Esc>p$xj0q2@a:wq<CR>
+  job: If you can do this, there is no column edit you cannot do over SSH.
+teaches:
+  - beyond
+file: ~/vi/pairs.txt
+expect:
+  - file_equals:
+      path: ~/vi/pairs.txt
+      content: |
+        v1 k1
+        v2 k2
+        v3 k3
+  - vi_saved: ~/vi/pairs.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Swap every pair". Which sentence best describes what it taught?
+    options:
+      - "A count alone can hide this: ten errors spread over a day is fine, ten in a row is an outage. State between lines is what shows the difference."
+      - val froze a copy when n was 1, inc changed the real t, and the deferred function ran after return and rewrote the named result.
+      - "The trailing space is the catch: a macro does exactly what you recorded, so it has to clean up after itself."
+      - Bandwidth times delay is how much data is on the wire at once. A smaller window leaves the link idle, however fast it is.
+    answer: "The trailing space is the catch: a macro does exactly what you recorded, so it has to clean up after itself."
+    hint: Think about what "Swap every pair" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Swap the two words on every line of ~/vi/pairs.txt. Record the edit once and replay it, and leave no trailing space.
+    options:
+      - awk '{if($5!=200){n++; if(n>m)m=n}else n=0} END{print m}' ~/logs/api-access.log
+      - "6.25"
+      - 3 3 1
+      - qadwA <Esc>p$xj0q2@a:wq<CR>
+    answer: qadwA <Esc>p$xj0q2@a:wq<CR>
+    hint: The pasted word brings a trailing space, so $x removes it. End with j0.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - p$xj0q2@a
+      - :wq<CR>
+      - qadwA <Esc>
+    answer:
+      - qadwA <Esc>
+      - p$xj0q2@a
+      - :wq<CR>
+    hint: "The first one is: qadwA <Esc>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____dwA <Esc>p$xj0q2@a:wq<CR>
+    answer:
+      - qa
+    hint: It's 2 characters, and the lesson shows it.
+  - type: text
+    level: hard
+    label: From memory
+    q: Which vi command saves the file and quits? Type it exactly, with the colon.
+    answer:
+      - :wq
+    hint: It starts with a colon, then w, then q.

@@ -45,7 +45,7 @@ a { color: inherit; }
 .chip-time b { color: var(--amber); font-size: 15.5px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
 
 /* ---------- sections: no boxes, the scene is the surface ---------- */
-main { min-height: 0; }
+main { grid-row: 2; min-height: 0; } /* row 1 is the top bar, even on screens without one */
 .screen { height: 100%; min-height: 0; overflow: auto; padding: 14px clamp(16px, 2.6vw, 38px) 24px; }
 .screen.flush { padding: 0; }
 .hud { position: relative; min-width: 0; padding: 14px 0; }
@@ -259,6 +259,15 @@ pre { font-family: var(--font-mono); font-size: 13.5px; line-height: 1.45; backg
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 30; background: rgba(9, 16, 26, 0.96); border: 1px solid var(--amber); border-radius: 99px; color: var(--amber); padding: 8px 20px; max-width: calc(100% - 32px); box-shadow: 0 0 22px rgba(255, 140, 50, 0.34); }
 .toast.with-badge { display: flex; align-items: center; gap: 12px; padding: 6px 22px 6px 8px; }
 .toast .emblem { width: 44px; height: 44px; flex: none; }
+
+/* ---------- accounts and loading ---------- */
+.auth { display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; min-height: 100%; }
+.field-note { margin: 4px 0 0; min-height: 1.4em; font-size: 13px; color: var(--dim); }
+.field-note.good { color: var(--ok); }
+.field-note.bad { color: var(--danger); }
+input[type='email'], input[type='password'] { width: 100%; background: var(--glass-strong); border: 1px solid var(--line); padding: 10px 14px; border-radius: 10px; }
+.splash { text-align: center; padding-top: 18vh; color: var(--holo-soft); letter-spacing: 0.2em; text-transform: uppercase; font-size: 13px; }
+.stack a { color: var(--holo-soft); }
 
 /* ---------- rewards and system ---------- */
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 clamp(20px, 3vw, 48px); align-items: start; }

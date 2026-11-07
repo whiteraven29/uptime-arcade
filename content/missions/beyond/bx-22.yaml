@@ -2,7 +2,7 @@ id: bx-22
 track: BX
 skill: vi
 chapter: Brainfuck
-order: 22
+order: 42
 title: CSV to config, under par
 from: CTO
 difficulty: brainfuck

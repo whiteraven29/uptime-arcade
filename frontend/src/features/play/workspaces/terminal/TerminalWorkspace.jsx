@@ -1,5 +1,5 @@
 import { Terminal } from '../../../../ui/Terminal.jsx';
-import { S, VI, bump, clearTerm, echoCmd, promptText, runCommand, sessionOn, tabComplete, ui } from '../../../../api/localGame.js';
+import { S, VI, bump, clearTerm, echoCmd, promptText, runCommand, sessionOn, tabComplete, ui } from '../../../../api/game.js';
 
 export function TerminalWorkspace() {
   return (

@@ -1,0 +1,126 @@
+id: bx-33
+track: BX
+skill: python
+chapter: Medium
+order: 18
+title: Parse a query string
+from: Backend
+difficulty: medium
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Split on & and then on =. text.isdigit() says whether a string is all digits, so you know when to convert it.
+  example: '"12".isdigit()   # True'
+brief: Turn "a=1&b=two" into a dict. Values made only of digits become ints. Empty text gives {}.
+goal: Write parse_query(text). Tests run when you press Run tests.
+hints:
+  - Guard the empty string first.
+  - Split each part on = and use isdigit() to decide.
+debrief:
+  why: Web input always arrives as text, so converting only what is safe to convert is the real job.
+  solution: |-
+    def parse_query(text):
+        if not text:
+            return {}
+        out = {}
+        for part in text.split("&"):
+            k, v = part.split("=")
+            out[k] = int(v) if v.isdigit() else v
+        return out
+  job: Every web framework does this for you. Now you know what it is doing.
+teaches:
+  - beyond
+python:
+  starter: |
+    def parse_query(text):
+        # your code here
+        pass
+  tests:
+    - expr: parse_query("a=1&b=two")
+      want: '{"a": 1, "b": "two"}'
+    - expr: parse_query("")
+      want: "{}"
+    - expr: parse_query("x=")
+      want: '{"x": ""}'
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Parse a query string". Which sentence best describes what it taught?
+    options:
+      - Filtering before grouping turns "how many errors" into "where are the errors", which is the question that matters.
+      - Web input always arrives as text, so converting only what is safe to convert is the real job.
+      - Network, then broadcast, then one below it. The same three steps work for any subnet.
+      - Compression is really about spotting runs. Forgetting the last run after the loop is the classic bug.
+    answer: Web input always arrives as text, so converting only what is safe to convert is the real job.
+    hint: Think about what "Parse a query string" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Turn "a=1&b=two" into a dict. Values made only of digits become ints. Empty text gives {}.
+    options:
+      - out += prev + str(n)
+      - out[k] = int(v) if v.isdigit() else v
+      - 192.168.7.158
+      - awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log | sort -rn | head -1
+    answer: out[k] = int(v) if v.isdigit() else v
+    hint: Split each part on = and use isdigit() to decide.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "        return {}"
+      - '        k, v = part.split("=")'
+      - "def parse_query(text):"
+      - "        out[k] = int(v) if v.isdigit() else v"
+      - "    return out"
+      - "    out = {}"
+      - '    for part in text.split("&"):'
+      - "    if not text:"
+    answer:
+      - "def parse_query(text):"
+      - "    if not text:"
+      - "        return {}"
+      - "    out = {}"
+      - '    for part in text.split("&"):'
+      - '        k, v = part.split("=")'
+      - "        out[k] = int(v) if v.isdigit() else v"
+      - "    return out"
+    hint: "The first one is: def parse_query(text):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def parse_query(text):
+          if not text:
+              ____ {}
+          out = {}
+          for part in text.split("&"):
+              k, v = part.split("=")
+              out[k] = int(v) if v.isdigit() else v
+          return out
+    answer:
+      - return
+    hint: It starts with "r" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def parse_query(text):
+          if not text:
+              return {}
+          out = {}
+          for part in text.split("&"):
+              k, v = part.split("=")
+              ____
+          return out
+    answer:
+      - out[k] = int(v) if v.isdigit() else v
+    hint: "It starts with: out[k] = int("

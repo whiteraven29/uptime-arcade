@@ -2981,6 +2981,13 @@ files:
       2026-10-14 20:58:02 INFO payments handled order=1137
       2026-10-14 20:59:06 INFO billing handled order=1124
     mode: 420
+  - path: /home/ops/net/asymmetric.txt
+    content: |
+      # The office has two firewalls. Connections go out through fw-a and come back through fw-b.
+      # Both firewalls only allow replies to connections they have seen start.
+      $ tcpdump on fw-a   10.40.30.21 > 196.41.0.20: SYN
+      $ tcpdump on fw-b   196.41.0.20 > 10.40.30.21: SYN-ACK   (dropped: no such connection)
+    mode: 420
   - path: /home/ops/net/blackhole.txt
     content: |
       # The VPN office can reach the app, but pages hang forever.
@@ -3285,6 +3292,12 @@ files:
       0 4 * * * test-b
       0 5 * * * rotate
     mode: 420
+  - path: /home/ops/vi/cutcol.txt
+    content: |
+      old web1
+      old web2
+      old web3
+    mode: 420
   - path: /home/ops/vi/env.yaml
     content: |
       db: staging-db
@@ -3374,6 +3387,18 @@ files:
     content: |
       Release notes
     mode: 420
+  - path: /home/ops/vi/pairs.txt
+    content: |
+      k1 v1
+      k2 v2
+      k3 v3
+    mode: 420
+  - path: /home/ops/vi/prefix.env
+    content: |
+      old_a=1
+      old_b=2
+      old_c=3
+    mode: 420
   - path: /home/ops/vi/quote.env
     content: |
       HOST=web
@@ -3429,6 +3454,17 @@ files:
       web_timeout: 30
       db_timeout: 30
       cache_timeout: 30
+    mode: 420
+  - path: /home/ops/vi/todo.conf
+    content: |
+      alpha=1
+      beta=2 TODO
+      gamma=3
+      delta=4 TODO
+    mode: 420
+  - path: /home/ops/vi/trailing.conf
+    content: |
+      port: 80 # old comment
     mode: 420
   - path: /home/ops/vi/undo.yaml
     content: |

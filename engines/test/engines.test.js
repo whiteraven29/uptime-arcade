@@ -110,7 +110,7 @@ describe('every mission', () => {
   const LEVELS = ['easy', 'medium', 'hard'];
   it('has a lesson and five clear rewind tasks, easiest first', () => {
     expect(TICKETS).toHaveLength(150);
-    expect(ALL_MISSIONS).toHaveLength(175);
+    expect(ALL_MISSIONS).toHaveLength(200);
     for (const t of ALL_MISSIONS) {
       expect(t.learn[0], t.id).toBeTruthy();
       expect(t.rewind, t.id).toHaveLength(5);

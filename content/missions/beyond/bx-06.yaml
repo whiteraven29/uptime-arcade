@@ -2,7 +2,7 @@ id: bx-06
 track: BX
 skill: shell
 chapter: Medium
-order: 6
+order: 11
 title: Where the errors live
 from: SRE
 difficulty: medium

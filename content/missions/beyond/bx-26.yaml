@@ -1,0 +1,87 @@
+id: bx-26
+track: BX
+skill: shell
+chapter: Easy
+order: 6
+title: Least popular
+from: Product
+difficulty: easy
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: sort -n puts the smallest number first. Use it without -r on a uniq -c count and the least common item comes to the top.
+  example: sort | uniq -c | sort -n | head -1
+brief: Which path in ~/logs/api-access.log is requested the least?
+goal: "Run: submit <path>"
+hints:
+  - Start from the top-N counter.
+  - Drop the -r, so the smallest count comes first.
+debrief:
+  why: Dropping one flag turns "most popular" into "least popular". The rare ones are often the endpoints you can retire.
+  solution: cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -n | head -1
+  job: Knowing what nobody uses is how you safely remove things.
+teaches:
+  - beyond
+answer:
+  accept:
+    - /v1/users
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Least popular". Which sentence best describes what it taught?
+    options:
+      - Division by zero is the classic crash in reporting code, so guard it first.
+      - Every extra bit doubles the number of subnets and halves their size.
+      - Dropping one flag turns "most popular" into "least popular". The rare ones are often the endpoints you can retire.
+      - Pipelines are built from parts, so swapping the last part changes the question they answer.
+    answer: Dropping one flag turns "most popular" into "least popular". The rare ones are often the endpoints you can retire.
+    hint: Think about what "Least popular" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Which path in ~/logs/api-access.log is requested the least?
+    options:
+      - "4"
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | sed -n 2p
+      - return round(up / total * 100, 2)
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -n | head -1
+    answer: cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -n | head -1
+    hint: Drop the -r, so the smallest count comes first.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: This pipeline has been split at each | and mixed up. Tap the parts from first to last.
+    scrambled:
+      - sort
+      - head -1
+      - uniq -c
+      - sort -n
+      - cut -d' ' -f4 ~/logs/api-access.log
+    answer:
+      - cut -d' ' -f4 ~/logs/api-access.log
+      - sort
+      - uniq -c
+      - sort -n
+      - head -1
+    hint: "The first one is: cut -d' ' -f4 ~/logs/api-access.log"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: cut -d' ' -f4 ~/logs/api-access.log | sort | uniq ____ | sort -n | head -1
+    answer:
+      - -c
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Which path in ~/logs/api-access.log is requested the least?
+    answer:
+      - /v1/users
+    hint: It starts with "/" and is 9 characters long.

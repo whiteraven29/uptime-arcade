@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { HudPanel } from '../../ui/HudPanel.jsx';
 import { TimerRing } from '../../ui/TimerRing.jsx';
-import { BANK_CAP, EARN, GOAL_BONUS, S, abandonBlock, claimBlock, logDrift, mmss, setLen, startBlock } from '../../api/localGame.js';
+import { BANK_CAP, EARN, GOAL_BONUS, S, abandonBlock, claimBlock, logDrift, mmss, setLen, startBlock } from '../../api/game.js';
 
 function Idle() {
   const [goal, setGoal] = useState('');

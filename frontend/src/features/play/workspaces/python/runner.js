@@ -1,7 +1,7 @@
-/* Skulpt, self-hosted and loaded on first use, so the game stays offline-capable. */
+/* Skulpt, self-hosted and loaded on first use. The tests are visible by design (section 14). */
 import skulptUrl from 'skulpt/dist/skulpt.min.js?url';
 import stdlibUrl from 'skulpt/dist/skulpt-stdlib.js?url';
-import { bump, ui } from '../../../../api/localGame.js';
+import { bump, ui } from '../../../../api/game.js';
 import { buildProgram, configureSkulpt, judge } from './program.js';
 
 const addScript = (src) => new Promise((resolve, reject) => {

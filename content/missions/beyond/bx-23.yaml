@@ -2,7 +2,7 @@ id: bx-23
 track: BX
 skill: python
 chapter: Brainfuck
-order: 23
+order: 43
 title: Write a Brainfuck interpreter
 from: CTO
 difficulty: brainfuck

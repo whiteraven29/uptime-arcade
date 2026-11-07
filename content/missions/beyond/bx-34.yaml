@@ -1,0 +1,130 @@
+id: bx-34
+track: BX
+skill: go
+chapter: Medium
+order: 19
+title: Delete and look again
+from: Backend
+difficulty: medium
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: delete removes a key, and deleting a missing key does nothing. Reading a key that is not there gives the zero value and does not add it.
+  example: |-
+    delete(m, "x")
+    v, ok := m["x"]   // 0 false
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - One key is left.
+  - Reading "zz" gives 0 and adds nothing.
+debrief:
+  why: Reads never change a map, and comma-ok is the only way to tell "missing" from "zero".
+  solution: submit 1 false 0
+  job: Caches and sets in Go are built from maps like this.
+teaches:
+  - beyond
+answer:
+  accept:
+    - 1 false 0
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	m := map[string]int{"a": 1, "b": 2}
+    	delete(m, "a")
+    	_, ok := m["a"]
+    	fmt.Println(len(m), ok, m["zz"])
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Delete and look again". Which sentence best describes what it taught?
+    options:
+      - Reads never change a map, and comma-ok is the only way to tell "missing" from "zero".
+      - Filtering before grouping turns "how many errors" into "where are the errors", which is the question that matters.
+      - 0 and 3 differ in two bits, so the shared prefix is 22 bits, and the route also covers 10.0.1.0 and 10.0.2.0.
+      - Web input always arrives as text, so converting only what is safe to convert is the real job.
+    answer: Reads never change a map, and comma-ok is the only way to tell "missing" from "zero".
+    hint: Think about what "Delete and look again" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - out[k] = int(v) if v.isdigit() else v
+      - 10.0.0.0/22
+      - 1 false 0
+      - awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log | sort -rn | head -1
+    answer: 1 false 0
+    hint: Reading "zz" gives 0 and adds nothing.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	m := map[string]int{"a": 1, "b": 2}
+      	delete(m, "a")
+      	_, ok := m["a"]
+      	fmt.Println(len(m), ok, m["zz"])
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - 'm := map[string]int{"a": 1, "b": 2}'
+      - fmt.Println(len(m), ok, m["zz"])
+      - delete(m, "a")
+      - _, ok := m["a"]
+    answer:
+      - 'm := map[string]int{"a": 1, "b": 2}'
+      - delete(m, "a")
+      - _, ok := m["a"]
+      - fmt.Println(len(m), ok, m["zz"])
+    hint: 'The first one is: m := map[string]int{"a": 1, "b": 2}'
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      m := map[string]int{"a": 1, "b": 2}
+      delete(m, "a")
+      _, ok := m["a"]
+      fmt.____(len(m), ok, m["zz"])
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	m := map[string]int{"a": 1, "b": 2}
+      	delete(m, "a")
+      	_, ok := m["a"]
+      	fmt.Println(len(m), ok, m["zz"])
+      }
+    answer:
+      - 1 false 0
+    hint: It starts with "1" and is 9 characters long.

@@ -1,13 +1,14 @@
 import json
 
 import pytest
+from django.conf import settings
 from django.core.cache import cache
 
 from apps.content.models import Mission
 from apps.focus.services import open_session
 from apps.game import rules, services
 from apps.game.models import Player, TimeLedger, UserBadge, XPLedger
-from apps.missions.grading import answer_matches, goals_met
+from apps.missions.grading import PlayerState, answer_matches, goals_met
 from apps.missions.models import MissionProgress, Submission
 
 
@@ -183,8 +184,11 @@ class TestBeyond:
 
     def test_runs_from_easy_to_brainfuck_and_pays_more_each_tier(self):
         rows = list(Mission.objects.filter(track__code="BX").order_by("order").values_list("difficulty", "xp"))
-        assert [rows[i][0] for i in (0, 5, 10, 15, 20)] == ["easy", "medium", "hard", "expert", "brainfuck"]
-        assert [rows[i][1] for i in (0, 5, 10, 15, 20)] == [200, 300, 400, 500, 750]
+        assert len(rows) == 50
+        assert [rows[i][0] for i in (0, 10, 20, 30, 40)] == ["easy", "medium", "hard", "expert", "brainfuck"]
+        assert [rows[i][1] for i in (0, 10, 20, 30, 40)] == [200, 300, 400, 500, 750]
+        for tier in ("easy", "medium", "hard", "expert", "brainfuck"):
+            assert sum(1 for d, _ in rows if d == tier) == 10
 
     def test_doesnt_count_towards_levels(self, playing):
         p = playing.user.player
@@ -203,8 +207,8 @@ class TestBeyond:
         p.peak_cleared = 150
         p.save()
         last = None
-        for i in range(1, 6):
-            last = clear(playing, f"bx-{i:02d}")
+        for m in Mission.objects.filter(track__code="BX", difficulty="easy").order_by("order"):
+            last = clear(playing, m.code)
         assert any(e["type"] == "badge" and e["code"] == "bx1" for e in last.json()["events"])
 
 
@@ -489,6 +493,63 @@ class TestPlayerStateGoals:
         playing.post(url("sh-02", "submit/"), {"state": {"cwd": "/home/ops/logs", "files": {"/home/ops/secret": {"c": "private"}}}}, format="json")
         row = Submission.objects.filter(progress__mission__code="sh-02").first()
         assert "files" not in row.payload
+
+
+class TestGoalChecks:
+    def test_not_there_yet_costs_nothing_and_leaves_no_record(self, playing):
+        clear(playing, "sh-01")
+        for _ in range(3):
+            response = playing.post(url("sh-02", "check/"), {"state": {"cwd": "/etc"}}, format="json")
+            assert response.json()["result"] == "fail"
+        progress = MissionProgress.objects.get(mission__code="sh-02")
+        assert progress.tries == 0
+        assert progress.submissions.count() == 0
+
+    def test_passes_when_the_goal_is_met(self, playing):
+        clear(playing, "sh-01")
+        response = playing.post(url("sh-02", "check/"), {"state": {"cwd": "/home/ops/logs"}, "commands": 3}, format="json")
+        assert response.json()["result"] == "pass"
+        assert response.json()["par_bonus"] == 20
+
+    def test_needs_a_session(self, api, clock):
+        assert api.post(url("vi-01", "check/"), {"state": {}}, format="json").status_code == 409
+
+    def test_cant_be_used_to_guess_an_answer(self, playing):
+        response = playing.post(url("net-01", "check/"), {"answer": "32"}, format="json")
+        assert response.status_code == 400
+        assert MissionProgress.objects.filter(mission__code="net-01", state="solved").count() == 0
+
+    def test_a_locked_mission_stays_locked(self, playing):
+        assert playing.post(url("sh-05", "check/"), {"state": {}}, format="json").status_code == 403
+
+    def test_has_room_for_checking_after_every_command(self, playing):
+        clear(playing, "sh-01")
+        cache.clear()
+        codes = [playing.post(url("sh-02", "check/"), {"state": {"cwd": "/tmp"}}, format="json").status_code for _ in range(121)]
+        assert codes[119] == 200 and codes[120] == 429
+
+
+class TestServerAgreesWithTheEngines:
+    """Only the server decides now, so a disagreement would leave a player stuck on a mission they solved.
+    These states come from the real engines, playing the real solutions (tools/verify_content.mjs)."""
+
+    def states(self):
+        path = settings.CONTENT_DIR / "build" / "solved_states.json"
+        if not path.exists():
+            pytest.skip("run tools/verify_content.mjs first, as make check does")
+        return json.loads(path.read_text())
+
+    def test_every_goal_mission_passes_with_its_real_final_state(self):
+        states = self.states()
+        for m in Mission.objects.exclude(expect=[]):
+            assert m.code in states, m.code
+            body = PlayerState(data=states[m.code])
+            assert body.is_valid(), (m.code, body.errors)
+            assert goals_met(m.expect, body.validated_data), m.code
+
+    def test_the_final_state_fits_in_one_request(self):
+        for code, state in self.states().items():
+            assert len(json.dumps({"state": state})) < settings.DATA_UPLOAD_MAX_MEMORY_SIZE, code
 
 
 class TestPythonMissions:

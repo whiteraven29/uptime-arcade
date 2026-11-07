@@ -27,14 +27,14 @@ def content():
 
 class TestImport:
     def test_imports_every_mission(self):
-        assert Mission.objects.count() == 175
+        assert Mission.objects.count() == 200
         assert Mission.objects.filter(track__after_archmage=False).count() == 150
         assert Track.objects.count() == 6
         assert FixtureFile.objects.count() > 50
 
-    def test_every_track_has_thirty_and_beyond_has_twenty_five(self):
+    def test_every_track_has_thirty_and_beyond_has_fifty(self):
         for track in Track.objects.all():
-            assert track.missions.count() == (25 if track.after_archmage else 30)
+            assert track.missions.count() == (50 if track.after_archmage else 30)
 
     def test_running_it_again_changes_nothing_but_the_version(self, content):
         before = ContentRelease.latest().version
@@ -52,7 +52,7 @@ class TestImport:
         before = ContentRelease.objects.count()
         out = StringIO()
         call_command("import_content", "--check", stdout=out)
-        assert "175 missions" in out.getvalue()
+        assert "200 missions" in out.getvalue()
         assert ContentRelease.objects.count() == before
 
     def test_top_level_is_reached_by_clearing_every_core_mission(self):

@@ -41,8 +41,8 @@ def clock(monkeypatch):
     return fake
 
 
-def make_user(email="amina@example.test"):
-    return get_user_model().objects.create_user(username=email, email=email, password="correct horse battery")
+def make_user(username="amina"):
+    return get_user_model().objects.create_user(username=username, email=f"{username}@example.test", password="correct horse battery")
 
 
 @pytest.fixture
@@ -69,7 +69,7 @@ def api(user):
 
 @pytest.fixture
 def other_api():
-    return PlayerClient(make_user("joel@example.test"))
+    return PlayerClient(make_user("joel"))
 
 
 @pytest.fixture

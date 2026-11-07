@@ -1,0 +1,187 @@
+id: bx-48
+track: BX
+skill: python
+chapter: Brainfuck
+order: 48
+title: Write a calculator
+from: CTO
+difficulty: brainfuck
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "To respect precedence, write one function per level: an expression is terms joined by + and -, a term is factors joined by * and /, and a factor is a number or a bracketed expression. The functions call each other. This is called recursive descent, and real compilers start this way."
+  example: |-
+    def term():
+        v = factor()
+        while peek() == "*":
+            next()
+            v = v * factor()
+        return v
+brief: Evaluate whole-number arithmetic with + - * / and brackets, respecting precedence. There are no spaces, and / is whole-number division. Do not use eval.
+goal: Write calc(text). Tests run when you press Run tests.
+hints:
+  - Keep a position in the text, and write expr, term and factor functions that call each other.
+  - factor reads either digits or a bracket that calls expr again.
+debrief:
+  why: Grammar turns into functions almost line by line. Every language you use is parsed by something shaped like this.
+  solution: |-
+    def calc(text):
+        pos = [0]
+        def peek():
+            return text[pos[0]] if pos[0] < len(text) else ""
+        def factor():
+            if peek() == "(":
+                pos[0] += 1
+                v = expr()
+                pos[0] += 1
+                return v
+            start = pos[0]
+            while peek().isdigit():
+                pos[0] += 1
+            return int(text[start:pos[0]])
+        def term():
+            v = factor()
+            while peek() in ("*", "/"):
+                op = peek()
+                pos[0] += 1
+                v = v * factor() if op == "*" else v // factor()
+            return v
+        def expr():
+            v = term()
+            while peek() in ("+", "-"):
+                op = peek()
+                pos[0] += 1
+                v = v + term() if op == "+" else v - term()
+            return v
+        return expr()
+  job: Config languages, query planners and spreadsheets all contain one of these.
+teaches:
+  - beyond
+python:
+  starter: |
+    def calc(text):
+        # your code here
+        pass
+  tests:
+    - expr: calc("2+3*4")
+      want: "14"
+    - expr: calc("(2+3)*4")
+      want: "20"
+    - expr: calc("20/2/5")
+      want: "2"
+    - expr: calc("2*(3+(4-1))")
+      want: "12"
+    - expr: calc("7")
+      want: "7"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Write a calculator". Which sentence best describes what it taught?
+    options:
+      - val froze a copy when n was 1, inc changed the real t, and the deferred function ran after return and rewrote the named result.
+      - Grammar turns into functions almost line by line. Every language you use is parsed by something shaped like this.
+      - Bandwidth times delay is how much data is on the wire at once. A smaller window leaves the link idle, however fast it is.
+      - "The trailing space is the catch: a macro does exactly what you recorded, so it has to clean up after itself."
+    answer: Grammar turns into functions almost line by line. Every language you use is parsed by something shaped like this.
+    hint: Think about what "Write a calculator" asked you to do.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Evaluate whole-number arithmetic with + - * / and brackets, respecting precedence. There are no spaces, and / is whole-number division. Do not use eval.
+    options:
+      - 3 3 1
+      - "6.25"
+      - qadwA <Esc>p$xj0q2@a:wq<CR>
+      - v = v * factor() if op == "*" else v // factor()
+    answer: v = v * factor() if op == "*" else v // factor()
+    hint: factor reads either digits or a bracket that calls expr again.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Write a calculator" taught you at work?
+    options:
+      - Config languages, query planners and spreadsheets all contain one of these.
+      - If you can read this, you can read any Go code review.
+      - Tuning long-distance transfers starts with this sum.
+      - If you can do this, there is no column edit you cannot do over SSH.
+    answer: Config languages, query planners and spreadsheets all contain one of these.
+    hint: "It starts with: Config languages, query planners…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def calc(text):
+          pos = [0]
+          def peek():
+              return text[pos[0]] ____ pos[0] < len(text) else ""
+          def factor():
+              if peek() == "(":
+                  pos[0] += 1
+                  v = expr()
+                  pos[0] += 1
+                  return v
+              start = pos[0]
+              while peek().isdigit():
+                  pos[0] += 1
+              return int(text[start:pos[0]])
+          def term():
+              v = factor()
+              while peek() in ("*", "/"):
+                  op = peek()
+                  pos[0] += 1
+                  v = v * factor() if op == "*" else v // factor()
+              return v
+          def expr():
+              v = term()
+              while peek() in ("+", "-"):
+                  op = peek()
+                  pos[0] += 1
+                  v = v + term() if op == "+" else v - term()
+              return v
+          return expr()
+    answer:
+      - if
+    hint: It starts with "i" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def calc(text):
+          pos = [0]
+          def peek():
+              return text[pos[0]] if pos[0] < len(text) else ""
+          def factor():
+              if peek() == "(":
+                  pos[0] += 1
+                  v = expr()
+                  pos[0] += 1
+                  return v
+              start = pos[0]
+              while peek().isdigit():
+                  pos[0] += 1
+              return int(text[start:pos[0]])
+          def term():
+              v = factor()
+              while peek() in ("*", "/"):
+                  op = peek()
+                  pos[0] += 1
+                  ____
+              return v
+          def expr():
+              v = term()
+              while peek() in ("+", "-"):
+                  op = peek()
+                  pos[0] += 1
+                  v = v + term() if op == "+" else v - term()
+              return v
+          return expr()
+    answer:
+      - v = v * factor() if op == "*" else v // factor()
+    hint: "It starts with: v = v * factor()"
