@@ -1,82 +1,55 @@
 # Deploying Uptime Arcade
 
-For whoever runs the server. It assumes a fresh Ubuntu 24.04 VPS and a domain pointing at it.
+For whoever runs the server. One script does all of it, for `arcade.wh1teraven.site`.
 
-## 1. What you need first
+## Before you run it
 
-- A domain with an A record for the server.
-- An SMTP account for the codes. Any provider's free tier works. Brevo is one option, and a Gmail account with an app password works for small numbers. Set up SPF and DKIM on your domain, or the codes land in spam.
-- Somewhere off the server for backup copies.
+1. **A server:** a fresh Ubuntu 24.04 VPS with at least 2 GB of memory, and root access.
+2. **DNS:** in Cloudflare, make an A record for `arcade` holding the server's address. Set it to **DNS only (the grey cloud)** for the first run, so the HTTPS certificate can be issued. Records already there may need changing.
+3. **An SMTP account:** any provider's free tier works. Brevo is one option, and a Gmail account with an app password works for small numbers. Set up SPF and DKIM for `wh1teraven.site`, or the codes land in spam.
+4. **Your code is pushed:** the script deploys what's on GitHub, so push first.
 
-## 2. Prepare the server
-
-```sh
-apt update && apt -y upgrade
-apt install -y nginx postgresql redis-server python3-venv certbot python3-certbot-nginx ufw unattended-upgrades fail2ban
-# Install Node 22 and Docker from their own apt repositories.
-ufw default deny incoming && ufw allow OpenSSH && ufw allow 80 && ufw allow 443 && ufw enable
-
-adduser --system --group --home /srv/uptime-arcade uptime
-adduser --system --group uptime-runner
-usermod -aG uptime uptime-runner
-usermod -aG docker uptime-runner   # only this user
-```
-
-Keep Postgres and Redis on localhost, which is the default. In `/etc/ssh/sshd_config` turn off password login. Docker access amounts to root on the machine, which is why only the worker's user has it. For stronger isolation, install gVisor and set `RUNNER_RUNTIME=runsc`.
-
-## 3. Database and settings
+## Run it
 
 ```sh
-sudo -u postgres createuser --pwprompt uptime
-sudo -u postgres createdb -O uptime uptime_arcade
-install -d -m 750 -o root -g uptime /etc/uptime-arcade
-cp .env.example /etc/uptime-arcade/env && chmod 640 /etc/uptime-arcade/env
-install -d -m 700 -o uptime -g uptime /var/backups/uptime-arcade
+ssh root@YOUR_SERVER
+git clone https://github.com/whiteraven29/uptime-arcade.git /srv/uptime-arcade
+/srv/uptime-arcade/deploy/install.sh
 ```
 
-Fill in every value in `/etc/uptime-arcade/env`. Generate the key with `python3 -c "import secrets; print(secrets.token_urlsafe(64))"`. Choose a private `DJANGO_ADMIN_PATH`. The app refuses to start if a required value is missing.
+It asks for your certificate email, the SMTP details and your IP address once, and generates every other secret itself. Then it does the rest:
 
-## 4. Code and first deploy
+- installs Nginx, Postgres, Redis, Docker and Node, and sets up the firewall and fail2ban
+- creates the service accounts and the database, and builds the app and the sandbox images
+- gets the HTTPS certificate and starts everything, with nightly backups
+- attacks the real sandbox from inside, checks the live site, and stops with an error if anything fails
 
-```sh
-git clone <your repo> /srv/uptime-arcade && cd /srv/uptime-arcade
-python3 -m venv .venv
-set -a; . /etc/uptime-arcade/env; set +a
-deploy/scripts/deploy.sh
-cd backend && DJANGO_SETTINGS_MODULE=config.settings.prod ../.venv/bin/python manage.py createsuperuser
-```
+To use another domain, run it with `UA_DOMAIN=your.domain`.
 
-## 5. Services and HTTPS
+## After it finishes
 
-```sh
-cp deploy/systemd/* /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable --now uptime-web uptime-worker uptime-maintenance.timer
+The script prints these too:
 
-cp deploy/nginx/uptime-proxy.conf /etc/nginx/snippets/
-cp deploy/nginx/uptime-arcade.conf /etc/nginx/sites-available/uptime-arcade
-# Edit it: your domain, your admin address, and your DJANGO_ADMIN_PATH.
-ln -s /etc/nginx/sites-available/uptime-arcade /etc/nginx/sites-enabled/
-certbot certonly --nginx -d arcade.example.com
-nginx -t && systemctl reload nginx
-```
-
-## 6. Prove it before anyone signs up
-
-1. **Sandbox:** as `uptime-runner`, run `cd /srv/uptime-arcade/backend && ../.venv/bin/python -m pytest -m docker_sandbox --override-ini addopts=`. Every attack in it must fail.
-2. **Mail:** register an account and confirm the code arrives, then try a password reset.
-3. **Game:** play one Python mission, one Go mission and one lab.
-4. **Headers:** check the site on an external scanner such as SSL Labs and Mozilla Observatory.
-5. **Backup:** run the maintenance unit, then restore into a scratch database:
+1. Register an account and confirm the code arrives.
+2. Create an admin account with the command it shows. The admin page is at a private address that only your IP can reach.
+3. Point an uptime monitor at `https://arcade.wh1teraven.site/api/v1/health/`.
+4. Copy `/var/backups/uptime-arcade` off the server every night, and try a restore once:
    ```sh
-   systemctl start uptime-maintenance
-   deploy/scripts/restore.sh /var/backups/uptime-arcade/db-XXXX.dump uptime_restore_test
+   set -a; . /etc/uptime-arcade/env; set +a
+   /srv/uptime-arcade/deploy/scripts/restore.sh /var/backups/uptime-arcade/db-XXXX.dump uptime_restore_test
    ```
-6. **Monitoring:** point an external uptime monitor at `https://arcade.example.com/api/v1/health/`, and alert when it fails.
 
-## 7. Keeping it safe
+## Turning Cloudflare's proxy on
 
-- Security updates install themselves with `unattended-upgrades`. Rebuild the sandbox images monthly by running the deploy script.
+The site works on DNS only. To put it behind the proxy (the orange cloud), first set **SSL/TLS to Full (strict)** in Cloudflare, or the site will loop or lose its encryption to the server. The script already makes Nginx see each visitor's real address behind Cloudflare, so rate limits keep working.
+
+## Updating
+
+Push your code, then run `/srv/uptime-arcade/deploy/install.sh` again. It asks nothing the second time.
+
+## Keeping it safe
+
+- Security updates install themselves with `unattended-upgrades`. Run `deploy/install.sh` monthly, which also rebuilds the sandbox images.
 - Run `pip-audit -r requirements.txt` and `npm audit` in `frontend` before each release.
 - Copy `/var/backups/uptime-arcade` off the server every night.
 - If the secret key ever leaks, change it. Everyone is logged out, and any code that's waiting stops working.

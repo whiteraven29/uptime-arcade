@@ -12,6 +12,8 @@ SupplementaryGroups=docker
 WorkingDirectory=/srv/uptime-arcade/backend
 EnvironmentFile=/etc/uptime-arcade/env
 Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+# This account has no home folder, and the Docker client looks for one.
+Environment=HOME=/tmp
 # Two sandboxes at a time, however many players press Run. The rest wait in the queue.
 ExecStart=/srv/uptime-arcade/.venv/bin/celery -A config worker --concurrency=2 --max-tasks-per-child=200 --loglevel=INFO
 Restart=always
