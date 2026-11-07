@@ -161,7 +161,7 @@ RUNNER_RUNTIME = ""  # an optional stronger runtime, such as gVisor's "runsc"
 RUNNER_IMAGES = {"python": "uptime-arcade/sandbox-python:1", "go": "uptime-arcade/sandbox-go:1"}
 RUNNER_LIMITS = {
     "python": {"seconds": 10, "memory": "128m", "cpus": 0.5, "pids": 32, "tmp": "16m", "tmp_exec": "noexec,"},
-    "go": {"seconds": 30, "memory": "1g", "cpus": 1, "pids": 256, "tmp": "600m", "tmp_exec": ""},  # go test builds and runs a binary here
+    "go": {"seconds": 30, "memory": "1g", "cpus": 1, "pids": 256, "tmp": "600m", "tmp_exec": "exec,"},  # go test builds and runs a binary here, and a tmpfs is noexec unless told
 }
 
 # Without a broker, jobs run inside the request, which suits development and tests.

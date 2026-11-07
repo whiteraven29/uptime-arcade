@@ -212,6 +212,12 @@ class TestContainerRules:
                 assert flag in command, flag
             assert "-v " not in command and "--volume" not in command and "--privileged" not in command
 
+    def test_only_go_can_run_programs_from_its_scratch_space(self):
+        """Docker mounts a tmpfs noexec unless told otherwise, and go test has to run the binary it builds."""
+        assert "noexec," in " ".join(sandbox._docker_command("python", "job"))
+        go = " ".join(sandbox._docker_command("go", "job"))
+        assert ",exec," in go and "noexec" not in go
+
     def test_the_unisolated_runner_can_be_turned_off(self, settings):
         settings.RUNNER_ALLOW_LOCAL = False
         with pytest.raises(sandbox.SandboxUnavailable):
