@@ -1,0 +1,250 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as g from './localGame.js';
+
+const { S, TK, ui } = g;
+const DAY = 864e5;
+const START = new Date('2026-11-06T08:00:00');
+
+function finishBlock(goal = 'Ship it', { done = true, minutes = 25 } = {}) {
+  g.setLen(minutes);
+  g.startBlock(goal);
+  vi.advanceTimersByTime(minutes * 60000 + 1000);
+  g.tick();
+  g.claimBlock(done);
+}
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(START);
+  g.boot(null);
+  g.setNavigator(() => {});
+});
+afterEach(() => vi.useRealTimers());
+
+describe('focus economy', () => {
+  it('starts a new player with 5:00 banked', () => {
+    expect(S.bank).toBe(300);
+  });
+  it('pays play time plus the goal bonus when the block is claimed', () => {
+    finishBlock();
+    expect(S.bank).toBe(300 + 8 * 60 + 120);
+    expect(S.focusMin).toBe(25);
+    expect(S.blocks).toBe(1);
+  });
+  it('skips the goal bonus when the goal is not finished', () => {
+    finishBlock('x', { done: false });
+    expect(S.bank).toBe(300 + 8 * 60);
+  });
+  it('pays nothing for ending early', () => {
+    g.startBlock('x');
+    vi.advanceTimersByTime(60000);
+    g.abandonBlock();
+    expect(S.bank).toBe(300);
+    expect(S.blocks).toBe(0);
+  });
+  it('only asks for a claim once the timer has run out', () => {
+    g.startBlock('x');
+    vi.advanceTimersByTime(24 * 60000);
+    g.tick();
+    expect(S.claim).toBeNull();
+    vi.advanceTimersByTime(60000 + 1000);
+    g.tick();
+    expect(S.claim).not.toBeNull();
+  });
+  it('caps focus earnings at 30:00', () => {
+    S.bank = 29 * 60;
+    finishBlock();
+    expect(S.bank).toBe(30 * 60);
+  });
+  it('counts a block with no drifts as clean, and one with drifts as not', () => {
+    finishBlock();
+    expect(S.cleanBlocks).toBe(1);
+    g.startBlock('x');
+    g.logDrift();
+    vi.advanceTimersByTime(25 * 60000 + 1000);
+    g.tick();
+    g.claimBlock(true);
+    expect(S.cleanBlocks).toBe(1);
+    expect(S.blocks).toBe(2);
+  });
+});
+
+describe('sessions', () => {
+  it('moves the whole bank into a session, and returns unused time on close', () => {
+    g.openSession();
+    expect(S.bank).toBe(0);
+    expect(g.sessionOn()).toBe(true);
+    vi.advanceTimersByTime(60000);
+    g.closeSession();
+    expect(S.bank).toBe(240);
+    expect(g.sessionOn()).toBe(false);
+  });
+  it('ends when the time runs out, with nothing returned', () => {
+    g.openSession();
+    vi.advanceTimersByTime(301000);
+    g.tick();
+    expect(g.sessionOn()).toBe(false);
+    expect(S.bank).toBe(0);
+  });
+  it("can't open during a focus block or with an empty bank", () => {
+    g.startBlock('x');
+    g.openSession();
+    expect(S.sessionEndsAt).toBeNull();
+    g.abandonBlock();
+    S.bank = 0;
+    g.openSession();
+    expect(S.sessionEndsAt).toBeNull();
+  });
+  it('banks a running session when a focus block starts', () => {
+    g.openSession();
+    vi.advanceTimersByTime(60000);
+    g.startBlock('x');
+    expect(S.sessionEndsAt).toBeNull();
+    expect(S.bank).toBe(240);
+  });
+});
+
+describe('streaks', () => {
+  const nextDay = (n = 1) => vi.advanceTimersByTime(n * DAY);
+
+  it('pays each milestone once, with a shield at seven days', () => {
+    finishBlock();
+    for (let i = 0; i < 6; i++) {
+      nextDay();
+      finishBlock();
+    }
+    expect(S.streak).toBe(7);
+    expect(S.shields).toBe(1);
+    expect(Object.keys(S.claimed)).toEqual(['3', '7']);
+  });
+  it('only grows once a day', () => {
+    finishBlock();
+    finishBlock();
+    expect(S.streak).toBe(1);
+  });
+  it('spends a shield on a missed day, and resets when there are too few', () => {
+    finishBlock();
+    for (let i = 0; i < 6; i++) {
+      nextDay();
+      finishBlock();
+    }
+    nextDay(2);
+    finishBlock();
+    expect(S.streak).toBe(8);
+    expect(S.shields).toBe(0);
+    nextDay(3);
+    finishBlock();
+    expect(S.streak).toBe(1);
+  });
+  it('raises the XP multiplier 5% a day, up to +50%', () => {
+    S.streak = 4;
+    expect(g.mult()).toBeCloseTo(1.2);
+    S.streak = 40;
+    expect(g.mult()).toBeCloseTo(1.5);
+  });
+});
+
+describe('missions and rewinds', () => {
+  const first = () => TK.NET[0];
+  const solve = (m) => {
+    g.openSession();
+    g.setCurrent(m.id);
+    g.runCommand(`submit ${m.answer[0]}`);
+  };
+  const clearRewind = (m) => {
+    g.startRewind(m.id);
+    while (S.rew[m.id]?.q.length) {
+      const t = ui.rw.tasks[S.rew[m.id].q[0]];
+      if (t.type === 'mc') g.answerRewind(t.answer);
+      else if (t.type === 'order') t.answer.forEach((a) => g.pickOrder(a));
+      else g.answerRewind(t.answer[0]);
+      g.afterRewindStep();
+    }
+  };
+
+  it('opens each track at its first mission and locks the rest', () => {
+    expect(g.stateOf(first())).toBe('open');
+    expect(g.stateOf(TK.NET[1])).toBe('locked');
+  });
+  it('rejects a wrong answer and shows the debrief for the right one', () => {
+    g.openSession();
+    g.setCurrent(first().id);
+    g.runCommand('submit definitely-wrong');
+    expect(S.done[first().id]).toBeUndefined();
+    g.runCommand(`submit ${first().answer[0]}`);
+    expect(S.done[first().id]).toBeDefined();
+    expect(ui.debrief).toBe(first().id);
+  });
+  it('charges 15 XP a hint and never pays less than 10', () => {
+    g.openSession();
+    g.setCurrent(first().id);
+    g.showHint();
+    g.showHint();
+    g.runCommand(`submit ${first().answer[0]}`);
+    expect(S.done[first().id].hints).toBe(2);
+    expect(S.xp).toBe(100 + 20 - 30);
+  });
+  it('only unlocks the next mission once the rewind is finished', () => {
+    const m = first();
+    solve(m);
+    g.closeDebrief();
+    expect(g.stateOf(m)).toBe('rewind');
+    expect(g.stateOf(TK.NET[1])).toBe('locked');
+    clearRewind(m);
+    expect(g.stateOf(m)).toBe('clear');
+    expect(g.stateOf(TK.NET[1])).toBe('open');
+    expect(ui.flash).toBe(TK.NET[1].id);
+  });
+  it('moves a wrong rewind answer to the back of the queue and shows the right one', () => {
+    const m = first();
+    solve(m);
+    g.startRewind(m.id);
+    g.answerRewind('definitely wrong');
+    expect(ui.rw.fb.ok).toBe(false);
+    expect(S.rew[m.id].ok).toBe(0);
+    expect(S.rew[m.id].q).toEqual([1, 2, 3, 4, 0]);
+  });
+  it('raises a level-up when the clear count crosses a threshold', () => {
+    S.peak = 0;
+    const clearTrack = TK.NET.slice(0, 5);
+    clearTrack.forEach((m) => {
+      solve(m);
+      g.closeDebrief();
+      clearRewind(m);
+      if (S.sessionEndsAt) g.closeSession(true);
+      S.bank = 3600;
+    });
+    expect(g.level()).toBe('Initiate');
+    expect(ui.overlay).toEqual({ kind: 'level', i: 1 });
+  });
+  it('keeps level, XP and streak through a new season, and resets progress', () => {
+    const m = first();
+    solve(m);
+    g.closeDebrief();
+    clearRewind(m);
+    const xp = S.xp;
+    g.newSeason();
+    expect(S.season).toBe(2);
+    expect(S.xp).toBe(xp);
+    expect(g.cleared()).toBe(0);
+    expect(S.peak).toBe(1);
+    expect(g.stateOf(TK.NET[1])).toBe('locked');
+  });
+});
+
+describe('saves', () => {
+  it('round-trips through export and import, with no session left running', () => {
+    finishBlock();
+    g.openSession();
+    const { data } = g.exportSave();
+    const xp = S.xp;
+    S.xp = 1;
+    g.importSave(data);
+    expect(S.xp).toBe(xp);
+    expect(S.sessionEndsAt).toBeNull();
+  });
+  it('refuses a file that is not a save', () => {
+    expect(() => g.importSave('{"hello":1}')).toThrow();
+    expect(() => g.importSave('not json')).toThrow();
+  });
+});

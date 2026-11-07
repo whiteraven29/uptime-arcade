@@ -1,0 +1,46 @@
+/* Design tokens, defined once (section 4.2). Every color and font in the app comes from here. */
+@font-face { font-family: 'Oxanium'; font-weight: 400; font-display: swap; src: url('/fonts/oxanium-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Oxanium'; font-weight: 600; font-display: swap; src: url('/fonts/oxanium-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Oxanium'; font-weight: 800; font-display: swap; src: url('/fonts/oxanium-latin-800-normal.woff2') format('woff2'); }
+@font-face { font-family: 'IBM Plex Mono'; font-weight: 400; font-display: swap; src: url('/fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'IBM Plex Mono'; font-weight: 500; font-display: swap; src: url('/fonts/ibm-plex-mono-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'IBM Plex Mono'; font-weight: 700; font-display: swap; src: url('/fonts/ibm-plex-mono-latin-700-normal.woff2') format('woff2'); }
+
+:root {
+  color-scheme: dark;
+
+  /* space */
+  --void: #030a13;
+  --glass: rgba(6, 20, 36, 0.68);
+  --glass-strong: rgba(3, 12, 24, 0.86);
+  --glass-sheen: rgba(150, 214, 255, 0.07);
+
+  /* hologram */
+  --line: rgba(96, 214, 255, 0.34);
+  --line-soft: rgba(170, 214, 255, 0.16);
+  --holo: #62dcff;
+  --holo-soft: #a9ecff;
+  --iris: conic-gradient(from 210deg, #62dcff, #8f9bff, #e58aff, #ff9d7a, #ffd27a, #7af0c2, #62dcff);
+
+  /* type */
+  --text: #dcf4ff;
+  --dim: #8db3c8;
+  --on-accent: #031018;
+  --metal: linear-gradient(180deg, #ffffff 6%, #d6e9ff 36%, #8fb4e4 66%, #5f8cc8 100%);
+
+  /* lava: warm light from the ground, and everything that matters */
+  --amber: #ffb340;
+  --lava: #ff6a1f;
+  --lava-deep: #d22f08;
+
+  /* state */
+  --ok: #6bf0b2;
+  --danger: #ff5d6c;
+
+  /* shape */
+  --radius: 14px;
+  --radius-frame: 22px;
+
+  --font-ui: 'Oxanium', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+}

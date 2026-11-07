@@ -1,0 +1,35 @@
+# Uptime Arcade
+
+Real focus earns play time, and play time teaches real shell, vi, Python, Go and networking skills. You join Whiteraven, a fictional cloud company, as a Noob and work your way up to Archmage.
+
+The design and roadmap are in [docs/DESIGN.md](docs/DESIGN.md).
+
+## Run it
+
+```bash
+make setup
+make dev-frontend   # http://localhost:5173
+make dev-backend    # http://localhost:8000/api/v1/health/
+```
+
+The game currently saves to your browser, so the backend is optional for playing.
+
+## Check it
+
+```bash
+make check
+```
+
+This runs the backend, engine and rules tests, plays all 100 missions through the real engines, and builds the frontend. Python and Go answers are also checked with real `python3` and `go run` when those are installed.
+
+## Layout
+
+| Folder | What's in it |
+|---|---|
+| `backend/` | Django and DRF. Health endpoint and app scaffolds so far |
+| `frontend/` | React and Vite: the HUD kit, screens and sound |
+| `engines/` | Framework-free shell, file system, vi and rewind engines |
+| `content/` | The curriculum. Missions are in `content/legacy/` until M1 converts them to YAML |
+| `tools/` | Content verification and the screenshot check |
+| `legacy/` | The original single-file game, for reference |
+| `docs/` | The design document and decision records |
