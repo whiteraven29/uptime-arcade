@@ -4,6 +4,8 @@ import { hostPort } from './device.js';
 import { SERVICES, probe, resolve, servicePorts } from './forward.js';
 import { scan } from './net.js';
 
+/* What someone types when they think they're on a router. They need to hear where to go, not a list of laptop tools. */
+const NETWORK_GEAR_WORDS = new Set(['enable', 'en', 'configure', 'conf', 'show', 'interface', 'int', 'switchport', 'router', 'vlan', 'dot11', 'write']);
 const USAGE = "Tools: ip, ping, traceroute, dig, curl, nc, ss, dhclient, rdisc6, cat /etc/resolv.conf. Laptops have wifi, and servers have service, dns and radius. Try 'help'.";
 const help = (dev) => {
   const p = hostPort(dev);
@@ -390,7 +392,10 @@ export function hostRun(lab, dev, line, replaying = false) {
       lab.touch();
       out = '';
       break;
-    default: out = `${words[0]}: command not found. ${USAGE}`;
+    default:
+      out = NETWORK_GEAR_WORDS.has(words[0].toLowerCase())
+        ? `${words[0]}: that's for routers, switches, firewalls and access points, and ${dev.name} is a ${dev.kind}. Click one of those on the map to open its console.`
+        : `${words[0]}: command not found. ${USAGE}`;
   }
   return out;
 }

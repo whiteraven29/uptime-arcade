@@ -237,6 +237,13 @@ describe('shell: scripts take arguments', () => {
 });
 
 describe('every lab', () => {
+  it('a laptop points router commands at the right device, and leaves other typos alone', () => {
+    const t = labs.find((x) => x.id === 'lab-36');
+    const lab = createLab(t.lab);
+    const run = (line) => [lab.run('GUEST-1', line)].flat().map((o) => o.text ?? o).join(' ');
+    expect(run('enable')).toMatch(/GUEST-1 is a laptop.*on the map/);
+    expect(run('pingg 10.0.0.1')).toMatch(/command not found/);
+  });
   const labs = ALL_MISSIONS.filter((m) => m.track === 'LAB');
   const solved = (t) => {
     const lab = createLab(t.lab);
