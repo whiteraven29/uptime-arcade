@@ -20,7 +20,7 @@ The game currently saves to your browser, so the backend is optional for playing
 make check
 ```
 
-This runs the backend, engine and rules tests, checks that no mission uses anything it hasn't taught, plays all 150 missions through the real engines, and builds the frontend. Python solutions are also run under real `python3` and under Skulpt, and Go programs under real `go run`, when those are installed.
+This runs the backend, engine and rules tests, checks that no mission uses anything it hasn't taught, validates every mission file, plays all 175 missions through the real engines, and builds the frontend. Python solutions are also run under real `python3` and under Skulpt, and Go programs under real `go run`, when those are installed.
 
 ## Layout
 
@@ -29,7 +29,7 @@ This runs the backend, engine and rules tests, checks that no mission uses anyth
 | `backend/` | Django and DRF. Health endpoint and app scaffolds so far |
 | `frontend/` | React and Vite: the HUD kit, screens and sound |
 | `engines/` | Framework-free shell, file system, vi and rewind engines |
-| `content/` | The curriculum. Missions are in `content/legacy/` until M1 converts them to YAML |
+| `content/` | The curriculum. Every mission is one YAML file in `content/missions/` |
 | `tools/` | Content verification and the screenshot check |
 | `legacy/` | The original single-file game, for reference |
 | `docs/` | The design document and decision records |

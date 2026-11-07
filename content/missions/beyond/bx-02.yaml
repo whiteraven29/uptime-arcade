@@ -1,0 +1,84 @@
+id: bx-02
+track: BX
+skill: vi
+chapter: Easy
+order: 2
+title: Swap two letters
+from: Support
+difficulty: easy
+check: vi
+par:
+  kind: keys
+  value: 7
+lesson:
+  text: x cuts a character, and p pastes it after the cursor. So xp swaps a letter with the next one.
+  example: xp
+brief: Fix the classic typo in ~/vi/teh.txt so it reads "the server".
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/teh.txt"
+hints:
+  - Stand on the e.
+  - x then p swaps it with the h.
+debrief:
+  why: x keeps what it removed, so xp is a two-key typo fix.
+  solution: lxp:wq<CR>
+  job: You will use xp for the rest of your life.
+teaches:
+  - beyond
+file: ~/vi/teh.txt
+expect:
+  - file_equals:
+      path: ~/vi/teh.txt
+      content: |
+        the server
+  - vi_saved: ~/vi/teh.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Swap two letters". Which sentence best describes what it taught?
+    options:
+      - Pipelines are built from parts, so swapping the last part changes the question they answer.
+      - Compression is really about spotting runs. Forgetting the last run after the loop is the classic bug.
+      - Every extra bit doubles the number of subnets and halves their size.
+      - x keeps what it removed, so xp is a two-key typo fix.
+    answer: x keeps what it removed, so xp is a two-key typo fix.
+    hint: "The lesson said: x cuts a character, and p pastes it after the cursor."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Fix the classic typo in ~/vi/teh.txt so it reads "the server".
+    options:
+      - "4"
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | sed -n 2p
+      - lxp:wq<CR>
+      - out += prev + str(n)
+    answer: lxp:wq<CR>
+    hint: x then p swaps it with the h.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Swap two letters" taught you at work?
+    options:
+      - You will use xp for the rest of your life.
+      - The runner-up is often the next thing to fall over.
+      - Log compressors and image formats start from this.
+      - The quick sum behind every address plan.
+    answer: You will use xp for the rest of your life.
+    hint: "It starts with: You will use xp…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: lxp____<CR>
+    answer:
+      - :wq
+    hint: It starts with ":" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Which vi command saves the file and quits? Type it exactly, with the colon.
+    answer:
+      - :wq
+    hint: It starts with a colon, then w, then q.

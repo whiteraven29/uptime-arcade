@@ -1,0 +1,89 @@
+id: sh-15
+track: SH
+skill: shell
+chapter: Columns
+order: 15
+title: The top-N counter
+from: Product
+difficulty: medium
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: uniq -c counts repeats, but only next to each other, so sort first. Sort again with -rn to put the biggest count on top.
+  example: cut -d' ' -f1 visits.log | sort | uniq -c | sort -rn | head -3
+brief: Product wants the busiest API path in ~/logs/api-access.log.
+goal: "Run: submit <path>"
+hints:
+  - cut the path column.
+  - sort | uniq -c | sort -rn is the classic counter.
+debrief:
+  why: sort | uniq -c | sort -rn is the most useful shell idiom you'll learn. uniq only collapses neighbours, so sort first.
+  solution: cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+  job: You'll type this pipeline for the rest of your career.
+teaches:
+  - uniq
+  - -c
+  - -r
+answer:
+  accept:
+    - /v1/orders
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The top-N counter". Which sentence best describes what it taught?
+    options:
+      - sort | uniq -c | sort -rn is the most useful shell idiom you'll learn. uniq only collapses neighbours, so sort first.
+      - Text sort compares character by character. Numeric sort is what you want for sizes and durations.
+      - rm is permanent, so name exactly what you mean. Careless rm -r is how people lose production data.
+      - Each command does one small job, and the pipe joins them. grep picks the lines, head keeps the first.
+    answer: sort | uniq -c | sort -rn is the most useful shell idiom you'll learn. uniq only collapses neighbours, so sort first.
+    hint: Look for the sentence about uniq and -c.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Product wants the busiest API path in ~/logs/api-access.log.
+    options:
+      - rm ~/desk/old.log
+      - sort -k6 -n ~/logs/api-access.log | tail -1 | cut -d' ' -f6
+      - grep FATAL ~/logs/app.log | head -1
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+    answer: cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+    hint: sort | uniq -c | sort -rn is the classic counter.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: This pipeline has been split at each | and mixed up. Tap the parts from first to last.
+    scrambled:
+      - uniq -c
+      - sort
+      - cut -d' ' -f4 ~/logs/api-access.log
+      - sort -rn
+      - head -1
+    answer:
+      - cut -d' ' -f4 ~/logs/api-access.log
+      - sort
+      - uniq -c
+      - sort -rn
+      - head -1
+    hint: "The first one is: cut -d' ' -f4 ~/logs/api-access.log"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort ____ | head -1
+    answer:
+      - -rn
+    hint: It starts with "-" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Product wants the busiest API path in ~/logs/api-access.log.
+    answer:
+      - /v1/orders
+    hint: It starts with "/" and is 10 characters long.

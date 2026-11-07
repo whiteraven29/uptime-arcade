@@ -1,0 +1,146 @@
+id: bx-19
+track: BX
+skill: go
+chapter: Expert
+order: 19
+title: Capacity decides everything
+from: Backend
+difficulty: expert
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: a[1:2] can grow into the rest of the array. a[1:2:2] limits its capacity, so its next append must copy. The third number is how you make a slice safe to append to.
+  example: s := a[1:2:2]   // cap is 1, append will copy
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - b has room, so its append writes into a[2].
+  - c has no room, so it moves to a new array before c[0] = 5.
+debrief:
+  why: "The three-index slice is the fix for shared-array bugs: it forces append to copy instead of overwriting a neighbour."
+  solution: submit [0 0 7 0] 2 9
+  job: Libraries that hand out sub-slices use this to protect their data.
+teaches:
+  - beyond
+answer:
+  accept:
+    - "[0 0 7 0] 2 9"
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	a := make([]int, 3, 10)
+    	b := a[1:2]
+    	c := a[1:2:2]
+    	b = append(b, 7)
+    	c = append(c, 8)
+    	c[0] = 5
+    	fmt.Println(a[:4], len(b), cap(b))
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Capacity decides everything". Which sentence best describes what it taught?
+    options:
+      - Slicing the timestamp turns a list of events into a timeline, which is how you line an outage up with a deploy.
+      - The hardest part of a macro is where it ends, because the next run depends on it.
+      - "The three-index slice is the fix for shared-array bugs: it forces append to copy instead of overwriting a neighbour."
+      - With only the default register, the second delete would overwrite the first. Named ones keep both.
+    answer: "The three-index slice is the fix for shared-array bugs: it forces append to copy instead of overwriting a neighbour."
+    hint: "The lesson said: a[1:2] can grow into the rest of the array."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - "[0 0 7 0] 2 9"
+      - qaf=a"<Esc>A"<Esc>j0q2@a:wq<CR>
+      - awk '$5==500{print substr($1,12,2)}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+      - '"adi"j"bdi""aPk"bP:wq<CR>'
+    answer: "[0 0 7 0] 2 9"
+    hint: c has no room, so it moves to a new array before c[0] = 5.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	a := make([]int, 3, 10)
+      	b := a[1:2]
+      	c := a[1:2:2]
+      	b = append(b, 7)
+      	c = append(c, 8)
+      	c[0] = 5
+      	fmt.Println(a[:4], len(b), cap(b))
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - a := make([]int, 3, 10)
+      - b = append(b, 7)
+      - c := a[1:2:2]
+      - c[0] = 5
+      - fmt.Println(a[:4], len(b), cap(b))
+      - b := a[1:2]
+      - c = append(c, 8)
+    answer:
+      - a := make([]int, 3, 10)
+      - b := a[1:2]
+      - c := a[1:2:2]
+      - b = append(b, 7)
+      - c = append(c, 8)
+      - c[0] = 5
+      - fmt.Println(a[:4], len(b), cap(b))
+    hint: "The first one is: a := make([]int, 3, 10)"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      a := make([]int, 3, 10)
+      b := a[1:2]
+      c := a[1:2:2]
+      b = append(b, 7)
+      c = append(c, 8)
+      c[0] = 5
+      fmt.Println(a[:4], len(b), ____(b))
+    answer:
+      - cap
+    hint: It starts with "c" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	a := make([]int, 3, 10)
+      	b := a[1:2]
+      	c := a[1:2:2]
+      	b = append(b, 7)
+      	c = append(c, 8)
+      	c[0] = 5
+      	fmt.Println(a[:4], len(b), cap(b))
+      }
+    answer:
+      - "[0 0 7 0] 2 9"
+    hint: It starts with "[" and is 13 characters long.

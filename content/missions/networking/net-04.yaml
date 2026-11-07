@@ -1,0 +1,84 @@
+id: net-04
+track: NET
+skill: networking
+chapter: Subnets
+order: 4
+title: Hosts in a subnet
+from: Network
+difficulty: easy
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "What's left after the prefix is for hosts. With h host bits there are 2^h addresses, and each subnet loses 2: the network address and the broadcast address. A /31 link and a /32 single host are the exceptions."
+  example: |-
+    /28 leaves 4 host bits
+    2^4 - 2 = 14 hosts
+brief: How many usable hosts does a /24 have?
+goal: "Run: submit <answer>"
+hints:
+  - 8 host bits.
+  - 2^8 minus network and broadcast.
+debrief:
+  why: Two addresses are reserved in each normal subnet.
+  solution: submit 254
+  job: The first number you memorise.
+teaches:
+  - hosts
+answer:
+  accept:
+    - "254"
+verify: str(2**8-2)
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Hosts in a subnet". Which sentence best describes what it taught?
+    options:
+      - The mask is the prefix written as four octets.
+      - Eight place values are all you need, and they come straight back when you read subnet masks.
+      - An address is just one 32-bit number written in a friendly way. All subnet maths follows from that.
+      - Two addresses are reserved in each normal subnet.
+    answer: Two addresses are reserved in each normal subnet.
+    hint: Look for the sentence about hosts.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: How many usable hosts does a /24 have?
+    options:
+      - 255.255.255.192
+      - "192"
+      - "254"
+      - "32"
+    answer: "254"
+    hint: 2^8 minus network and broadcast.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Hosts in a subnet" taught you at work?
+    options:
+      - Everything else in networking builds on this one fact.
+      - Masks like 255.255.255.192 make sense once you can see the bits.
+      - The first number you memorise.
+      - Older gear and many forms ask for masks.
+    answer: The first number you memorise.
+    hint: "It starts with: The first number you…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: Two ____ are reserved in each normal subnet.
+    answer:
+      - addresses
+    hint: It starts with "a" and is 9 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: How many usable hosts does a /24 have?
+    answer:
+      - "254"
+    hint: It starts with "2" and is 3 characters long.

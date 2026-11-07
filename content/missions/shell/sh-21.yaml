@@ -1,0 +1,85 @@
+id: sh-21
+track: SH
+skill: shell
+chapter: awk
+order: 21
+title: Group by
+from: Finance
+difficulty: hard
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: -F sets awk's separator, and NR>1 skips a header row. An array like s[$1] keeps one total per key, and for (k in s) loops over the keys in END.
+  example: awk -F, 'NR>1{s[$1]+=$2} END{for(k in s)print s[k],k}' sales.csv
+brief: Using ~/data/customers.csv (id,name,plan,country,mrr,signup), which plan has the highest total mrr?
+goal: "Run: submit <plan>"
+hints:
+  - awk -F, for commas, NR>1 for the header.
+  - s[$3]+=$5, then a for loop in END.
+debrief:
+  why: Associative arrays group by any key, which is a GROUP BY in one line.
+  solution: awk -F, 'NR>1{s[$3]+=$5} END{for(k in s)print s[k],k}' ~/data/customers.csv | sort -rn | head -1
+  job: Quick revenue cuts save waiting for a dashboard.
+teaches:
+  - -F
+  - NR
+  - for
+answer:
+  accept:
+    - enterprise
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Group by". Which sentence best describes what it taught?
+    options:
+      - Text sort compares character by character. Numeric sort is what you want for sizes and durations.
+      - Associative arrays group by any key, which is a GROUP BY in one line.
+      - tail and cut together pull a single value out of a structured line.
+      - awk splits on whitespace for you, so column work needs no delimiter flags.
+    answer: Associative arrays group by any key, which is a GROUP BY in one line.
+    hint: Look for the sentence about -F and NR.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Using ~/data/customers.csv (id,name,plan,country,mrr,signup), which plan has the highest total mrr?
+    options:
+      - sort -k6 -n ~/logs/api-access.log | tail -1 | cut -d' ' -f6
+      - awk -F, 'NR>1{s[$3]+=$5} END{for(k in s)print s[k],k}' ~/data/customers.csv | sort -rn | head -1
+      - tail -1 ~/logs/api-access.log | cut -d' ' -f4
+      - awk '{print $2}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+    answer: awk -F, 'NR>1{s[$3]+=$5} END{for(k in s)print s[k],k}' ~/data/customers.csv | sort -rn | head -1
+    hint: s[$3]+=$5, then a for loop in END.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: This pipeline has been split at each | and mixed up. Tap the parts from first to last.
+    scrambled:
+      - head -1
+      - sort -rn
+      - awk -F, 'NR>1{s[$3]+=$5} END{for(k in s)print s[k],k}' ~/data/customers.csv
+    answer:
+      - awk -F, 'NR>1{s[$3]+=$5} END{for(k in s)print s[k],k}' ~/data/customers.csv
+      - sort -rn
+      - head -1
+    hint: "The first one is: awk -F, 'NR>1{s[$3]+=$5} END{for(k in s)print s[k],k}' ~/data/customers.csv"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: awk -F, 'NR>1{s[$3]+=$5} END{for(k in s)print s[k],k}' ~/data/customers.csv | sort ____ | head -1
+    answer:
+      - -rn
+    hint: It starts with "-" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Using ~/data/customers.csv (id,name,plan,country,mrr,signup), which plan has the highest total mrr?
+    answer:
+      - enterprise
+    hint: It starts with "e" and is 10 characters long.

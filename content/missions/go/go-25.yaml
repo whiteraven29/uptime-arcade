@@ -1,0 +1,154 @@
+id: go-25
+track: GO
+skill: go
+chapter: Concurrency
+order: 25
+title: Close and drain
+from: Backend
+difficulty: hard
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: close says no more values are coming. range on a channel reads what is left and then stops. Without close, that loop would wait forever.
+  example: |-
+    c := make(chan int, 2)
+    c <- 1
+    close(c)
+    for v := range c {
+    	fmt.Print(v)
+    }
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - The buffer holds 3, so sends do not block.
+  - range on a closed channel reads what is left.
+debrief:
+  why: Closing doesn't throw away buffered values. Without close, this loop would deadlock.
+  solution: submit 14 0
+  job: Worker pools use send, close and range.
+teaches:
+  - close
+answer:
+  accept:
+    - 14 0
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	ch := make(chan int, 3)
+    	for i := 1; i <= 3; i++ {
+    		ch <- i * i
+    	}
+    	close(ch)
+    	sum := 0
+    	for v := range ch {
+    		sum += v
+    	}
+    	fmt.Println(sum, len(ch))
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Close and drain". Which sentence best describes what it taught?
+    options:
+      - Channels are how goroutines talk safely, by handing over values instead of sharing memory.
+      - Satisfaction is implicit, so you can define an interface where it is used and existing types just fit.
+      - Closing doesn't throw away buffered values. Without close, this loop would deadlock.
+      - Deferred calls stack up and run in reverse order, so cleanup unwinds in the opposite order to setup.
+    answer: Closing doesn't throw away buffered values. Without close, this loop would deadlock.
+    hint: Look for the sentence about close.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - web ok db ok done
+      - 14 0
+      - 2 a b
+      - done 2 1 0
+    answer: 14 0
+    hint: range on a closed channel reads what is left.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	ch := make(chan int, 3)
+      	for i := 1; i <= 3; i++ {
+      		ch <- i * i
+      	}
+      	close(ch)
+      	sum := 0
+      	for v := range ch {
+      		sum += v
+      	}
+      	fmt.Println(sum, len(ch))
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Close and drain" taught you at work?
+    options:
+      - Worker pools use send, close and range.
+      - Pipelines and worker pools are built from channels.
+      - io.Reader and error are interfaces you will use every day.
+      - defer closes files and releases locks.
+    answer: Worker pools use send, close and range.
+    hint: "It starts with: Worker pools use send,…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      ch := make(chan int, 3)
+      ____ i := 1; i <= 3; i++ {
+      	ch <- i * i
+      }
+      close(ch)
+      sum := 0
+      for v := range ch {
+      	sum += v
+      }
+      fmt.Println(sum, len(ch))
+    answer:
+      - for
+    hint: It starts with "f" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	ch := make(chan int, 3)
+      	for i := 1; i <= 3; i++ {
+      		ch <- i * i
+      	}
+      	close(ch)
+      	sum := 0
+      	for v := range ch {
+      		sum += v
+      	}
+      	fmt.Println(sum, len(ch))
+      }
+    answer:
+      - 14 0
+    hint: It starts with "1" and is 4 characters long.

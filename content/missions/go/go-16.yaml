@@ -1,0 +1,146 @@
+id: go-16
+track: GO
+skill: go
+chapter: Types
+order: 16
+title: Value vs pointer receivers
+from: Backend
+difficulty: medium
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A method is a function attached to a type. The receiver goes before its name. A value receiver works on a copy, and a pointer receiver, marked with *, changes the original.
+  example: |-
+    func (c Car) Name() string { return c.name }
+    func (c *Car) Fill()        { c.fuel = 100 }
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - A value receiver gets a copy.
+  - Only IncP changes the original.
+debrief:
+  why: Value receivers work on a copy, and pointer receivers change the original.
+  solution: submit 1
+  job: Mixing these up causes state that never updates.
+teaches:
+  - receiver
+  - "*C"
+answer:
+  accept:
+    - "1"
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    type C struct{ n int }
+
+    func (c C) IncV()  { c.n++ }
+    func (c *C) IncP() { c.n++ }
+
+    func main() {
+    	c := C{}
+    	c.IncV()
+    	c.IncP()
+    	fmt.Println(c.n)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Value vs pointer receivers". Which sentence best describes what it taught?
+    options:
+      - Value receivers work on a copy, and pointer receivers change the original.
+      - A slice is a pointer, a length and a capacity. With room left, append overwrites. Use a[:2:2] to force a copy.
+      - With no capacity left, append copies to a new array, so a and b no longer share memory.
+      - Arrays are values and slices are views. That one difference explains most slice surprises.
+    answer: Value receivers work on a copy, and pointer receivers change the original.
+    hint: Look for the sentence about *C.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 1 9
+      - "1"
+      - 2 [7 8]
+      - 99 3 4
+    answer: "1"
+    hint: Only IncP changes the original.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      type C struct{ n int }
+
+      func (c C) IncV()  { c.n++ }
+      func (c *C) IncP() { c.n++ }
+
+      func main() {
+      	c := C{}
+      	c.IncV()
+      	c.IncP()
+      	fmt.Println(c.n)
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - fmt.Println(c.n)
+      - c.IncP()
+      - c := C{}
+      - c.IncV()
+    answer:
+      - c := C{}
+      - c.IncV()
+      - c.IncP()
+      - fmt.Println(c.n)
+    hint: "The first one is: c := C{}"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      c := C{}
+      c.IncV()
+      c.IncP()
+      fmt.____(c.n)
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      type C struct{ n int }
+
+      func (c C) IncV()  { c.n++ }
+      func (c *C) IncP() { c.n++ }
+
+      func main() {
+      	c := C{}
+      	c.IncV()
+      	c.IncP()
+      	fmt.Println(c.n)
+      }
+    answer:
+      - "1"
+    hint: It starts with "1" and is 1 characters long.

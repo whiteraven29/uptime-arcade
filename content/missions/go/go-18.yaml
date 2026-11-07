@@ -1,0 +1,141 @@
+id: go-18
+track: GO
+skill: go
+chapter: Types
+order: 18
+title: The nil that isn't nil
+from: Backend
+difficulty: medium
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: An interface holds a type and a value. It equals nil only when both are empty, so a nil pointer inside it is not nil. error is itself an interface.
+  example: |-
+    var p *T
+    var i any = p
+    // i holds the type *T and a nil value
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - An interface holds a type and a value.
+  - It's nil only when both are nil.
+debrief:
+  why: The interface holds type *E with a nil value, so it isn't nil. Return plain nil on success.
+  solution: submit false
+  job: A famous Go trap that passes error checks wrongly.
+teaches:
+  - error
+answer:
+  accept:
+    - "false"
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    type E struct{}
+
+    func (*E) Error() string { return "e" }
+
+    func run() error {
+    	var p *E
+    	return p
+    }
+
+    func main() {
+    	fmt.Println(run() == nil)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The nil that isn't nil". Which sentence best describes what it taught?
+    options:
+      - copy never grows the destination, so size it first. It gives you data that is truly separate.
+      - Maps return the zero value for missing keys, so counting needs no setup. Comma-ok tells zero from missing.
+      - Value receivers work on a copy, and pointer receivers change the original.
+      - The interface holds type *E with a nil value, so it isn't nil. Return plain nil on success.
+    answer: The interface holds type *E with a nil value, so it isn't nil. Return plain nil on success.
+    hint: Look for the sentence about error.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - "false"
+      - 2 0 false
+      - "1"
+      - 2 [7 8]
+    answer: "false"
+    hint: It's nil only when both are nil.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      type E struct{}
+
+      func (*E) Error() string { return "e" }
+
+      func run() error {
+      	var p *E
+      	return p
+      }
+
+      func main() {
+      	fmt.Println(run() == nil)
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "The nil that isn't nil" taught you at work?
+    options:
+      - Go counters rely on this.
+      - Buffer code uses this all the time.
+      - Mixing these up causes state that never updates.
+      - A famous Go trap that passes error checks wrongly.
+    answer: A famous Go trap that passes error checks wrongly.
+    hint: "It starts with: A famous Go trap…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: fmt.____(run() == nil)
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      type E struct{}
+
+      func (*E) Error() string { return "e" }
+
+      func run() error {
+      	var p *E
+      	return p
+      }
+
+      func main() {
+      	fmt.Println(run() == nil)
+      }
+    answer:
+      - "false"
+    hint: It starts with "f" and is 5 characters long.

@@ -1,0 +1,92 @@
+id: sh-06
+track: SH
+skill: shell
+chapter: Files
+order: 6
+title: Copy, move, rename
+from: Platform
+difficulty: easy
+check: fs
+par:
+  kind: commands
+  value: 2
+lesson:
+  text: cp copies a file and leaves the original. mv moves it, and moving to a new name in the same folder is how you rename. Linux has no separate rename command.
+  example: |-
+    cp cat.jpg cat-copy.jpg
+    mv cat.jpg pictures/
+    mv old.txt new.txt
+brief: ~/desk/draft.txt is ready. Keep a safety copy called backup.txt, then rename the draft to final.txt.
+goal: Leave ~/desk with backup.txt and final.txt, and no draft.txt.
+hints:
+  - Copy first, while draft.txt still exists.
+  - mv ~/desk/draft.txt ~/desk/final.txt
+debrief:
+  why: mv is both move and rename, because a file's name is just part of its path.
+  solution: |-
+    cp ~/desk/draft.txt ~/desk/backup.txt
+    mv ~/desk/draft.txt ~/desk/final.txt
+  job: "Copy before you change: it is the cheapest rollback there is."
+teaches:
+  - cp
+  - mv
+expect:
+  - file_exists: ~/desk/backup.txt
+  - file_exists: ~/desk/final.txt
+  - file_missing: ~/desk/draft.txt
+fixtures:
+  desk/draft.txt: |
+    Quarterly capacity draft
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Copy, move, rename". Which sentence best describes what it taught?
+    options:
+      - The shell splits on spaces, and programs read a leading dash as an option. Quoting and a path prefix fix both. Dotfiles are only hidden from plain ls.
+      - mv is both move and rename, because a file's name is just part of its path.
+      - head and tail let you peek at a file without printing all of it, which matters when a log has a million lines.
+      - mkdir -p creates the whole chain and doesn't complain if a folder is already there, so it's safe to run twice.
+    answer: mv is both move and rename, because a file's name is just part of its path.
+    hint: Look for the sentence about cp and mv.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: ~/desk/draft.txt is ready. Keep a safety copy called backup.txt, then rename the draft to final.txt.
+    options:
+      - cat ~/inbox/'week 44'/.rota
+      - cp ~/desk/draft.txt ~/desk/backup.txt
+      - touch ~/work/today/notes.txt
+      - tail -1 ~/README
+    answer: cp ~/desk/draft.txt ~/desk/backup.txt
+    hint: mv ~/desk/draft.txt ~/desk/final.txt
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Copy, move, rename" taught you at work?
+    options:
+      - Backups and uploads produce names like this all the time.
+      - "Copy before you change: it is the cheapest rollback there is."
+      - Setup scripts use mkdir -p because it can be run again safely.
+      - tail is the first thing you run on any log file.
+    answer: "Copy before you change: it is the cheapest rollback there is."
+    hint: "It starts with: Copy before you change:…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ ~/desk/draft.txt ~/desk/backup.txt
+    answer:
+      - cp
+    hint: It starts with "c" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type one of the commands you used."
+    context: ~/desk/draft.txt is ready. Keep a safety copy called backup.txt, then rename the draft to final.txt.
+    answer:
+      - cp ~/desk/draft.txt ~/desk/backup.txt
+      - mv ~/desk/draft.txt ~/desk/final.txt
+    hint: "It starts with: cp ~/desk/dra"

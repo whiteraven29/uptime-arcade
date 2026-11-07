@@ -1,3 +1,221 @@
-from django.test import TestCase
+import pytest
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
-# Create your tests here.
+from apps.game.models import Player, TimeLedger
+
+GOOD = {"email": "Sara@Example.test", "password": "correct horse battery", "display_name": "Sara"}
+COOKIE = settings.REFRESH_COOKIE["key"]
+
+
+@pytest.fixture
+def registered(anon):
+    response = anon.post("/api/v1/auth/register/", GOOD, format="json")
+    assert response.status_code == 201
+    return response
+
+
+class TestRegister:
+    def test_gives_a_new_player_the_starter_bank(self, registered):
+        player = Player.objects.get(user__username="sara@example.test")
+        assert player.bank() == 300
+        assert TimeLedger.objects.filter(player=player, reason="starter").count() == 1
+
+    def test_keeps_the_refresh_token_out_of_reach_of_scripts(self, registered):
+        assert "refresh" not in registered.json()
+        cookie = registered.cookies[COOKIE]
+        assert cookie["httponly"]
+        assert cookie["samesite"] == "Strict"
+        assert cookie["path"] == "/api/v1/auth/"
+
+    def test_never_returns_the_password(self, registered):
+        assert GOOD["password"] not in registered.content.decode()
+
+    @pytest.mark.parametrize("password", ["short1", "password123", "12345678901"])
+    def test_rejects_weak_passwords(self, anon, password):
+        response = anon.post("/api/v1/auth/register/", {**GOOD, "password": password}, format="json")
+        assert response.status_code == 400
+        assert not get_user_model().objects.filter(username="sara@example.test").exists()
+
+    def test_rejects_a_password_like_the_email(self, anon):
+        response = anon.post("/api/v1/auth/register/", {"email": "longusername@example.test", "password": "longusername1"}, format="json")
+        assert response.status_code == 400
+
+    def test_email_is_case_insensitive_and_unique(self, anon, registered):
+        again = anon.post("/api/v1/auth/register/", {**GOOD, "email": "SARA@example.test"}, format="json")
+        assert again.status_code == 400
+        assert again.json()["error"]["code"] == "email_taken"
+
+    def test_rejects_an_unknown_time_zone(self, anon):
+        assert anon.post("/api/v1/auth/register/", {**GOOD, "time_zone": "Mars/Olympus"}, format="json").status_code == 400
+
+    def test_a_client_cant_set_its_own_xp(self, anon):
+        anon.post("/api/v1/auth/register/", {**GOOD, "xp": 99999, "is_staff": True, "is_superuser": True}, format="json")
+        user = get_user_model().objects.get(username="sara@example.test")
+        assert user.player.xp == 0
+        assert not user.is_staff and not user.is_superuser
+
+    def test_stores_a_hash_not_the_password(self, registered):
+        user = get_user_model().objects.get(username="sara@example.test")
+        assert GOOD["password"] not in user.password
+
+
+class TestLogin:
+    def test_right_password_gets_tokens(self, anon, registered):
+        fresh = APIClient()
+        response = fresh.post("/api/v1/auth/login/", {"email": "sara@example.test", "password": GOOD["password"]}, format="json")
+        assert response.status_code == 200
+        assert response.json()["access"]
+        assert COOKIE in response.cookies
+
+    def test_access_token_works(self, anon, registered):
+        fresh = APIClient()
+        fresh.credentials(HTTP_AUTHORIZATION=f"Bearer {registered.json()['access']}")
+        assert fresh.get("/api/v1/player/").status_code == 200
+
+    def test_gives_the_same_answer_for_a_wrong_password_and_an_unknown_email(self, anon, registered):
+        fresh = APIClient()
+        wrong = fresh.post("/api/v1/auth/login/", {"email": "sara@example.test", "password": "nope nope nope"}, format="json")
+        unknown = fresh.post("/api/v1/auth/login/", {"email": "nobody@example.test", "password": "nope nope nope"}, format="json")
+        assert wrong.status_code == unknown.status_code == 401
+        assert wrong.json() == unknown.json()
+
+    def test_a_disabled_account_cant_log_in(self, anon, registered):
+        get_user_model().objects.filter(username="sara@example.test").update(is_active=False)
+        response = APIClient().post("/api/v1/auth/login/", {"email": "sara@example.test", "password": GOOD["password"]}, format="json")
+        assert response.status_code == 401
+
+
+class TestRefresh:
+    def test_without_a_cookie_is_refused(self):
+        assert APIClient().post("/api/v1/auth/refresh/").status_code == 401
+
+    def test_ignores_a_token_in_the_body(self, registered):
+        token = registered.cookies[COOKIE].value
+        assert APIClient().post("/api/v1/auth/refresh/", {"refresh": token}, format="json").status_code == 401
+
+    def test_rotates_and_the_old_token_stops_working(self, registered):
+        old = registered.cookies[COOKIE].value
+        client = APIClient()
+        client.cookies[COOKIE] = old
+        first = client.post("/api/v1/auth/refresh/")
+        assert first.status_code == 200
+        assert first.cookies[COOKIE].value != old
+        replay = APIClient()
+        replay.cookies[COOKIE] = old
+        assert replay.post("/api/v1/auth/refresh/").status_code == 401
+
+    def test_garbage_is_refused_and_clears_the_cookie(self):
+        client = APIClient()
+        client.cookies[COOKIE] = "not-a-token"
+        response = client.post("/api/v1/auth/refresh/")
+        assert response.status_code == 401
+        assert response.cookies[COOKIE].value == ""
+
+
+    def test_a_disabled_account_cant_refresh(self, registered):
+        get_user_model().objects.filter(username="sara@example.test").update(is_active=False)
+        client = APIClient()
+        client.cookies[COOKIE] = registered.cookies[COOKIE].value
+        assert client.post("/api/v1/auth/refresh/").status_code == 401
+
+    def test_a_deleted_account_cant_refresh(self, registered):
+        token = registered.cookies[COOKIE].value
+        get_user_model().objects.filter(username="sara@example.test").delete()
+        client = APIClient()
+        client.cookies[COOKIE] = token
+        assert client.post("/api/v1/auth/refresh/").status_code == 401
+
+
+class TestLogout:
+    def test_kills_the_refresh_token(self, registered):
+        token = registered.cookies[COOKIE].value
+        client = APIClient()
+        client.cookies[COOKIE] = token
+        response = client.post("/api/v1/auth/logout/")
+        assert response.status_code == 200
+        assert response.cookies[COOKIE].value == ""
+        replay = APIClient()
+        replay.cookies[COOKIE] = token
+        assert replay.post("/api/v1/auth/refresh/").status_code == 401
+
+    def test_succeeds_with_nothing_to_log_out_of(self):
+        assert APIClient().post("/api/v1/auth/logout/").status_code == 200
+
+
+class TestRateLimits:
+    def test_blocks_password_guessing(self):
+        client = APIClient()
+        codes = [client.post("/api/v1/auth/login/", {"email": "a@example.test", "password": "x" * 12}, format="json").status_code for _ in range(11)]
+        assert codes[:10] == [401] * 10
+        assert codes[10] == 429
+
+    def test_faking_x_forwarded_for_doesnt_dodge_the_limit(self):
+        client = APIClient()
+        codes = [client.post("/api/v1/auth/login/", {"email": f"a{i}@example.test", "password": "x" * 12}, format="json", HTTP_X_FORWARDED_FOR=f"10.0.0.{i}").status_code for i in range(11)]
+        assert codes[10] == 429
+
+    def test_guessing_one_account_from_many_addresses_is_limited_too(self):
+        client = APIClient()
+        codes = [client.post("/api/v1/auth/login/", {"email": "a@example.test", "password": "x" * 12}, format="json", REMOTE_ADDR=f"10.0.0.{i}").status_code for i in range(11)]
+        assert codes[10] == 429
+
+    def test_changing_capitals_doesnt_reset_the_account_limit(self):
+        client = APIClient()
+        emails = ["a@example.test", "A@example.test", " a@EXAMPLE.test"]
+        codes = [client.post("/api/v1/auth/login/", {"email": emails[i % 3], "password": "x" * 12}, format="json", REMOTE_ADDR=f"10.0.0.{i}").status_code for i in range(11)]
+        assert codes[10] == 429
+
+    def test_argon2_is_the_production_hasher(self):
+        from config.settings import base
+
+        assert base.PASSWORD_HASHERS[0].endswith("Argon2PasswordHasher")
+
+
+class TestAccount:
+    def test_can_change_only_its_own_settings(self, api):
+        response = api.patch("/api/v1/auth/me/", {"display_name": "Amina", "time_zone": "Africa/Nairobi", "xp": 5000, "season": 9, "peak_cleared": 150}, format="json")
+        assert response.status_code == 200
+        player = api.user.player
+        player.refresh_from_db()
+        assert player.display_name == "Amina"
+        assert player.time_zone == "Africa/Nairobi"
+        assert player.xp == 0 and player.season == 1 and player.peak_cleared == 0
+
+    def test_time_zone_changes_once_a_day_so_it_cant_fake_a_streak_day(self, api, clock):
+        assert api.patch("/api/v1/auth/me/", {"time_zone": "Pacific/Kiritimati"}, format="json").status_code == 200
+        again = api.patch("/api/v1/auth/me/", {"time_zone": "Pacific/Pago_Pago"}, format="json")
+        assert again.status_code == 409
+        assert again.json()["error"]["code"] == "time_zone_changed_recently"
+        clock.advance(hours=24)
+        assert api.patch("/api/v1/auth/me/", {"time_zone": "Pacific/Pago_Pago"}, format="json").status_code == 200
+
+    def test_setting_the_same_zone_doesnt_use_up_the_change(self, api, clock):
+        same = api.user.player.time_zone
+        api.patch("/api/v1/auth/me/", {"time_zone": same}, format="json")
+        assert api.patch("/api/v1/auth/me/", {"time_zone": "Africa/Nairobi"}, format="json").status_code == 200
+
+    def test_other_settings_arent_limited(self, api, clock):
+        api.patch("/api/v1/auth/me/", {"time_zone": "Africa/Nairobi"}, format="json")
+        assert api.patch("/api/v1/auth/me/", {"sound_on": False, "time_zone": "Africa/Nairobi"}, format="json").status_code == 200
+
+    def test_delete_needs_the_password(self, api):
+        assert api.delete("/api/v1/auth/me/", {"password": "wrong wrong wrong"}, format="json").status_code == 403
+        assert get_user_model().objects.filter(pk=api.user.pk).exists()
+
+    def test_delete_wipes_everything(self, api):
+        api.post("/api/v1/focus/blocks/", {"goal": "x", "minutes": 25}, format="json")
+        pk = api.user.pk
+        assert api.delete("/api/v1/auth/me/", {"password": "correct horse battery"}, format="json").status_code == 204
+        assert not Player.objects.filter(user_id=pk).exists()
+        assert not TimeLedger.objects.exists()
+
+    def test_a_deleted_accounts_token_stops_working(self, user):
+        token = str(RefreshToken.for_user(user).access_token)
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        assert client.get("/api/v1/player/").status_code == 200
+        user.delete()
+        assert client.get("/api/v1/player/").status_code == 401

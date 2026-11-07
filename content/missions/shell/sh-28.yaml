@@ -1,0 +1,94 @@
+id: sh-28
+track: SH
+skill: shell
+chapter: Scripting
+order: 28
+title: Loop over files
+from: Finance
+difficulty: hard
+check: fs
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: A for loop repeats commands over a list. ${f%.old} removes .old from the end of the name. Quote "$f" so names with spaces stay safe.
+  example: for f in *.jpeg; do mv "$f" "${f%.jpeg}.jpg"; done
+brief: Reports in ~/reports should end in .txt, not .TXT. One name has a space.
+goal: Rename them with one for loop. Leave archive.txt alone.
+hints:
+  - for f in ~/reports/*.TXT; do ...; done
+  - ${f%.TXT} removes the ending. Double quotes protect the space.
+debrief:
+  why: Parameter expansion edits text with no extra tools. Without quotes, the spaced name splits into two arguments.
+  solution: for f in ~/reports/*.TXT; do mv "$f" "${f%.TXT}.txt"; done
+  job: Loops are where one-liners turn into scripting.
+teaches:
+  - do
+  - done
+  - ${
+expect:
+  - file_exists: ~/reports/web.txt
+  - file_missing: ~/reports/web.TXT
+  - file_exists: ~/reports/db.txt
+  - file_missing: ~/reports/db.TXT
+  - file_exists: ~/reports/cache.txt
+  - file_missing: ~/reports/cache.TXT
+  - file_exists: ~/reports/worker.txt
+  - file_missing: ~/reports/worker.TXT
+  - file_exists: ~/reports/edge.txt
+  - file_missing: ~/reports/edge.TXT
+  - file_exists: ~/reports/q3 summary.txt
+  - file_missing: ~/reports/q3 summary.TXT
+  - file_exists: ~/reports/archive.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Loop over files". Which sentence best describes what it taught?
+    options:
+      - Windows ends lines with CR LF. A hidden \r at the end of a line breaks shell scripts in confusing ways.
+      - Parameter expansion edits text with no extra tools. Without quotes, the spaced name splits into two arguments.
+      - sed applies a substitution to every line. Writing to a new file keeps the original for a safe rollback.
+      - ^ and $ anchor to the start and end of a line, so ^$ means an empty line.
+    answer: Parameter expansion edits text with no extra tools. Without quotes, the spaced name splits into two arguments.
+    hint: Look for the sentence about do and done.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Reports in ~/reports should end in .txt, not .TXT. One name has a space.
+    options:
+      - sed 's/old-host\.example/whiteraven.example/' ~/conf/endpoints.conf > ~/conf/endpoints-new.conf
+      - for f in ~/reports/*.TXT; do mv "$f" "${f%.TXT}.txt"; done
+      - sed '/^#/d; /^$/d' ~/conf/nginx-comments.conf > ~/conf/nginx-clean.conf
+      - tr -d '\r' < ~/conf/windows.txt > ~/conf/unix.txt
+    answer: for f in ~/reports/*.TXT; do mv "$f" "${f%.TXT}.txt"; done
+    hint: ${f%.TXT} removes the ending. Double quotes protect the space.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Loop over files" taught you at work?
+    options:
+      - Comparing real settings between servers starts here.
+      - Migrations are full of edits like this.
+      - A script that 'looks fine' but fails is often this.
+      - Loops are where one-liners turn into scripting.
+    answer: Loops are where one-liners turn into scripting.
+    hint: "It starts with: Loops are where one-liners…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: for f in ~/reports/*.TXT; do ____ "$f" "${f%.TXT}.txt"; done
+    answer:
+      - mv
+    hint: It starts with "m" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type the command you used."
+    context: Reports in ~/reports should end in .txt, not .TXT. One name has a space.
+    answer:
+      - for f in ~/reports/*.TXT; do mv "$f" "${f%.TXT}.txt"; done
+    hint: "It starts with: for f in ~/reports/*"

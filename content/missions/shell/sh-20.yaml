@@ -1,0 +1,82 @@
+id: sh-20
+track: SH
+skill: shell
+chapter: awk
+order: 20
+title: Filter and total
+from: Product
+difficulty: medium
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: awk runs its { } block on every line, and END { } runs once at the very end. Put a condition before a block to run it only on matching lines. Keep a sum and a count, then divide in END. printf "%.0f" rounds.
+  example: awk '$1=="cat"{s+=$2;n++} END{printf "%.0f\n", s/n}' pets.txt
+brief: What is the average ms for /v1/orders in ~/logs/api-access.log, rounded to a whole number? Path is field 4 and ms is field 6.
+goal: "Run: submit <ms>"
+hints:
+  - Filter with $4=="/v1/orders".
+  - printf "%.0f" rounds. Track sum and count.
+debrief:
+  why: Pattern plus action lets awk filter and aggregate in the same step, with no grep needed.
+  solution: awk '$4=="/v1/orders"{s+=$6;n++} END{printf "%.0f\n", s/n}' ~/logs/api-access.log
+  job: Latency per endpoint is the basis of every SLO.
+teaches:
+  - END
+  - printf
+answer:
+  accept:
+    - "233"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Filter and total". Which sentence best describes what it taught?
+    options:
+      - Pattern plus action lets awk filter and aggregate in the same step, with no grep needed.
+      - tail and cut together pull a single value out of a structured line.
+      - Text sort compares character by character. Numeric sort is what you want for sizes and durations.
+      - find walks a whole tree, and -name matches the base name exactly unless you use a glob.
+    answer: Pattern plus action lets awk filter and aggregate in the same step, with no grep needed.
+    hint: Look for the sentence about END and printf.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: What is the average ms for /v1/orders in ~/logs/api-access.log, rounded to a whole number? Path is field 4 and ms is field 6.
+    options:
+      - sort -k6 -n ~/logs/api-access.log | tail -1 | cut -d' ' -f6
+      - awk '$4=="/v1/orders"{s+=$6;n++} END{printf "%.0f\n", s/n}' ~/logs/api-access.log
+      - tail -1 ~/logs/api-access.log | cut -d' ' -f4
+      - find ~/archive -name app.log | wc -l
+    answer: awk '$4=="/v1/orders"{s+=$6;n++} END{printf "%.0f\n", s/n}' ~/logs/api-access.log
+    hint: printf "%.0f" rounds. Track sum and count.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Filter and total" taught you at work?
+    options:
+      - Finding files across a tree is daily sysadmin work.
+      - Seeing the latest entry confirms whether a service is still logging.
+      - Latency per endpoint is the basis of every SLO.
+      - Worst-case latency is where user complaints come from.
+    answer: Latency per endpoint is the basis of every SLO.
+    hint: "It starts with: Latency per endpoint is…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ '$4=="/v1/orders"{s+=$6;n++} END{printf "%.0f\n", s/n}' ~/logs/api-access.log
+    answer:
+      - awk
+    hint: It starts with "a" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: What is the average ms for /v1/orders in ~/logs/api-access.log, rounded to a whole number? Path is field 4 and ms is field 6.
+    answer:
+      - "233"
+    hint: It starts with "2" and is 3 characters long.

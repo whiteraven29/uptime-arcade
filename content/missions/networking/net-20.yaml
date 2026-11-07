@@ -1,0 +1,104 @@
+id: net-20
+track: NET
+skill: networking
+chapter: Routing
+order: 20
+title: The PC with no internet
+from: Support
+difficulty: medium
+check: fs
+par:
+  kind: commands
+  value: 5
+lesson:
+  text: A gateway must be on your own subnet. ip addr shows your address and ip route shows your gateway. Config edits only take effect when applied. ping -c 1 tests if something answers.
+  example: |-
+    ip addr
+    ip route
+    netplan apply
+    ping -c 1 1.1.1.1
+brief: This box is 10.40.30.21 and can't reach 1.1.1.1. The gateway is always the first host on a VLAN. The config is /etc/netplan/01-office.yaml.
+goal: Fix the gateway, run netplan apply, confirm with ping -c 1 1.1.1.1
+hints:
+  - Compare ip addr with ip route.
+  - Fix the via line, then netplan apply.
+debrief:
+  why: A gateway must be on your own subnet. Editing a file changes nothing until it's applied.
+  solution: |-
+    ip addr
+    ip route
+    sed -i 's/10.40.3.1/10.40.30.1/' /etc/netplan/01-office.yaml
+    netplan apply
+    ping -c 1 1.1.1.1
+  job: Check address, then route, then DNS.
+teaches:
+  - ip
+  - netplan
+  - ping
+  - addr
+  - route
+  - -c
+expect:
+  - gateway_is: 10.40.30.1
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The PC with no internet". Which sentence best describes what it taught?
+    options:
+      - A gateway must be on your own subnet. Editing a file changes nothing until it's applied.
+      - The handshake proves both sides can hear each other. A SYN with no reply usually means a firewall.
+      - A CNAME points to a name, so the resolver looks that name up again.
+      - Well-known ports are conventions that firewalls and clients assume.
+    answer: A gateway must be on your own subnet. Editing a file changes nothing until it's applied.
+    hint: Look for the sentence about ip and netplan.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command fixed it?
+    context: This box is 10.40.30.21 and can't reach 1.1.1.1. The gateway is always the first host on a VLAN. The config is /etc/netplan/01-office.yaml.
+    options:
+      - syn-ack
+      - sed -i 's/10.40.3.1/10.40.30.1/' /etc/netplan/01-office.yaml
+      - 196.41.0.20
+      - "443"
+    answer: sed -i 's/10.40.3.1/10.40.30.1/' /etc/netplan/01-office.yaml
+    hint: Fix the via line, then netplan apply.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the commands you ran, mixed up. Tap them from first to last.
+    scrambled:
+      - sed -i 's/10.40.3.1/10.40.30.1/' /etc/netplan/01-office.yaml
+      - ping -c 1 1.1.1.1
+      - netplan apply
+      - ip route
+      - ip addr
+    answer:
+      - ip addr
+      - ip route
+      - sed -i 's/10.40.3.1/10.40.30.1/' /etc/netplan/01-office.yaml
+      - netplan apply
+      - ping -c 1 1.1.1.1
+    hint: "The first one is: ip addr"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: sed ____ 's/10.40.3.1/10.40.30.1/' /etc/netplan/01-office.yaml
+    answer:
+      - -i
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type one of the commands you used."
+    context: This box is 10.40.30.21 and can't reach 1.1.1.1. The gateway is always the first host on a VLAN. The config is /etc/netplan/01-office.yaml.
+    answer:
+      - ip addr
+      - ip route
+      - sed -i 's/10.40.3.1/10.40.30.1/' /etc/netplan/01-office.yaml
+      - netplan apply
+      - ping -c 1 1.1.1.1
+    hint: "It starts with: sed -i 's/10.40.3.1/"

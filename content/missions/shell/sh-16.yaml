@@ -1,0 +1,90 @@
+id: sh-16
+track: SH
+skill: shell
+chapter: System
+order: 16
+title: Who can run this?
+from: Platform
+difficulty: medium
+check: fs
+par:
+  kind: commands
+  value: 2
+lesson:
+  text: "ls -l shows permissions like -rw-r--r--: read, write and execute, for the owner, the group and everyone else. chmod changes them, and chmod +x makes a file runnable."
+  example: |-
+    ls -l run.sh
+    chmod +x run.sh
+    ./run.sh
+brief: "~/tools/backup.sh won't run: it says Permission denied. Check its permissions and fix them."
+goal: Make ~/tools/backup.sh executable.
+hints:
+  - ls -l ~/tools shows no x in the mode.
+  - chmod +x ~/tools/backup.sh
+debrief:
+  why: Linux only runs a file if its execute bit is set, which stops a downloaded file running by accident.
+  solution: |-
+    ls -l ~/tools/backup.sh
+    chmod +x ~/tools/backup.sh
+  job: '"Permission denied" on a new script is nearly always this.'
+teaches:
+  - -l
+  - chmod
+  - +x
+expect:
+  - mode_has:
+      path: ~/tools/backup.sh
+      bit: x
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Who can run this?". Which sentence best describes what it taught?
+    options:
+      - grep is the search box of the command line. -n tells you where to go and -i stops capitals hiding a match.
+      - Removing known noise first is how you make logs readable.
+      - sort | uniq -c | sort -rn is the most useful shell idiom you'll learn. uniq only collapses neighbours, so sort first.
+      - Linux only runs a file if its execute bit is set, which stops a downloaded file running by accident.
+    answer: Linux only runs a file if its execute bit is set, which stops a downloaded file running by accident.
+    hint: Look for the sentence about -l and chmod.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: "~/tools/backup.sh won't run: it says Permission denied. Check its permissions and fix them."
+    options:
+      - grep -vc '/health' ~/logs/api-access.log
+      - grep -in gzip ~/conf/nginx-comments.conf
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+      - chmod +x ~/tools/backup.sh
+    answer: chmod +x ~/tools/backup.sh
+    hint: chmod +x ~/tools/backup.sh
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Who can run this?" taught you at work?
+    options:
+      - '"Permission denied" on a new script is nearly always this.'
+      - You'll type this pipeline for the rest of your career.
+      - Filtering health checks is standard in every log query.
+      - You will run grep more than any other command.
+    answer: '"Permission denied" on a new script is nearly always this.'
+    hint: 'It starts with: "Permission denied" on a…'
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ +x ~/tools/backup.sh
+    answer:
+      - chmod
+    hint: It starts with "c" and is 5 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type one of the commands you used."
+    context: "~/tools/backup.sh won't run: it says Permission denied. Check its permissions and fix them."
+    answer:
+      - ls -l ~/tools/backup.sh
+      - chmod +x ~/tools/backup.sh
+    hint: "It starts with: chmod +x "

@@ -1,0 +1,92 @@
+id: vi-21
+track: VI
+skill: vi
+chapter: Ex commands
+order: 21
+title: Work on ranges
+from: SRE
+difficulty: hard
+check: vi
+par:
+  kind: keys
+  value: 24
+lesson:
+  text: Ex commands take a line range. :2,3d deletes lines 2 and 3. In a range . means the current line and $ means the last, so :.,$s runs from here to the end.
+  example: |-
+    :10,20d
+    :.,$s/a/b/
+brief: In ~/vi/switches.conf delete lines 2 and 3. The cursor lands on the next line, so from there to the end turn on into off.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/switches.conf"
+hints:
+  - :2,3d deletes both lines.
+  - :.,$s/on/off/ covers the current line to the last.
+debrief:
+  why: Ranges let one command touch exactly the block you mean, with no cursor movement.
+  solution: :2,3d<CR>:.,$s/on/off/<CR>:wq<CR>
+  job: Ranges are how you edit a block without touching the rest of the file.
+teaches:
+  - :d
+  - .,$
+file: ~/vi/switches.conf
+expect:
+  - file_equals:
+      path: ~/vi/switches.conf
+      content: |
+        a: on
+        d: off
+        e: off
+  - vi_saved: ~/vi/switches.conf
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Work on ranges". Which sentence best describes what it taught?
+    options:
+      - ">> shifts a line right and << shifts it left. In YAML, indentation changes the meaning."
+      - J handles the newline and the spacing in one key.
+      - :s is sed inside vi. % selects the whole file and g every match per line.
+      - Ranges let one command touch exactly the block you mean, with no cursor movement.
+    answer: Ranges let one command touch exactly the block you mean, with no cursor movement.
+    hint: Look for the sentence about :d and .,$.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: In ~/vi/switches.conf delete lines 2 and 3. The cursor lands on the next line, so from there to the end turn on into off.
+    options:
+      - /image<CR>>>j>>:wq<CR>
+      - J:wq<CR>
+      - :2,3d<CR>:.,$s/on/off/<CR>:wq<CR>
+      - :%s/staging/prod/g<CR>:wq<CR>
+    answer: :2,3d<CR>:.,$s/on/off/<CR>:wq<CR>
+    hint: :.,$s/on/off/ covers the current line to the last.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - :wq<CR>
+      - :.,$s/on/off/<CR>
+      - :2,3d<CR>
+    answer:
+      - :2,3d<CR>
+      - :.,$s/on/off/<CR>
+      - :wq<CR>
+    hint: "The first one is: :2,3d<CR>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____<CR>:.,$s/on/off/<CR>:wq<CR>
+    answer:
+      - :2,3d
+    hint: "It starts with: :2,"
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Work on ranges" taught. Any one of them counts.
+    answer:
+      - :d
+      - .,$
+    hint: One of them is :…

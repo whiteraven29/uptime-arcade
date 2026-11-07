@@ -182,6 +182,9 @@ describe('missions and rewinds', () => {
     g.showHint();
     g.runCommand(`submit ${first().answer[0]}`);
     expect(S.done[first().id].hints).toBe(2);
+    expect(S.xp).toBe(0);
+    g.closeDebrief();
+    clearRewind(first());
     expect(S.xp).toBe(100 + 20 - 30);
   });
   it('only unlocks the next mission once the rewind is finished', () => {
@@ -270,7 +273,7 @@ describe('older saves', () => {
   it('moves progress to the new ids and drops retired missions', () => {
     const old = { v: 3, xp: 500, done: { 'sh-1': { xp: 100, hints: 0 }, 'sh-3': { xp: 100, hints: 0 } }, rewDone: { 'sh-1': true, 'sh-3': true }, hints: {}, rew: {}, cmds: {}, tries: {}, code: {}, peak: 2 };
     g.importSave(JSON.stringify(old));
-    expect(S.v).toBe(4);
+    expect(S.v).toBe(5);
     expect(S.xp).toBe(500);
     expect(S.rewDone).toEqual({ 'sh-04': true });
     expect(S.done['sh-04']).toBeDefined();
@@ -299,5 +302,125 @@ describe('badges', () => {
     expect(earned('nohints')).toBe(true);
     S.done[chapter[0].id].hints = 1;
     expect(earned('nohints')).toBe(false);
+  });
+});
+
+describe('XP comes from finishing the whole task', () => {
+  const m = () => TK.NET[0];
+  const solve = () => {
+    g.openSession();
+    g.setCurrent(m().id);
+    g.runCommand(`submit ${m().answer[0]}`);
+    g.closeDebrief();
+    g.startRewind(m().id);
+  };
+  const right = () => {
+    const t = ui.rw.tasks[S.rew[m().id].q[0]];
+    if (t.type === 'mc') g.answerRewind(t.answer);
+    else if (t.type === 'order') t.answer.forEach((a) => g.pickOrder(a));
+    else g.answerRewind(t.answer[0]);
+    g.afterRewindStep();
+  };
+  it('pays nothing for solving or for each right answer', () => {
+    solve();
+    expect(S.xp).toBe(0);
+    for (let i = 0; i < 4; i++) right();
+    expect(S.xp).toBe(0);
+  });
+  it('pays once, when the last question is answered', () => {
+    solve();
+    for (let i = 0; i < 5; i++) right();
+    expect(S.xp).toBe(100 + 20);
+    expect(S.done[m().id].paid).toBe(true);
+  });
+  it('never pays twice for a mission paid under the old rules', () => {
+    g.importSave(JSON.stringify({ v: 4, xp: 500, done: { [m().id]: { xp: 120, hints: 0, bonus: 20 } }, rewDone: {}, rew: {}, hints: {}, cmds: {}, tries: {}, code: {}, peak: 0 }));
+    g.openSession();
+    g.startRewind(m().id);
+    for (let i = 0; i < 5; i++) right();
+    expect(S.xp).toBe(500);
+  });
+});
+
+describe('rewind help', () => {
+  const m = () => TK.NET[0];
+  const start = () => {
+    g.openSession();
+    g.setCurrent(m().id);
+    g.runCommand(`submit ${m().answer[0]}`);
+    g.closeDebrief();
+    g.startRewind(m().id);
+  };
+  const wrong = () => {
+    g.answerRewind(ui.rw.tasks[S.rew[m().id].q[0]].type === 'order' ? ['wrong'] : 'definitely wrong');
+    g.afterRewindStep();
+  };
+  it('shows no hint and no answer until every question has been failed', () => {
+    start();
+    for (let i = 0; i < 4; i++) {
+      wrong();
+      expect(g.rewindHelp(m().id).hint).toBeNull();
+    }
+    wrong();
+    expect(g.rewindHelp(m().id).hint).toBeTruthy();
+    expect(g.rewindHelp(m().id).answer).toBeNull();
+  });
+  it('never reveals the answer on a wrong attempt', () => {
+    start();
+    g.answerRewind('definitely wrong');
+    expect(ui.rw.fb).toEqual({ ok: false });
+  });
+  it('gives a hint when the only question left has been failed', () => {
+    start();
+    wrong();
+    for (let i = 0; i < 4; i++) {
+      const t = ui.rw.tasks[S.rew[m().id].q[0]];
+      if (t.type === 'mc') g.answerRewind(t.answer);
+      else if (t.type === 'order') t.answer.forEach((a) => g.pickOrder(a));
+      else g.answerRewind(t.answer[0]);
+      g.afterRewindStep();
+    }
+    expect(S.rew[m().id].q).toHaveLength(1);
+    expect(g.rewindHelp(m().id).hint).toBeTruthy();
+  });
+  it('shows the answer after three misses, so nobody gets stuck', () => {
+    start();
+    for (let i = 0; i < 15; i++) wrong();
+    expect(g.rewindHelp(m().id).answer).toBeTruthy();
+  });
+});
+
+describe('Beyond', () => {
+  it('stays locked until Archmage, then opens in order', () => {
+    expect(g.stateOf(TK.BX[0])).toBe('locked');
+    S.peak = g.TICKETS.length;
+    expect(g.stateOf(TK.BX[0])).toBe('open');
+    expect(g.stateOf(TK.BX[1])).toBe('locked');
+  });
+  it('runs from Easy to Brainfuck, worth more each tier', () => {
+    expect(g.CHAPTERS.BX.map((c) => c[0])).toEqual(['Easy', 'Medium', 'Hard', 'Expert', 'Brainfuck']);
+    expect(TK.BX.map((m) => m.xp).every((x, i, a) => i === 0 || x >= a[i - 1])).toBe(true);
+  });
+  it("doesn't count towards levels", () => {
+    S.rewDone = { [TK.BX[0].id]: true };
+    expect(g.cleared()).toBe(0);
+    expect(g.beyondCleared()).toBe(1);
+  });
+});
+
+describe('badges for levels and tiers', () => {
+  const has = (id) => g.BADGES.find((b) => b[0] === id)[3]();
+  it('has one for every level climbed', () => {
+    for (let i = 2; i <= 9; i++) expect(g.BADGES.some((b) => b[0] === `lv${i}`)).toBe(true);
+    S.peak = g.LEVELS[2][0];
+    expect(has('lv2')).toBe(true);
+    expect(has('lv3')).toBe(true);
+    expect(has('lv4')).toBe(false);
+  });
+  it('has one for each Beyond tier', () => {
+    const [start, next] = [g.CHAPTERS.BX[0][1], g.CHAPTERS.BX[1][1]];
+    TK.BX.slice(start, next).forEach((m) => { S.rewDone[m.id] = true; });
+    expect(has('bx1')).toBe(true);
+    expect(has('bx2')).toBe(false);
   });
 });

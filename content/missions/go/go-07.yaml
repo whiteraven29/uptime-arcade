@@ -1,0 +1,134 @@
+id: go-07
+track: GO
+skill: go
+chapter: Functions
+order: 7
+title: Many returns
+from: Backend
+difficulty: easy
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A Go function can return several values. List the types in brackets after the parameters, and unpack them at the call. Between ints, / drops the remainder and % gives it.
+  example: |-
+    func split() (int, string) {
+    	return 1, "a"
+    }
+    n, s := split()
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - 17 / 5 between ints is 3.
+  - 17 % 5 is the remainder.
+debrief:
+  why: Multiple returns remove the need for special out-parameters, and they make error handling possible.
+  solution: submit 3 2
+  job: Almost all Go functions return a value and an error.
+teaches:
+  - return
+  - "%"
+  - /
+answer:
+  accept:
+    - 3 2
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func divmod(a, b int) (int, int) {
+    	return a / b, a % b
+    }
+
+    func main() {
+    	q, r := divmod(17, 5)
+    	fmt.Println(q, r)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Many returns". Which sentence best describes what it taught?
+    options:
+      - Multiple returns remove the need for special out-parameters, and they make error handling possible.
+      - package main and func main are where a Go program starts. Everything else is just the instructions inside.
+      - One loop keyword with a few shapes means less to remember. range is the one you use most.
+      - Every variable starts at its type's zero value, so there's no undefined state.
+    answer: Multiple returns remove the need for special out-parameters, and they make error handling possible.
+    hint: Look for the sentence about return and %.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 3 2
+      - Hello, Whiteraven
+      - "36"
+      - 0[]false
+    answer: 3 2
+    hint: 17 % 5 is the remainder.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func divmod(a, b int) (int, int) {
+      	return a / b, a % b
+      }
+
+      func main() {
+      	q, r := divmod(17, 5)
+      	fmt.Println(q, r)
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Many returns" taught you at work?
+    options:
+      - Almost all Go functions return a value and an error.
+      - Every Go service you ever read starts from this exact shape.
+      - Good Go types are useful at their zero value.
+      - Nearly every Go function has one of these loops.
+    answer: Almost all Go functions return a value and an error.
+    hint: "It starts with: Almost all Go functions…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      q, r := divmod(17, 5)
+      fmt.____(q, r)
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func divmod(a, b int) (int, int) {
+      	return a / b, a % b
+      }
+
+      func main() {
+      	q, r := divmod(17, 5)
+      	fmt.Println(q, r)
+      }
+    answer:
+      - 3 2
+    hint: It starts with "3" and is 3 characters long.

@@ -1,0 +1,90 @@
+id: vi-09
+track: VI
+skill: vi
+chapter: Operators
+order: 9
+title: Delete smart
+from: SRE
+difficulty: easy
+check: vi
+par:
+  kind: keys
+  value: 7
+lesson:
+  text: "d is an operator: it waits for a motion to say how much. dw deletes a word, d$ to the end of the line, and D is short for that. Doubling it, dd, deletes the whole line."
+  example: |-
+    dw  delete a word
+    D   delete to end of line
+    dd  delete the line
+brief: Delete the debug line from ~/vi/flags.yaml.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/flags.yaml"
+hints:
+  - j moves down to it.
+  - dd deletes the whole line.
+debrief:
+  why: "Doubling an operator acts on the whole line: dd, yy, cc. Operator plus motion is the grammar of vi."
+  solution: jdd:wq<CR>
+  job: Leaving debug on in production is a classic slowdown.
+teaches:
+  - d
+  - D
+file: ~/vi/flags.yaml
+expect:
+  - file_equals:
+      path: ~/vi/flags.yaml
+      content: |
+        cache: on
+        metrics: on
+  - vi_saved: ~/vi/flags.yaml
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Delete smart". Which sentence best describes what it taught?
+    options:
+      - Undo means mistakes are cheap, so you can try an edit freely and step back and forward through it.
+      - "Doubling an operator acts on the whole line: dd, yy, cc. Operator plus motion is the grammar of vi."
+      - r and x fix a typo without ever leaving normal mode, so there is no Esc to forget.
+      - "^ is the one you want on indented code: it lands on the text, not on the spaces."
+    answer: "Doubling an operator acts on the whole line: dd, yy, cc. Operator plus motion is the grammar of vi."
+    hint: Look for the sentence about d and D.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Delete the debug line from ~/vi/flags.yaml.
+    options:
+      - ehxjhr8:wq<CR>
+      - ^i#<Esc>:wq<CR>
+      - jdd:wq<CR>
+      - jxxxuuu<C-r>:wq<CR>
+    answer: jdd:wq<CR>
+    hint: dd deletes the whole line.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Delete smart" taught you at work?
+    options:
+      - One-character mistakes are the most common kind in config files.
+      - Commenting out a setting is the safest way to switch it off.
+      - Undo is what keeps a live server edit calm.
+      - Leaving debug on in production is a classic slowdown.
+    answer: Leaving debug on in production is a classic slowdown.
+    hint: "It starts with: Leaving debug on in…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: j____:wq<CR>
+    answer:
+      - dd
+    hint: It starts with "d" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Delete smart" taught. Any one of them counts.
+    answer:
+      - d
+      - D
+    hint: One of them is d…

@@ -1,0 +1,123 @@
+id: go-01
+track: GO
+skill: go
+chapter: Basics
+order: 1
+title: Hello, Whiteraven
+from: Platform
+difficulty: easy
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Every Go program starts with package main, imports the packages it needs, and begins running at func main(). fmt.Println prints a line. Curly braces hold the body of the function.
+  example: |-
+    package main
+
+    import "fmt"
+
+    func main() {
+    	fmt.Println("Hi")
+    }
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - Execution starts inside func main.
+  - Println prints the text between the quotes.
+debrief:
+  why: package main and func main are where a Go program starts. Everything else is just the instructions inside.
+  solution: submit Hello, Whiteraven
+  job: Every Go service you ever read starts from this exact shape.
+teaches:
+  - package
+  - import
+  - func
+  - main
+  - fmt
+  - Println
+answer:
+  accept:
+    - Hello, Whiteraven
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	fmt.Println("Hello, Whiteraven")
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Hello, Whiteraven". Which sentence best describes what it taught?
+    options:
+      - One loop keyword with a few shapes means less to remember. range is the one you use most.
+      - package main and func main are where a Go program starts. Everything else is just the instructions inside.
+      - Errors are ordinary values, so handling them is visible right where the failure happens.
+      - Explicit conversion means no surprise rounding, and the compiler catches type mix-ups for you.
+    answer: package main and func main are where a Go program starts. Everything else is just the instructions inside.
+    hint: Look for the sentence about package and import.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 4.5 3!
+      - err != nil
+      - "36"
+      - Hello, Whiteraven
+    answer: Hello, Whiteraven
+    hint: Println prints the text between the quotes.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	fmt.Println("Hello, Whiteraven")
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Hello, Whiteraven" taught you at work?
+    options:
+      - if err != nil is the most common line in Go.
+      - Numbers arriving as text must be converted before any maths.
+      - Nearly every Go function has one of these loops.
+      - Every Go service you ever read starts from this exact shape.
+    answer: Every Go service you ever read starts from this exact shape.
+    hint: "It starts with: Every Go service you…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: fmt.____("Hello, Whiteraven")
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	fmt.Println("Hello, Whiteraven")
+      }
+    answer:
+      - Hello, Whiteraven
+    hint: It starts with "H" and is 17 characters long.

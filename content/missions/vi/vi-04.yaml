@@ -1,0 +1,91 @@
+id: vi-04
+track: VI
+skill: vi
+chapter: Survival
+order: 4
+title: Line edges
+from: SRE
+difficulty: easy
+check: vi
+par:
+  kind: keys
+  value: 9
+lesson:
+  text: 0 jumps to the very start of a line, ^ to the first character that is not a space, and $ to the end.
+  example: |-
+    0  column one
+    ^  first real character
+    $  last character
+brief: "In ~/vi/timeout.conf comment out the setting by putting # right before the word timeout, keeping the indent."
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/timeout.conf"
+hints:
+  - ^ skips the indent.
+  - "Then i, #, Esc."
+debrief:
+  why: "^ is the one you want on indented code: it lands on the text, not on the spaces."
+  solution: ^i#<Esc>:wq<CR>
+  job: Commenting out a setting is the safest way to switch it off.
+teaches:
+  - "0"
+  - ^
+  - $
+file: ~/vi/timeout.conf
+expect:
+  - file_equals:
+      path: ~/vi/timeout.conf
+      content: |2
+            #timeout: 30
+  - vi_saved: ~/vi/timeout.conf
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Line edges". Which sentence best describes what it taught?
+    options:
+      - vi has modes. Normal mode is for moving and commands, and insert mode is for typing. Most new users are stuck only because they are in the wrong mode.
+      - Everything in vi starts from where the cursor is, and hjkl put you there without leaving the home row.
+      - "^ is the one you want on indented code: it lands on the text, not on the spaces."
+      - Words are the natural unit of text, and w b e let you move by them.
+    answer: "^ is the one you want on indented code: it lands on the text, not on the spaces."
+    hint: Look for the sentence about 0 and ^.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: "In ~/vi/timeout.conf comment out the setting by putting # right before the word timeout, keeping the indent."
+    options:
+      - withe <Esc>:wq<CR>
+      - ^i#<Esc>:wq<CR>
+      - iWelcome <Esc>:wq<CR>
+      - jlio<Esc>jio<Esc>:wq<CR>
+    answer: ^i#<Esc>:wq<CR>
+    hint: "Then i, #, Esc."
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Line edges" taught you at work?
+    options:
+      - Every Linux server has vi, even when nothing else is installed.
+      - YAML typos cause a large share of failed deploys.
+      - Commenting out a setting is the safest way to switch it off.
+      - Long config lines are quick to cross once you move by word.
+    answer: Commenting out a setting is the safest way to switch it off.
+    hint: "It starts with: Commenting out a setting…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ^i#<Esc>____<CR>
+    answer:
+      - :wq
+    hint: It starts with ":" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Line edges" taught. Any one of them counts.
+    answer:
+      - "0"
+      - ^
+      - $
+    hint: One of them is 0…

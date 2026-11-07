@@ -1,0 +1,84 @@
+id: bx-20
+track: BX
+skill: networking
+chapter: Expert
+order: 20
+title: The window limit
+from: SRE
+difficulty: expert
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: TCP can only have one window of data unacknowledged at a time. So the top speed is window size divided by round-trip time, however fast the link is.
+  example: |-
+    32768 bytes, 100 ms RTT
+    32768 * 8 / 0.1 = 2.62 Mbps
+brief: A connection has a 65536 byte TCP window and a 100 ms round trip. What is its maximum speed in Mbps?
+goal: "Run: submit <megabits per second, to 2 decimals>"
+hints:
+  - "Bytes to bits: multiply by 8."
+  - Divide by 0.1 seconds, then by 1000000.
+debrief:
+  why: "This is why a fast link across an ocean can still feel slow: latency caps throughput until the window grows."
+  solution: submit 5.24
+  job: It explains the "gigabit link, slow transfer" ticket.
+teaches:
+  - beyond
+answer:
+  accept:
+    - "5.24"
+verify: str(round(65536*8/0.1/1000000,2))
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The window limit". Which sentence best describes what it taught?
+    options:
+      - "This is why a fast link across an ocean can still feel slow: latency caps throughput until the window grows."
+      - Totals favour whoever is biggest. Averages show who is actually worth more, which is often a different answer.
+      - The hardest part of a macro is where it ends, because the next run depends on it.
+      - Topological sort is how build tools, package managers and deploy systems decide what goes first.
+    answer: "This is why a fast link across an ocean can still feel slow: latency caps throughput until the window grows."
+    hint: "The lesson said: TCP can only have one window of data unacknowledged at a time."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: A connection has a 65536 byte TCP window and a 100 ms round trip. What is its maximum speed in Mbps?
+    options:
+      - qaf=a"<Esc>A"<Esc>j0q2@a:wq<CR>
+      - awk -F, 'NR>1{s[$4]+=$5;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/data/customers.csv | sort -rn | head -1
+      - "if s not in done and all([d in done for d in deps[s]]):"
+      - "5.24"
+    answer: "5.24"
+    hint: Divide by 0.1 seconds, then by 1000000.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "The window limit" taught you at work?
+    options:
+      - Analysis that changes decisions is usually a ratio.
+      - Every orchestrator contains this algorithm.
+      - Unquoted values with spaces break env files in production.
+      - It explains the "gigabit link, slow transfer" ticket.
+    answer: It explains the "gigabit link, slow transfer" ticket.
+    hint: 'It starts with: It explains the "gigabit…'
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: "This is why a fast link across an ocean can still feel slow: ____ caps throughput until the window grows."
+    answer:
+      - latency
+    hint: It starts with "l" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: A connection has a 65536 byte TCP window and a 100 ms round trip. What is its maximum speed in Mbps?
+    answer:
+      - "5.24"
+    hint: It starts with "5" and is 4 characters long.

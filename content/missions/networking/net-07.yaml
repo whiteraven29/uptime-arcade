@@ -1,0 +1,85 @@
+id: net-07
+track: NET
+skill: networking
+chapter: Subnets
+order: 7
+title: Private and special ranges
+from: Network
+difficulty: easy
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "Private ranges, defined in RFC 1918, are free to use inside any network and never appear on the internet: 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16. 127.0.0.1 is loopback, meaning this machine. 100.64.0.0/10 is shared by ISPs."
+  example: |-
+    192.168.1.5   private
+    8.8.8.8       public
+brief: "Is 172.32.4.9 a private address? Careful: the 172 range only runs from 172.16 to 172.31."
+goal: "Run: submit yes  or  submit no"
+hints:
+  - 172.16.0.0/12 ends at 172.31.255.255.
+  - 32 is past 31.
+debrief:
+  why: The 172 private block is the one people misremember, because it stops at 172.31.
+  solution: submit no
+  job: Knowing these ranges tells you at a glance if a log entry is internal.
+teaches:
+  - RFC 1918
+  - 127.0.0.1
+answer:
+  accept:
+    - "no"
+verify: "'yes' if ipaddress.ip_address('172.32.4.9').is_private else 'no'"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Private and special ranges". Which sentence best describes what it taught?
+    options:
+      - An address is just one 32-bit number written in a friendly way. All subnet maths follows from that.
+      - The block size is 256 minus the mask octet, and networks start at its multiples. Broadcast is network plus block minus one.
+      - The mask is the prefix written as four octets.
+      - The 172 private block is the one people misremember, because it stops at 172.31.
+    answer: The 172 private block is the one people misremember, because it stops at 172.31.
+    hint: Look for the sentence about RFC 1918 and 127.0.0.1.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: "Is 172.32.4.9 a private address? Careful: the 172 range only runs from 172.16 to 172.31."
+    options:
+      - "no"
+      - "32"
+      - 10.4.7.192 10.4.7.223
+      - 255.255.255.192
+    answer: "no"
+    hint: 32 is past 31.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Private and special ranges" taught you at work?
+    options:
+      - Everything else in networking builds on this one fact.
+      - Older gear and many forms ask for masks.
+      - Helps you spot a host set to an invalid address.
+      - Knowing these ranges tells you at a glance if a log entry is internal.
+    answer: Knowing these ranges tells you at a glance if a log entry is internal.
+    hint: "It starts with: Knowing these ranges tells…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: The 172 ____ block is the one people misremember, because it stops at 172.31.
+    answer:
+      - private
+    hint: It starts with "p" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: "Is 172.32.4.9 a private address? Careful: the 172 range only runs from 172.16 to 172.31."
+    answer:
+      - "no"
+    hint: It starts with "n" and is 2 characters long.

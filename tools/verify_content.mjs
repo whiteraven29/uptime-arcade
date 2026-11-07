@@ -12,7 +12,7 @@ import * as g from '../frontend/src/api/localGame.js';
 import { fs as vfs } from '../engines/fs/index.js';
 import { buildProgram, configureSkulpt, judge } from '../frontend/src/features/play/workspaces/python/program.js';
 
-const { S, TK, TRACKS, TICKETS, ui } = g;
+const { S, TK, TRACKS, BEYOND, TICKETS, ui } = g;
 const problems = [];
 const fail = (id, why) => problems.push(`${id}: ${String(why).slice(0, 300)}`);
 const has = (cmd) => {
@@ -76,6 +76,8 @@ function clearRewind(id) {
     const st = S.rew[id];
     if (!st || !st.q.length) break;
     const t = ui.rw.tasks[st.q[0]];
+    if (!t.hint) fail(id, `rewind task ${st.q[0]} has no hint`);
+    if (t.type === 'mc' && !t.options.includes(t.answer)) fail(id, `rewind task ${st.q[0]}: the answer isn't one of the options`);
     if (t.type === 'mc') g.answerRewind(t.answer);
     else if (t.type === 'order') t.answer.forEach((a) => g.pickOrder(a));
     else g.answerRewind(t.answer[0]);
@@ -90,7 +92,7 @@ const order = [];
 const maxLen = Math.max(...TRACKS.map(([k]) => TK[k].length));
 for (let i = 0; i < maxLen; i++) for (const [k] of TRACKS) if (TK[k][i]) order.push(TK[k][i]);
 
-for (const t of order) {
+const playMission = async (t) => {
   const id = t.id;
   if (g.stateOf(t) !== 'open') fail(id, 'should be open but is ' + g.stateOf(t));
   g.setCurrent(id);
@@ -107,7 +109,7 @@ for (const t of order) {
     if (!sk.passed) fail(id, 'skulpt: ' + sk.out.slice(-240));
     g.notePyAttempt(t);
     g.complete(t);
-  } else if (t.track === 'VI') {
+  } else if (t.skill === 'VI') {
     g.runCommand('vi ' + t.file);
     for (const k of t.sol.match(/<CR>|<Esc>|<C-.>|[\s\S]/g)) {
       if (k.startsWith('<C-')) g.viPress(k[3], true);
@@ -116,7 +118,7 @@ for (const t of order) {
     if (!S.done[id]) fail(id, `vi not done: ${JSON.stringify(vfs.get(t.file)?.c)}`);
     else if (S.viKeys[t.file] > t.par) fail(id, `par ${t.par} took ${S.viKeys[t.file]}`);
   } else {
-    if (t.track === 'GO' && hasGo) {
+    if (t.skill === 'GO' && hasGo) {
       // Fix missions run with the blank filled in, and must print what they promise.
       const out = goRun(t.program.replace('____', t.answer[0]));
       const want = t.prints ?? t.answer[0];
@@ -139,9 +141,14 @@ for (const t of order) {
   if (ui.debrief !== id) fail(id, 'no debrief');
   g.closeDebrief();
   clearRewind(id);
-}
+};
+for (const t of order) await playMission(t);
 
 if (g.level() !== 'Archmage' || !S.ended) fail('ending', JSON.stringify({ level: g.level(), ended: S.ended, cleared: g.cleared() }));
+
+// The missions after Archmage must stay locked until now, then open one at a time.
+for (const t of TK[BEYOND[0]]) await playMission(t);
+if (g.beyondCleared() !== TK[BEYOND[0]].length) fail('beyond', `cleared ${g.beyondCleared()}`);
 
 // On-call: every generated incident's answer must be right, by real language where possible.
 if (g.cleared() === TICKETS.length) {
@@ -164,7 +171,7 @@ if (g.cleared() === TICKETS.length) {
   console.log('on-call incidents by track:', JSON.stringify(seen));
 }
 
-console.log(`missions: ${TICKETS.length}, cleared: ${g.cleared()}, level: ${g.level()}, xp: ${S.xp}, badges: ${Object.keys(S.badges).length}`);
+console.log(`missions: ${TICKETS.length} + ${g.beyondCleared()} beyond, cleared: ${g.cleared()}, level: ${g.level()}, xp: ${S.xp}, badges: ${Object.keys(S.badges).length}`);
 if (!hasGo) console.log('note: go not found, Go outputs not checked');
 if (!hasPython) console.log('note: python3 not found, Python solutions not checked');
 console.log('PROBLEMS:', problems.length);

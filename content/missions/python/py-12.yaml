@@ -1,0 +1,104 @@
+id: py-12
+track: PY
+skill: python
+chapter: Collections
+order: 12
+title: Tuples and unpacking
+from: Compliance
+difficulty: medium
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "You can unpack a list or tuple straight into names: a, b = ... A tuple is a fixed group of values written with commas, like a list you cannot change. + joins strings."
+  example: |-
+    point = (3, 4)
+    x, y = point
+    name, ext = "pic.png".split(".")
+    name[0] + "..." + ext
+brief: 'Keep the first letter and the domain: "amina@whiteraven.example" gives "a***@whiteraven.example".'
+goal: Write mask_email(addr). Tests run when you press Run tests.
+hints:
+  - split('@') gives two parts.
+  - Use the first character plus ***.
+debrief:
+  why: Unpacking names each part as it comes out, so the rest of the code reads clearly.
+  solution: |-
+    def mask_email(addr):
+        user, domain = addr.split("@")
+        return user[0] + "***@" + domain
+  job: Privacy laws expect this in production logs.
+teaches:
+  - unpack
+  - +
+python:
+  starter: |
+    def mask_email(addr):
+        # your code here
+        pass
+  tests:
+    - expr: mask_email("amina@whiteraven.example")
+      want: '"a***@whiteraven.example"'
+    - expr: mask_email("jo@x.io")
+      want: '"j***@x.io"'
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Tuples and unpacking". Which sentence best describes what it taught?
+    options:
+      - Chaining string methods reads top to bottom like a pipeline.
+      - Indexing from 0 feels odd for a day and then becomes natural. -1 means count from the end.
+      - Functions let you solve a problem once and reuse it. Comparisons return booleans, so an if statement here adds nothing.
+      - Unpacking names each part as it comes out, so the rest of the code reads clearly.
+    answer: Unpacking names each part as it comes out, so the rest of the code reads clearly.
+    hint: Look for the sentence about +.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: 'Keep the first letter and the domain: "amina@whiteraven.example" gives "a***@whiteraven.example".'
+    options:
+      - return name.strip().lower().replace(" ", "-")
+      - return [items[0], items[-1]]
+      - return user[0] + "***@" + domain
+      - return status < 500
+    answer: return user[0] + "***@" + domain
+    hint: Use the first character plus ***.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - '    return user[0] + "***@" + domain'
+      - '    user, domain = addr.split("@")'
+      - "def mask_email(addr):"
+    answer:
+      - "def mask_email(addr):"
+      - '    user, domain = addr.split("@")'
+      - '    return user[0] + "***@" + domain'
+    hint: "The first one is: def mask_email(addr):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def mask_email(addr):
+          user, domain = addr.split("@")
+          ____ user[0] + "***@" + domain
+    answer:
+      - return
+    hint: It starts with "r" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def mask_email(addr):
+          user, domain = addr.split("@")
+          ____
+    answer:
+      - return user[0] + "***@" + domain
+    hint: "It starts with: return user"

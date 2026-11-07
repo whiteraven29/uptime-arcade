@@ -1,0 +1,87 @@
+id: sh-26
+track: SH
+skill: shell
+chapter: Patterns
+order: 26
+title: Clean up characters
+from: Support
+difficulty: hard
+check: fs
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: tr swaps or deletes single characters, and -d deletes them. It only reads standard input, so feed it a file with <.
+  example: tr -d ',' < numbers.txt > clean.txt
+brief: ~/conf/windows.txt came from a Windows PC and each line ends in \r, which breaks scripts.
+goal: Write ~/conf/unix.txt with the carriage returns removed.
+hints:
+  - tr -d removes characters.
+  - tr reads stdin, so use < or a pipe.
+debrief:
+  why: Windows ends lines with CR LF. A hidden \r at the end of a line breaks shell scripts in confusing ways.
+  solution: tr -d '\r' < ~/conf/windows.txt > ~/conf/unix.txt
+  job: A script that 'looks fine' but fails is often this.
+teaches:
+  - tr
+  - -d
+  - <
+expect:
+  - file_equals:
+      path: ~/conf/unix.txt
+      content: |
+        alpha
+        bravo
+        charlie
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Clean up characters". Which sentence best describes what it taught?
+    options:
+      - Windows ends lines with CR LF. A hidden \r at the end of a line breaks shell scripts in confusing ways.
+      - Pattern plus action lets awk filter and aggregate in the same step, with no grep needed.
+      - sed applies a substitution to every line. Writing to a new file keeps the original for a safe rollback.
+      - Capture groups rearrange text without knowing the values.
+    answer: Windows ends lines with CR LF. A hidden \r at the end of a line breaks shell scripts in confusing ways.
+    hint: Look for the sentence about tr and -d.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: ~/conf/windows.txt came from a Windows PC and each line ends in \r, which breaks scripts.
+    options:
+      - tr -d '\r' < ~/conf/windows.txt > ~/conf/unix.txt
+      - sed -E 's#([0-9]{2})/([0-9]{2})/([0-9]{4})#\3-\2-\1#' ~/data/customers.csv > ~/data/customers-clean.csv
+      - sed 's/old-host\.example/whiteraven.example/' ~/conf/endpoints.conf > ~/conf/endpoints-new.conf
+      - awk '$4=="/v1/orders"{s+=$6;n++} END{printf "%.0f\n", s/n}' ~/logs/api-access.log
+    answer: tr -d '\r' < ~/conf/windows.txt > ~/conf/unix.txt
+    hint: tr reads stdin, so use < or a pipe.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Clean up characters" taught you at work?
+    options:
+      - Migrations are full of edits like this.
+      - Latency per endpoint is the basis of every SLO.
+      - A script that 'looks fine' but fails is often this.
+      - Cleaning exports before import is routine data work.
+    answer: A script that 'looks fine' but fails is often this.
+    hint: "It starts with: A script that 'looks…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: tr ____ '\r' < ~/conf/windows.txt > ~/conf/unix.txt
+    answer:
+      - -d
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type the command you used."
+    context: ~/conf/windows.txt came from a Windows PC and each line ends in \r, which breaks scripts.
+    answer:
+      - tr -d '\r' < ~/conf/windows.txt > ~/conf/unix.txt
+    hint: "It starts with: tr -d '\\r' < ~/co"

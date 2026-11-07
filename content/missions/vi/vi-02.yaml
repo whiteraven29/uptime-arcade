@@ -1,0 +1,98 @@
+id: vi-02
+track: VI
+skill: vi
+chapter: Survival
+order: 2
+title: Walk the cursor
+from: Platform
+difficulty: easy
+check: vi
+par:
+  kind: keys
+  value: 15
+lesson:
+  text: In normal mode h moves left, j down, k up and l right. They sit under your fingers, so you never reach for the arrows.
+  example: |-
+    j  down one line
+    l  right one character
+    k  back up
+    h  back left
+brief: In ~/vi/host.yaml the words prt and rle are each missing a letter. Fix both so they read port and role.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/host.yaml"
+hints:
+  - j goes down, l goes right. Stand on the r of prt.
+  - i inserts before the cursor, so press i, o, Esc. Then do the same on the next line.
+debrief:
+  why: Everything in vi starts from where the cursor is, and hjkl put you there without leaving the home row.
+  solution: jlio<Esc>jio<Esc>:wq<CR>
+  job: YAML typos cause a large share of failed deploys.
+teaches:
+  - h
+  - j
+  - k
+  - l
+file: ~/vi/host.yaml
+expect:
+  - file_equals:
+      path: ~/vi/host.yaml
+      content: |
+        host: web
+        port: 8080
+        role: edge
+  - vi_saved: ~/vi/host.yaml
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Walk the cursor". Which sentence best describes what it taught?
+    options:
+      - vi has modes. Normal mode is for moving and commands, and insert mode is for typing. Most new users are stuck only because they are in the wrong mode.
+      - "Doubling an operator acts on the whole line: dd, yy, cc. Operator plus motion is the grammar of vi."
+      - Everything in vi starts from where the cursor is, and hjkl put you there without leaving the home row.
+      - Undo means mistakes are cheap, so you can try an edit freely and step back and forward through it.
+    answer: Everything in vi starts from where the cursor is, and hjkl put you there without leaving the home row.
+    hint: Look for the sentence about h and j.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: In ~/vi/host.yaml the words prt and rle are each missing a letter. Fix both so they read port and role.
+    options:
+      - jxxxuuu<C-r>:wq<CR>
+      - iWelcome <Esc>:wq<CR>
+      - jdd:wq<CR>
+      - jlio<Esc>jio<Esc>:wq<CR>
+    answer: jlio<Esc>jio<Esc>:wq<CR>
+    hint: i inserts before the cursor, so press i, o, Esc. Then do the same on the next line.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - :wq<CR>
+      - jlio<Esc>
+      - jio<Esc>
+    answer:
+      - jlio<Esc>
+      - jio<Esc>
+      - :wq<CR>
+    hint: "The first one is: jlio<Esc>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: jlio<Esc>jio<Esc>____<CR>
+    answer:
+      - :wq
+    hint: It starts with ":" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Walk the cursor" taught. Any one of them counts.
+    answer:
+      - h
+      - j
+      - k
+      - l
+    hint: One of them is h…

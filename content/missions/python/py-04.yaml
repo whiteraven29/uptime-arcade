@@ -1,0 +1,103 @@
+id: py-04
+track: PY
+skill: python
+chapter: Basics
+order: 4
+title: Your first function
+from: SRE
+difficulty: easy
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A function is a named, reusable piece of code. def creates it, the name in brackets is its input, and return hands back the answer. A comparison such as 5 > 3 already gives True or False, so you can return it directly.
+  example: |-
+    def is_adult(age):
+        return age >= 18
+
+    is_adult(20)   # True
+brief: Return True for any status below 500.
+goal: Write is_healthy(status). Tests run when you press Run tests.
+hints:
+  - A comparison already gives a bool.
+  - return status < 500
+debrief:
+  why: Functions let you solve a problem once and reuse it. Comparisons return booleans, so an if statement here adds nothing.
+  solution: |-
+    def is_healthy(status):
+        return status < 500
+  job: Health logic like this sits behind every status page.
+teaches:
+  - def
+  - return
+python:
+  starter: |
+    def is_healthy(status):
+        # your code here
+        pass
+  tests:
+    - expr: is_healthy(200)
+      want: "True"
+    - expr: is_healthy(404)
+      want: "True"
+    - expr: is_healthy(500)
+      want: "False"
+    - expr: is_healthy(503)
+      want: "False"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Your first function". Which sentence best describes what it taught?
+    options:
+      - Names make programs readable, and the type decides what you can do with a value.
+      - Functions let you solve a problem once and reuse it. Comparisons return booleans, so an if statement here adds nothing.
+      - print is how a program talks to you. Quotes mark text, so Python does not try to run it.
+      - Conditions are checked from the top and the first true one wins, so the order matters.
+    answer: Functions let you solve a problem once and reuse it. Comparisons return booleans, so an if statement here adds nothing.
+    hint: Look for the sentence about def and return.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return True for any status below 500.
+    options:
+      - host = "web01"
+      - label = "client error"
+      - return status < 500
+      - print("Hello, operator")
+    answer: return status < 500
+    hint: return status < 500
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Your first function" taught you at work?
+    options:
+      - Health logic like this sits behind every status page.
+      - Status logic like this sits behind every dashboard.
+      - Mixing up "8080" and 8080 is a very common bug.
+      - Printing values is still how most people first debug a problem.
+    answer: Health logic like this sits behind every status page.
+    hint: "It starts with: Health logic like this…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      ____ is_healthy(status):
+          return status < 500
+    answer:
+      - def
+    hint: It starts with "d" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def is_healthy(status):
+          ____
+    answer:
+      - return status < 500
+    hint: "It starts with: return "

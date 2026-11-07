@@ -1,0 +1,84 @@
+id: net-06
+track: NET
+skill: networking
+chapter: Subnets
+order: 6
+title: Size it right
+from: Network
+difficulty: easy
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "Add 2 to the devices you need, then find the smallest block that fits. Usable hosts double with each step: 30, 62, 126, 254."
+  example: 40 devices need /26 (62 hosts)
+brief: Guest Wi-Fi needs 120 devices. What's the smallest prefix that fits?
+goal: "Run: submit <answer>"
+hints:
+  - Usable = 2^(32-prefix) - 2
+  - /26 gives 62.
+debrief:
+  why: /26 has 62 hosts and /25 has 126.
+  solution: submit /25
+  job: Sizing is the first decision in any VLAN plan.
+teaches:
+  - size
+answer:
+  accept:
+    - /25
+    - "25"
+verify: "'/'+str(32-__import__('math').ceil(__import__('math').log2(120+2)))"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Size it right". Which sentence best describes what it taught?
+    options:
+      - Two addresses are reserved in each normal subnet.
+      - The mask is the prefix written as four octets.
+      - /26 has 62 hosts and /25 has 126.
+      - An address is just one 32-bit number written in a friendly way. All subnet maths follows from that.
+    answer: /26 has 62 hosts and /25 has 126.
+    hint: "The lesson said: Add 2 to the devices you need, then find the smallest block that fits."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: Guest Wi-Fi needs 120 devices. What's the smallest prefix that fits?
+    options:
+      - /25
+      - "254"
+      - 255.255.255.192
+      - "32"
+    answer: /25
+    hint: /26 gives 62.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Size it right" taught you at work?
+    options:
+      - Sizing is the first decision in any VLAN plan.
+      - Older gear and many forms ask for masks.
+      - The first number you memorise.
+      - Everything else in networking builds on this one fact.
+    answer: Sizing is the first decision in any VLAN plan.
+    hint: "It starts with: Sizing is the first…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: /26 has 62 ____ and /25 has 126.
+    answer:
+      - hosts
+    hint: It starts with "h" and is 5 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Guest Wi-Fi needs 120 devices. What's the smallest prefix that fits?
+    answer:
+      - /25
+      - "25"
+    hint: It starts with "/" and is 3 characters long.

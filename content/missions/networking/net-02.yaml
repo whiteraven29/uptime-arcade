@@ -1,0 +1,84 @@
+id: net-02
+track: NET
+skill: networking
+chapter: Addresses
+order: 2
+title: Binary to decimal
+from: Network
+difficulty: easy
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Computers store numbers in binary, as ones and zeros. An octet has 8 bits, worth 128, 64, 32, 16, 8, 4, 2 and 1 from left to right. Add up the ones that are on.
+  example: |-
+    10000001 = 128 + 1 = 129
+    00001010 = 8 + 2 = 10
+brief: What is the binary octet 11000000 in decimal?
+goal: "Run: submit <answer>"
+hints:
+  - Only the first two bits are on.
+  - 128 + 64
+debrief:
+  why: Eight place values are all you need, and they come straight back when you read subnet masks.
+  solution: submit 192
+  job: Masks like 255.255.255.192 make sense once you can see the bits.
+teaches:
+  - binary
+answer:
+  accept:
+    - "192"
+verify: str(0b11000000)
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Binary to decimal". Which sentence best describes what it taught?
+    options:
+      - An address is just one 32-bit number written in a friendly way. All subnet maths follows from that.
+      - The mask is the prefix written as four octets.
+      - The 172 private block is the one people misremember, because it stops at 172.31.
+      - Eight place values are all you need, and they come straight back when you read subnet masks.
+    answer: Eight place values are all you need, and they come straight back when you read subnet masks.
+    hint: Look for the sentence about binary.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: What is the binary octet 11000000 in decimal?
+    options:
+      - "192"
+      - "no"
+      - "32"
+      - 255.255.255.192
+    answer: "192"
+    hint: 128 + 64
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Binary to decimal" taught you at work?
+    options:
+      - Older gear and many forms ask for masks.
+      - Masks like 255.255.255.192 make sense once you can see the bits.
+      - Knowing these ranges tells you at a glance if a log entry is internal.
+      - Everything else in networking builds on this one fact.
+    answer: Masks like 255.255.255.192 make sense once you can see the bits.
+    hint: "It starts with: Masks like 255.255.255.192 make…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: Eight ____ values are all you need, and they come straight back when you read subnet masks.
+    answer:
+      - place
+    hint: It starts with "p" and is 5 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: What is the binary octet 11000000 in decimal?
+    answer:
+      - "192"
+    hint: It starts with "1" and is 3 characters long.

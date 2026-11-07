@@ -1,0 +1,87 @@
+id: bx-11
+track: BX
+skill: shell
+chapter: Hard
+order: 11
+title: The worst hour
+from: CTO
+difficulty: hard
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: substr(s, start, length) cuts text inside awk, and character positions start at 1. It lets you group by part of a field, such as the hour of a timestamp.
+  example: awk '{print substr($1,1,4)}' dates.txt
+brief: Times in ~/logs/api-access.log look like 2026-10-14T06:00:19. Which hour of the day (two digits) had the most 500 errors?
+goal: "Run: submit <hour>"
+hints:
+  - The hour starts at character 12 of the first field.
+  - Filter on $5==500, print substr($1,12,2), then count.
+debrief:
+  why: Slicing the timestamp turns a list of events into a timeline, which is how you line an outage up with a deploy.
+  solution: awk '$5==500{print substr($1,12,2)}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+  job: Knowing when it started narrows down what caused it.
+teaches:
+  - beyond
+answer:
+  accept:
+    - "13"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The worst hour". Which sentence best describes what it taught?
+    options:
+      - Division by zero is the classic crash in reporting code, so guard it first.
+      - Slicing the timestamp turns a list of events into a timeline, which is how you line an outage up with a deploy.
+      - Every extra bit doubles the number of subnets and halves their size.
+      - Filtering before grouping turns "how many errors" into "where are the errors", which is the question that matters.
+    answer: Slicing the timestamp turns a list of events into a timeline, which is how you line an outage up with a deploy.
+    hint: "The lesson said: substr(s, start, length) cuts text inside awk, and character positions start at 1."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Times in ~/logs/api-access.log look like 2026-10-14T06:00:19. Which hour of the day (two digits) had the most 500 errors?
+    options:
+      - awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log | sort -rn | head -1
+      - awk '$5==500{print substr($1,12,2)}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+      - "4"
+      - return round(up / total * 100, 2)
+    answer: awk '$5==500{print substr($1,12,2)}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+    hint: Filter on $5==500, print substr($1,12,2), then count.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: This pipeline has been split at each | and mixed up. Tap the parts from first to last.
+    scrambled:
+      - awk '$5==500{print substr($1,12,2)}' ~/logs/api-access.log
+      - uniq -c
+      - head -1
+      - sort
+      - sort -rn
+    answer:
+      - awk '$5==500{print substr($1,12,2)}' ~/logs/api-access.log
+      - sort
+      - uniq -c
+      - sort -rn
+      - head -1
+    hint: "The first one is: awk '$5==500{print substr($1,12,2)}' ~/logs/api-access.log"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: awk '$5==500{print substr($1,12,2)}' ~/logs/api-access.log | sort | uniq ____ | sort -rn | head -1
+    answer:
+      - -c
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Times in ~/logs/api-access.log look like 2026-10-14T06:00:19. Which hour of the day (two digits) had the most 500 errors?
+    answer:
+      - "13"
+    hint: It starts with "1" and is 2 characters long.

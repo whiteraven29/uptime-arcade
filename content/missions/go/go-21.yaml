@@ -1,0 +1,131 @@
+id: go-21
+track: GO
+skill: go
+chapter: Errors and packages
+order: 21
+title: Wrap and inspect
+from: Backend
+difficulty: hard
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: errors.New makes a simple error. fmt.Errorf with %w wraps one, adding context and keeping the original inside. errors.Is looks through the wrapping, which == cannot do.
+  example: |-
+    e := fmt.Errorf("read: %w", ErrX)
+    errors.Is(e, ErrX)   // true
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - "%w wraps the original."
+  - errors.Is unwraps the chain.
+debrief:
+  why: Wrapping adds context without losing the original, so use errors.Is rather than ==.
+  solution: "submit false true db: down"
+  job: This is the standard Go error pattern.
+teaches:
+  - Errorf
+  - "%w"
+  - errors
+  - New
+  - Is
+answer:
+  accept:
+    - "false true db: down"
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    	"errors"
+    )
+
+    var ErrDown = errors.New("down")
+
+    func main() {
+    	err := fmt.Errorf("db: %w", ErrDown)
+    	fmt.Println(err == ErrDown, errors.Is(err, ErrDown), err)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Wrap and inspect". Which sentence best describes what it taught?
+    options:
+      - The interface holds type *E with a nil value, so it isn't nil. Return plain nil on success.
+      - Maps return the zero value for missing keys, so counting needs no setup. Comma-ok tells zero from missing.
+      - Wrapping adds context without losing the original, so use errors.Is rather than ==.
+      - Satisfaction is implicit, so you can define an interface where it is used and existing types just fit.
+    answer: Wrapping adds context without losing the original, so use errors.Is rather than ==.
+    hint: Look for the sentence about Errorf and %w.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - "false true db: down"
+      - web ok db ok done
+      - 2 0 false
+      - "false"
+    answer: "false true db: down"
+    hint: errors.Is unwraps the chain.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"errors"
+      )
+
+      var ErrDown = errors.New("down")
+
+      func main() {
+      	err := fmt.Errorf("db: %w", ErrDown)
+      	fmt.Println(err == ErrDown, errors.Is(err, ErrDown), err)
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Wrap and inspect" taught you at work?
+    options:
+      - Go counters rely on this.
+      - A famous Go trap that passes error checks wrongly.
+      - This is the standard Go error pattern.
+      - io.Reader and error are interfaces you will use every day.
+    answer: This is the standard Go error pattern.
+    hint: "It starts with: This is the standard…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      err := fmt.Errorf("db: %w", ErrDown)
+      fmt.Println(err == ErrDown, ____.Is(err, ErrDown), err)
+    answer:
+      - errors
+    hint: It starts with "e" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"errors"
+      )
+
+      var ErrDown = errors.New("down")
+
+      func main() {
+      	err := fmt.Errorf("db: %w", ErrDown)
+      	fmt.Println(err == ErrDown, errors.Is(err, ErrDown), err)
+      }
+    answer:
+      - "false true db: down"
+    hint: It starts with "f" and is 19 characters long.

@@ -1,0 +1,84 @@
+id: net-12
+track: NET
+skill: networking
+chapter: Transport
+order: 12
+title: Ports and sockets
+from: Support
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: An IP finds the machine, and a port finds the program on it. A socket is the pair, written with a colon. One server can run many services because each listens on its own port.
+  example: |-
+    10.40.10.80:443
+    = machine 10.40.10.80, port 443
+brief: A log line says the app is at 10.40.10.11:8080. Which port is the program listening on?
+goal: "Run: submit <answer>"
+hints:
+  - It is after the colon.
+  - The part before the colon is the machine.
+debrief:
+  why: IP plus port identifies one service on one machine.
+  solution: submit 8080
+  job: Every connection you debug is described this way.
+teaches:
+  - port
+  - socket
+answer:
+  accept:
+    - "8080"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Ports and sockets". Which sentence best describes what it taught?
+    options:
+      - Summarising shrinks routing tables, as long as the block is aligned.
+      - Variable-length subnetting allocates largest first so blocks stay aligned.
+      - IP plus port identifies one service on one machine.
+      - Two addresses are reserved in each normal subnet.
+    answer: IP plus port identifies one service on one machine.
+    hint: Look for the sentence about port and socket.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: A log line says the app is at 10.40.10.11:8080. Which port is the program listening on?
+    options:
+      - 10.40.60.192/27
+      - "8080"
+      - 10.1.0.0/22
+      - "254"
+    answer: "8080"
+    hint: The part before the colon is the machine.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Ports and sockets" taught you at work?
+    options:
+      - How you stretch an address block across an office.
+      - Every connection you debug is described this way.
+      - The first number you memorise.
+      - Smaller tables mean simpler, faster routing.
+    answer: Every connection you debug is described this way.
+    hint: "It starts with: Every connection you debug…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: IP plus ____ identifies one service on one machine.
+    answer:
+      - port
+    hint: It starts with "p" and is 4 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: A log line says the app is at 10.40.10.11:8080. Which port is the program listening on?
+    answer:
+      - "8080"
+    hint: It starts with "8" and is 4 characters long.

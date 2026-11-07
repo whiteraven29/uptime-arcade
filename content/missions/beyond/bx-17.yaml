@@ -1,0 +1,87 @@
+id: bx-17
+track: BX
+skill: vi
+chapter: Expert
+order: 17
+title: Swap two values
+from: Backend
+difficulty: expert
+check: vi
+par:
+  kind: keys
+  value: 22
+lesson:
+  text: Named registers let you hold two pieces at once. "adi" deletes inside the quotes into register a, without touching register b.
+  example: |-
+    "adi"   delete inside quotes into a
+    "aP    paste a before the cursor
+brief: Swap the two quoted values in ~/vi/swap.py using named registers.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/swap.py"
+hints:
+  - '"adi" on the first line, then j, then "bdi".'
+  - The cursor is now inside the empty quotes. "aP, then k, then "bP.
+debrief:
+  why: With only the default register, the second delete would overwrite the first. Named ones keep both.
+  solution: '"adi"j"bdi""aPk"bP:wq<CR>'
+  job: Rearranging several pieces at once is where registers pay off.
+teaches:
+  - beyond
+file: ~/vi/swap.py
+expect:
+  - file_equals:
+      path: ~/vi/swap.py
+      content: |
+        a = "y"
+        b = "x"
+  - vi_saved: ~/vi/swap.py
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Swap two values". Which sentence best describes what it taught?
+    options:
+      - 0 and 3 differ in two bits, so the shared prefix is 22 bits, and the route also covers 10.0.1.0 and 10.0.2.0.
+      - With only the default register, the second delete would overwrite the first. Named ones keep both.
+      - Totals favour whoever is biggest. Averages show who is actually worth more, which is often a different answer.
+      - The hardest part of a macro is where it ends, because the next run depends on it.
+    answer: With only the default register, the second delete would overwrite the first. Named ones keep both.
+    hint: "The lesson said: Named registers let you hold two pieces at once."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Swap the two quoted values in ~/vi/swap.py using named registers.
+    options:
+      - 10.0.0.0/22
+      - awk -F, 'NR>1{s[$4]+=$5;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/data/customers.csv | sort -rn | head -1
+      - qaf=a"<Esc>A"<Esc>j0q2@a:wq<CR>
+      - '"adi"j"bdi""aPk"bP:wq<CR>'
+    answer: '"adi"j"bdi""aPk"bP:wq<CR>'
+    hint: The cursor is now inside the empty quotes. "aP, then k, then "bP.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Swap two values" taught you at work?
+    options:
+      - Summaries often cover more than you meant, which can swallow traffic.
+      - Rearranging several pieces at once is where registers pay off.
+      - Analysis that changes decisions is usually a ratio.
+      - Unquoted values with spaces break env files in production.
+    answer: Rearranging several pieces at once is where registers pay off.
+    hint: "It starts with: Rearranging several pieces at…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____di"j"bdi""aPk"bP:wq<CR>
+    answer:
+      - '"a'
+    hint: It starts with """ and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Which vi command saves the file and quits? Type it exactly, with the colon.
+    answer:
+      - :wq
+    hint: It starts with a colon, then w, then q.

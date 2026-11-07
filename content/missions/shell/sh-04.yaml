@@ -1,0 +1,89 @@
+id: sh-04
+track: SH
+skill: shell
+chapter: Getting around
+order: 4
+title: The file nobody can open
+from: Support
+difficulty: easy
+check: answer
+par:
+  kind: commands
+  value: 3
+lesson:
+  text: Quote names with spaces, and put ./ or a path before names that start with a dash. Names starting with a dot are hidden, and ls -a shows them.
+  example: |-
+    cat './my file.txt'
+    ls -a ~/projects
+brief: Find who is on call this week. The handover note in ~/inbox has a name that trips up cat, and the rota itself is hidden.
+goal: "Run: submit <name>"
+hints:
+  - Names starting with a dash look like options. Put a path in front.
+  - Quote names with spaces. ls -a shows dotfiles.
+debrief:
+  why: The shell splits on spaces, and programs read a leading dash as an option. Quoting and a path prefix fix both. Dotfiles are only hidden from plain ls.
+  solution: |-
+    cat ~/inbox/-handover.txt
+    ls -a ~/inbox/'week 44'
+    cat ~/inbox/'week 44'/.rota
+  job: Backups and uploads produce names like this all the time.
+teaches:
+  - ls
+  - -a
+answer:
+  accept:
+    - sara
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The file nobody can open". Which sentence best describes what it taught?
+    options:
+      - head and tail let you peek at a file without printing all of it, which matters when a log has a million lines.
+      - Absolute paths start at / and work anywhere. Relative paths start from your current folder and are shorter.
+      - The shell splits on spaces, and programs read a leading dash as an option. Quoting and a path prefix fix both. Dotfiles are only hidden from plain ls.
+      - pwd answers "where am I?". Every path you type without a leading / is worked out from that folder.
+    answer: The shell splits on spaces, and programs read a leading dash as an option. Quoting and a path prefix fix both. Dotfiles are only hidden from plain ls.
+    hint: Look for the sentence about ls and -a.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Find who is on call this week. The handover note in ~/inbox has a name that trips up cat, and the rota itself is hidden.
+    options:
+      - tail -1 ~/README
+      - pwd
+      - cd /etc
+      - cat ~/inbox/'week 44'/.rota
+    answer: cat ~/inbox/'week 44'/.rota
+    hint: Quote names with spaces. ls -a shows dotfiles.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the commands you ran, mixed up. Tap them from first to last.
+    scrambled:
+      - cat ~/inbox/'week 44'/.rota
+      - cat ~/inbox/-handover.txt
+      - ls -a ~/inbox/'week 44'
+    answer:
+      - cat ~/inbox/-handover.txt
+      - ls -a ~/inbox/'week 44'
+      - cat ~/inbox/'week 44'/.rota
+    hint: "The first one is: cat ~/inbox/-handover.txt"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ ~/inbox/'week 44'/.rota
+    answer:
+      - cat
+    hint: It starts with "c" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Find who is on call this week. The handover note in ~/inbox has a name that trips up cat, and the rota itself is hidden.
+    answer:
+      - sara
+    hint: It starts with "s" and is 4 characters long.

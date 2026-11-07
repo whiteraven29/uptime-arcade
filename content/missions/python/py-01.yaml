@@ -1,0 +1,88 @@
+id: py-01
+track: PY
+skill: python
+chapter: Basics
+order: 1
+title: Hello, operator
+from: Platform
+difficulty: easy
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A program is a list of instructions run from top to bottom. print shows a value on the screen. Text goes inside quotes, and it is called a string. Numbers need no quotes.
+  example: |-
+    print("Good morning")
+    print(42)
+brief: "Every programmer's first step: make the computer say something."
+goal: "Print exactly: Hello, operator"
+hints:
+  - Use print with brackets.
+  - print("Hello, operator")
+debrief:
+  why: print is how a program talks to you. Quotes mark text, so Python does not try to run it.
+  solution: print("Hello, operator")
+  job: Printing values is still how most people first debug a problem.
+teaches:
+  - print
+python:
+  starter: |
+    # Type your first line of Python here
+  tests:
+    - expr: _printed()
+      want: '"Hello, operator\n"'
+      label: what your program printed
+  capture_output: true
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Hello, operator". Which sentence best describes what it taught?
+    options:
+      - Indexing from 0 feels odd for a day and then becomes natural. -1 means count from the end.
+      - Chaining string methods reads top to bottom like a pipeline.
+      - f-strings keep the text and the values together, and padding is what turns output into a readable table.
+      - print is how a program talks to you. Quotes mark text, so Python does not try to run it.
+    answer: print is how a program talks to you. Quotes mark text, so Python does not try to run it.
+    hint: Look for the sentence about print.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: "Every programmer's first step: make the computer say something."
+    options:
+      - return f"{host:<8}{cpu:>3}%"
+      - print("Hello, operator")
+      - return [items[0], items[-1]]
+      - return name.strip().lower().replace(" ", "-")
+    answer: print("Hello, operator")
+    hint: print("Hello, operator")
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Hello, operator" taught you at work?
+    options:
+      - Printing values is still how most people first debug a problem.
+      - Status reports and CLI tools format lines like this.
+      - Every product with URLs needs this.
+      - Picking the first and last records is a daily task with logs.
+    answer: Printing values is still how most people first debug a problem.
+    hint: "It starts with: Printing values is still…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: ____("Hello, operator")
+    answer:
+      - print
+    hint: It starts with "p" and is 5 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: ____
+    answer:
+      - print("Hello, operator")
+    hint: 'It starts with: print("H'

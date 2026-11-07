@@ -1,0 +1,90 @@
+id: vi-14
+track: VI
+skill: vi
+chapter: Finding
+order: 14
+title: Repeat the last change
+from: Compliance
+difficulty: medium
+check: vi
+par:
+  kind: keys
+  value: 24
+lesson:
+  text: . repeats your last change, and n jumps to the next search match. Together they make a fast repeat loop you can run by hand.
+  example: /foo<Enter>  cwbar<Esc>  n  .  n  .
+brief: Change all three http links in ~/vi/links.txt to https, using the dot command.
+goal: Change them with n and .
+hints:
+  - cw on http, then n to find the next one.
+  - . repeats your last change.
+debrief:
+  why: . repeats your last change, so search, change, n, . is a loop you can run by hand.
+  solution: /http:<CR>cwhttps<Esc>n.n.:wq<CR>
+  job: Repeating precise edits is what makes vi users fast.
+teaches:
+  - "."
+file: ~/vi/links.txt
+expect:
+  - file_equals:
+      path: ~/vi/links.txt
+      content: |
+        docs https://docs.whiteraven.example
+        blog https://blog.whiteraven.example
+        help https://help.whiteraven.example
+  - vi_saved: ~/vi/links.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Repeat the last change". Which sentence best describes what it taught?
+    options:
+      - Choosing the right way into insert mode saves moving the cursor first.
+      - . repeats your last change, so search, change, n, . is a loop you can run by hand.
+      - ; repeats the last f search, so you can hop across delimited data.
+      - "Search is the fastest way to move in a big file: jump to the word instead of counting lines."
+    answer: . repeats your last change, so search, change, n, . is a loop you can run by hand.
+    hint: Look for the sentence about ..
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Change all three http links in ~/vi/links.txt to https, using the dot command.
+    options:
+      - /http:<CR>cwhttps<Esc>n.n.:wq<CR>
+      - f,;lcw9090<Esc>:wq<CR>
+      - "oMaintenance: Sunday 02:00<Esc>:wq<CR>"
+      - /timeout:<CR>nwwr9:wq<CR>
+    answer: /http:<CR>cwhttps<Esc>n.n.:wq<CR>
+    hint: . repeats your last change.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - cwhttps<Esc>
+      - :wq<CR>
+      - /http:<CR>
+      - n.n.
+    answer:
+      - /http:<CR>
+      - cwhttps<Esc>
+      - n.n.
+      - :wq<CR>
+    hint: "The first one is: /http:<CR>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: /http:<CR>____https<Esc>n.n.:wq<CR>
+    answer:
+      - cw
+    hint: It starts with "c" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Repeat the last change" taught. Any one of them counts.
+    answer:
+      - "."
+    hint: One of them is .…

@@ -7,23 +7,24 @@ import { fs, HOME, HOST, norm, pad } from '../../../engines/fs/index.js';
 import { sh, runLine } from '../../../engines/shell/index.js';
 import { COMMANDS, MAN } from '../../../engines/shell/commands.js';
 import { VI, viKey, viSelection } from '../../../engines/vi/index.js';
-import { rewindTasks, normA } from '../../../engines/rewind-preview/index.js';
-import { TK, TRACKS, CHAPTERS, TICKETS, OLD_IDS } from '../../../content/legacy/index.mjs';
+import { evalExpect } from '../../../engines/fs/expect.js';
+import { TK, TRACKS, BEYOND, CHAPTERS, TICKETS, ALL_MISSIONS, DIFFICULTIES, OLD_IDS } from '../../../content/index.mjs';
 import { genOncall } from './oncallGen.js';
 import { ensureAudio, playLevelUp, playTimerEnd, playUnlock, setMuted } from '../sound/cues.js';
 
-export { S, VI, viSelection, TK, TRACKS, CHAPTERS, TICKETS };
+export { S, VI, viSelection, TK, TRACKS, BEYOND, CHAPTERS, TICKETS, DIFFICULTIES };
 
 /* ---------- rules (section 6; the ladder is section 6.4 scaled to 150 missions, see ADR 0004) ---------- */
-const KEY = 'uptime-arcade-v4';
+const KEY = 'uptime-arcade-v5';
 export const BANK_CAP = 30 * 60;
 const BONUS_CAP = 60 * 60;
 const STARTER = 5 * 60;
 export const GOAL_BONUS = 2;
 export const HINT_COST = 15;
 const PAR_BONUS = 20;
-const REW_XP = 15;
-const REW_FIRST = 5;
+const MIN_MISSION_XP = 10;
+/* A rewind task shows its hint once every task left has been failed, and its answer after this many misses. */
+const REVEAL_AFTER = 3;
 export const EARN = { 15: 5, 25: 8, 45: 15 };
 export const LEVELS = [[0, 'Noob'], [8, 'Initiate'], [19, 'Apprentice'], [34, 'Operator'], [52, 'Adept'], [71, 'Specialist'], [90, 'Technomancer'], [109, 'Sorcerer'], [128, 'Sage'], [150, 'Archmage']];
 export const STREAKS = [[3, 5, 50, 0], [7, 10, 150, 1], [14, 15, 300, 0], [21, 15, 500, 1], [30, 20, 1000, 0], [60, 30, 2000, 1], [100, 30, 5000, 1]];
@@ -43,12 +44,21 @@ export const BADGES = [
   ['month', 'Iron Month', '30 day streak', () => S.bestStreak >= 30],
   ['centurion', 'Centurion', '100 day streak', () => S.bestStreak >= 100],
   ['first', 'First Clear', 'Clear one mission', () => cleared() >= 1],
+  // One for every level you climb. Archmage, the last of them, has its own badge below.
+  ...LEVELS.slice(1, -1).map(([, name], i) => [`lv${i + 2}`, name, `Reach level ${i + 2}`, () => levelIdx() >= i + 1]),
   ...TRACKS.map(([k, l]) => ['t' + k, l + ' Master', 'Clear the ' + l + ' path', () => TK[k].every((m) => S.rewDone[m.id])]),
   ['par50', 'Par Hunter', '50 missions at or under par', () => parCount() >= 50],
   ['nohints', 'No Hints Needed', 'Clear a whole chapter without hints', cleanChapter],
   ['night', 'Night Shift', 'Finish 25 on-call incidents', () => S.ocTotal >= 25],
   ['arch', 'Archmage', `Clear all ${TICKETS.length} missions`, () => S.peak >= TICKETS.length],
+  // One for each tier of the missions that come after Archmage.
+  ...CHAPTERS.BX.map(([name], i) => [`bx${i + 1}`, `${name} Conquered`, `Clear the ${name} tier of Beyond`, () => tierDone(i)]),
 ];
+function tierDone(i) {
+  const start = CHAPTERS.BX[i][1];
+  const end = CHAPTERS.BX[i + 1] ? CHAPTERS.BX[i + 1][1] : TK.BX.length;
+  return TK.BX.slice(start, end).every((m) => S.rewDone[m.id]);
+}
 
 /* ---------- small helpers ---------- */
 export const mmss = (s) => {
@@ -65,7 +75,7 @@ const dayGap = (a, b) => {
 };
 
 const fresh = () => ({
-  v: 4, updatedAt: 0, xp: 0, focusMin: 0, blocks: 0, cleanBlocks: 0, streak: 0, bestStreak: 0, shields: 0, lastDay: null,
+  v: 5, updatedAt: 0, xp: 0, focusMin: 0, blocks: 0, cleanBlocks: 0, streak: 0, bestStreak: 0, shields: 0, lastDay: null,
   day: dayKey(), todayMin: 0, todayDrifts: 0, bank: STARTER, sessionEndsAt: null, focus: null, claim: null, len: 25,
   cur: null, done: {}, rew: {}, rewDone: {}, hints: {}, cmds: {}, tries: {}, code: {}, viKeys: {}, viUsed: {}, overlay: {}, cwd: HOME, hist: [],
   net: { gw: '10.40.3.1' }, season: 1, peak: 0, ended: false, claimed: {}, badges: {}, oc: null, ocShift: 0, ocStreak: 0, ocBest: 0, ocTotal: 0,
@@ -118,10 +128,14 @@ export function toast(text, badge = null) {
 }
 
 /* ---------- selectors ---------- */
-export const byId = (id) => TICKETS.find((t) => t.id === id);
+export const byId = (id) => ALL_MISSIONS.find((t) => t.id === id);
 export const T = () => S.oc || byId(S.cur);
-export const trackName = (k) => TRACKS.find((t) => t[0] === k)[1];
-export const cleared = () => Object.keys(S.rewDone).length;
+export const trackName = (k) => (k === BEYOND[0] ? BEYOND[1] : TRACKS.find((t) => t[0] === k)[1]);
+const isBeyond = (id) => id.startsWith('bx-');
+/* Levels count the core missions only, so Beyond never changes what Archmage means (section 6.10). */
+export const cleared = () => Object.keys(S.rewDone).filter((id) => !isBeyond(id)).length;
+export const beyondCleared = () => Object.keys(S.rewDone).filter(isBeyond).length;
+export const beyondOpen = () => Math.max(cleared(), S.peak) >= TICKETS.length;
 export const levelIdx = () => {
   const c = Math.max(cleared(), S.peak);
   let i = 0;
@@ -141,18 +155,20 @@ const gain = (x) => {
 export const stateOf = (m) => {
   if (S.rewDone[m.id]) return 'clear';
   if (S.done[m.id]) return 'rewind';
+  if (m.track === BEYOND[0] && !beyondOpen()) return 'locked';
   const p = TK[m.track][m.pos - 1];
   return !p || S.rewDone[p.id] ? 'open' : 'locked';
 };
 export const nextUp = () => {
   let best = null;
-  for (const [k] of TRACKS) {
+  for (const k of [...TRACKS.map((t) => t[0]), BEYOND[0]]) {
     const m = TK[k].find((x) => stateOf(x) === 'rewind') || TK[k].find((x) => stateOf(x) === 'open');
     if (m && (!best || (stateOf(m) === 'rewind' && stateOf(best) !== 'rewind') || (stateOf(m) === stateOf(best) && m.pos < best.pos))) best = m;
   }
   return best;
 };
-export const parText = (t) => (t.parKind === 'keys' ? `${t.par} keys` : t.track === 'SH' || t.kind === 'auto' ? `${t.par} command${t.par > 1 ? 's' : ''}` : 'first try');
+export const parText = (t) => (t.parKind === 'keys' ? `${t.par} keys` : t.skill === 'SH' || t.kind === 'auto' ? `${t.par} command${t.par > 1 ? 's' : ''}` : 'first try');
+export const difficultyLabel = (code) => DIFFICULTIES.find((d) => d.code === code)?.label ?? code;
 export const missionPath = (m) => {
   const st = stateOf(m);
   return st === 'rewind' ? `/missions/${m.id}/rewind` : `/missions/${m.id}`;
@@ -170,9 +186,17 @@ function fromV3(o) {
   }
   return { ...o, ...mapped, v: 4, cur: null };
 }
+/* v4 paid XP when a mission was solved and for each rewind answer. Those are already earned, so
+   nothing is paid again when an in-progress rewind finishes. */
+function fromV4(o) {
+  const done = {};
+  for (const [id, d] of Object.entries(o.done || {})) done[id] = { ...d, paid: true };
+  return { ...o, done, v: 5 };
+}
 function migrate(o) {
-  if (o && o.v === 4) return o;
-  if (o && o.v === 3) return fromV3(o);
+  if (o && o.v === 5) return o;
+  if (o && o.v === 4) return fromV4(o);
+  if (o && o.v === 3) return fromV4(fromV3(o));
   if (!o) return null;
   const n = fresh();
   for (const k of ['xp', 'focusMin', 'blocks', 'streak', 'lastDay', 'bank']) if (o[k] !== undefined) n[k] = o[k];
@@ -181,7 +205,7 @@ function migrate(o) {
 }
 function loadLocal() {
   try {
-    for (const k of [KEY, 'uptime-arcade-v3', 'uptime-arcade-v2']) {
+    for (const k of [KEY, 'uptime-arcade-v4', 'uptime-arcade-v3', 'uptime-arcade-v2']) {
       const r = localStorage.getItem(k);
       if (r) return migrate(JSON.parse(r));
     }
@@ -299,7 +323,7 @@ export function complete(t) {
   const used = S.hints[t.id] || 0;
   let bonus = 0;
   let note = '';
-  if (t.kind === 'py' || (t.kind === 'answer' && t.track !== 'SH')) {
+  if (t.kind === 'py' || (t.kind === 'answer' && t.skill !== 'SH')) {
     const n = S.tries[t.id] || 1;
     note = n <= 1 ? 'first try' : `${n} tries`;
     if (n <= 1) bonus = PAR_BONUS;
@@ -312,8 +336,9 @@ export function complete(t) {
     note = `${c} command${c === 1 ? '' : 's'}, par ${t.par}`;
     if (c <= t.par) bonus = PAR_BONUS;
   }
-  const xp = gain(Math.max(10, t.xp + bonus - used * HINT_COST));
-  S.done[t.id] = { xp, note, bonus, hints: used };
+  // Solving earns nothing yet. The XP is paid when the rewind is finished too.
+  const worth = Math.max(MIN_MISSION_XP, t.xp + bonus - used * HINT_COST);
+  S.done[t.id] = { worth, note, bonus, hints: used, paid: false };
   checkBadges();
   save();
   ui.debrief = t.id;
@@ -331,7 +356,7 @@ export function leaveMission() {
 }
 function autoCheck() {
   const t = T();
-  if (t && !S.done[t.id] && t.check && t.check()) complete(t);
+  if (t && !S.done[t.id] && t.expect && evalExpect(t.expect)) complete(t);
 }
 export function runCommand(line) {
   const src = line.trim();
@@ -452,15 +477,29 @@ function completeOc(t) {
 }
 
 /* ---------- rewind ---------- */
+export const normA = (v) => String(v).trim().replace(/\s+/g, ' ').replace(/'/g, '"').toLowerCase();
 export function startRewind(id) {
   const rw = ui.rw;
   if (rw.id !== id || !rw.tasks) {
     rw.id = id;
-    rw.tasks = rewindTasks(byId(id), TK);
+    rw.tasks = byId(id).rewind;
     rw.fb = null;
     rw.pick = [];
   }
-  S.rew[id] = S.rew[id] || { q: [0, 1, 2, 3, 4], ok: 0, miss: {} };
+  S.rew[id] = S.rew[id] || { q: rw.tasks.map((_, i) => i), ok: 0, miss: {} };
+}
+/* What help the current task gets. Hints wait until every task still left has been failed at least
+   once, and the answer itself appears only if the hint wasn't enough, so nobody can get stuck. */
+export function rewindHelp(id) {
+  const st = S.rew[id];
+  const i = st.q[0];
+  const t = ui.rw.tasks[i];
+  const miss = st.miss[i] || 0;
+  const answer = Array.isArray(t.answer) ? (t.type === 'order' ? t.answer.join('\n') : t.answer[0]) : t.answer;
+  return {
+    hint: st.q.every((j) => st.miss[j] > 0) ? t.hint : null,
+    answer: miss >= REVEAL_AFTER ? answer : null,
+  };
 }
 export function answerRewind(val) {
   const rw = ui.rw;
@@ -472,14 +511,13 @@ export function answerRewind(val) {
   else if (t.type === 'order') ok = val.join('\n') === t.answer.join('\n');
   else ok = t.answer.some((a) => normA(a) === normA(val));
   if (ok) {
-    const x = gain(REW_XP + (st.miss[i] ? 0 : REW_FIRST));
     st.q.shift();
     st.ok++;
-    rw.fb = { ok: true, x };
+    rw.fb = { ok: true };
   } else {
-    st.miss[i] = 1;
+    st.miss[i] = (st.miss[i] || 0) + 1;
     st.q.push(st.q.shift());
-    rw.fb = { ok: false, answer: t.type === 'order' ? t.answer.join('\n') : Array.isArray(t.answer) ? t.answer[0] : t.answer };
+    rw.fb = { ok: false };
   }
   rw.pick = [];
   save();
@@ -509,6 +547,14 @@ function finishRewind() {
   const before = levelIdx();
   S.rewDone[id] = true;
   delete S.rew[id];
+  // The whole task is finished, mission and rewind, so this is where the XP is earned.
+  const d = S.done[id];
+  let earned = 0;
+  if (d && !d.paid) {
+    earned = gain(d.worth);
+    d.xp = earned;
+    d.paid = true;
+  }
   S.peak = Math.max(S.peak, cleared());
   S.cur = null;
   ui.rw = { id: null, tasks: null, fb: null, pick: [] };
@@ -525,7 +571,8 @@ function finishRewind() {
     }, 1600);
     playUnlock();
   }
-  toast(nx ? `Unlocked: ${nx.title}` : `${trackName(m.track)} path complete`);
+  const paid = earned ? `+${earned} XP. ` : '';
+  toast(paid + (nx ? `Unlocked: ${nx.title}` : `${trackName(m.track)} path complete`));
   if (levelIdx() !== before) {
     ui.overlay = { kind: 'level', i: levelIdx() };
     playLevelUp();

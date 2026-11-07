@@ -1,0 +1,132 @@
+id: go-23
+track: GO
+skill: go
+chapter: Concurrency
+order: 23
+title: Goroutines
+from: Platform
+difficulty: hard
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: go in front of a call runs it at the same time as the rest of the program, as a goroutine. When main ends the whole program ends, even with goroutines still running. Sleep here only keeps main alive long enough, and later missions show the proper way.
+  example: |-
+    go work()
+    time.Sleep(time.Second)
+    time.Sleep(100 * time.Millisecond)
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - The goroutine starts while main is sleeping.
+  - Without the Sleep, main could exit before it printed.
+debrief:
+  why: Goroutines are cheap to start, but main does not wait for them. That is the first concurrency trap.
+  solution: submit worker main
+  job: Servers run each request in its own goroutine.
+teaches:
+  - go
+  - time
+  - Sleep
+  - Millisecond
+  - Second
+answer:
+  accept:
+    - worker main
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    	"time"
+    )
+
+    func main() {
+    	go fmt.Print("worker ")
+    	time.Sleep(100 * time.Millisecond)
+    	fmt.Println("main")
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Goroutines". Which sentence best describes what it taught?
+    options:
+      - Value receivers work on a copy, and pointer receivers change the original.
+      - Goroutines are cheap to start, but main does not wait for them. That is the first concurrency trap.
+      - recover only works inside a deferred function, because deferred calls are all that run during a panic.
+      - Satisfaction is implicit, so you can define an interface where it is used and existing types just fit.
+    answer: Goroutines are cheap to start, but main does not wait for them. That is the first concurrency trap.
+    hint: Look for the sentence about go and time.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - caught and still running
+      - worker main
+      - web ok db ok done
+      - "1"
+    answer: worker main
+    hint: Without the Sleep, main could exit before it printed.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"time"
+      )
+
+      func main() {
+      	go fmt.Print("worker ")
+      	time.Sleep(100 * time.Millisecond)
+      	fmt.Println("main")
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - time.Sleep(100 * time.Millisecond)
+      - fmt.Println("main")
+      - go fmt.Print("worker ")
+    answer:
+      - go fmt.Print("worker ")
+      - time.Sleep(100 * time.Millisecond)
+      - fmt.Println("main")
+    hint: 'The first one is: go fmt.Print("worker ")'
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      go fmt.Print("worker ")
+      time.Sleep(100 * time.Millisecond)
+      fmt.____("main")
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"time"
+      )
+
+      func main() {
+      	go fmt.Print("worker ")
+      	time.Sleep(100 * time.Millisecond)
+      	fmt.Println("main")
+      }
+    answer:
+      - worker main
+    hint: It starts with "w" and is 11 characters long.

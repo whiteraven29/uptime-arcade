@@ -1,0 +1,109 @@
+id: py-27
+track: PY
+skill: python
+chapter: Objects
+order: 27
+title: Lazy sequences
+from: Data
+difficulty: hard
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "yield makes a generator: a function that hands out one value at a time and pauses in between. It holds no list in memory, so it can walk through a 10 GB file. list() collects the values if you need them all, and sum() adds them up as they come."
+  example: |-
+    def countdown(n):
+        while n > 0:
+            yield n
+            n -= 1
+
+    list(countdown(3))   # [3, 2, 1]
+brief: Yield the even numbers from 0 up to, but not including, limit.
+goal: Write evens(limit). Tests run when you press Run tests.
+hints:
+  - "for n in range(0, limit, 2):"
+  - yield n
+debrief:
+  why: Generators do the work only when asked, so memory use stays flat however much data flows through.
+  solution: |-
+    def evens(limit):
+        for n in range(0, limit, 2):
+            yield n
+  job: Streaming big logs line by line relies on this.
+teaches:
+  - yield
+  - list
+  - sum
+python:
+  starter: |
+    def evens(limit):
+        # your code here
+        pass
+  tests:
+    - expr: list(evens(7))
+      want: "[0, 2, 4, 6]"
+    - expr: list(evens(0))
+      want: "[]"
+    - expr: sum(evens(5))
+      want: "6"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Lazy sequences". Which sentence best describes what it taught?
+    options:
+      - State that lives on self survives between calls, so the object remembers what happened to it.
+      - Date maths is full of traps like month ends and leap years, so never do it by hand.
+      - You wrote this loop by hand earlier. Now you know what the library saves you.
+      - Generators do the work only when asked, so memory use stays flat however much data flows through.
+    answer: Generators do the work only when asked, so memory use stays flat however much data flows through.
+    hint: Look for the sentence about yield and list.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Yield the even numbers from 0 up to, but not including, limit.
+    options:
+      - t = datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)
+      - "for n in range(0, limit, 2):"
+      - return Counter(paths).most_common(1)[0][0]
+      - self.paths[path] = self.paths.get(path, 0) + 1
+    answer: "for n in range(0, limit, 2):"
+    hint: yield n
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "    for n in range(0, limit, 2):"
+      - "        yield n"
+      - "def evens(limit):"
+    answer:
+      - "def evens(limit):"
+      - "    for n in range(0, limit, 2):"
+      - "        yield n"
+    hint: "The first one is: def evens(limit):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def evens(limit):
+          for n in ____(0, limit, 2):
+              yield n
+    answer:
+      - range
+    hint: It starts with "r" and is 5 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def evens(limit):
+          ____
+              yield n
+    answer:
+      - "for n in range(0, limit, 2):"
+    hint: "It starts with: for n in r"

@@ -1,0 +1,86 @@
+id: net-10
+track: NET
+skill: networking
+chapter: Local network
+order: 10
+title: MACs and ARP
+from: Network
+difficulty: easy
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'On a local network, frames are delivered by MAC address: a fixed hardware address on each network card, at layer 2. IP is layer 3. ARP connects them by asking the whole network "who has this IP?", and the owner replies.'
+  example: |-
+    Who has 10.0.0.9? Tell 10.0.0.5
+    10.0.0.9 is at 52:54:00:3a:7e:21
+brief: A host knows the IP of its neighbour but needs one more address to actually send a frame. ARP finds it. What kind of address is that?
+goal: "Run: submit <what ARP finds>"
+hints:
+  - It is a hardware address.
+  - Three letters.
+debrief:
+  why: IP gets a packet across networks, and the MAC gets it across the local wire. ARP is the bridge between them.
+  solution: submit mac
+  job: Duplicate IPs and bad switches show up as ARP problems.
+teaches:
+  - MAC
+  - ARP
+answer:
+  accept:
+    - mac
+    - mac address
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "MACs and ARP". Which sentence best describes what it taught?
+    options:
+      - Two addresses are reserved in each normal subnet.
+      - Eight place values are all you need, and they come straight back when you read subnet masks.
+      - IP gets a packet across networks, and the MAC gets it across the local wire. ARP is the bridge between them.
+      - Variable-length subnetting allocates largest first so blocks stay aligned.
+    answer: IP gets a packet across networks, and the MAC gets it across the local wire. ARP is the bridge between them.
+    hint: Look for the sentence about MAC and ARP.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: A host knows the IP of its neighbour but needs one more address to actually send a frame. ARP finds it. What kind of address is that?
+    options:
+      - mac
+      - 10.40.60.192/27
+      - "254"
+      - "192"
+    answer: mac
+    hint: Three letters.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "MACs and ARP" taught you at work?
+    options:
+      - The first number you memorise.
+      - How you stretch an address block across an office.
+      - Masks like 255.255.255.192 make sense once you can see the bits.
+      - Duplicate IPs and bad switches show up as ARP problems.
+    answer: Duplicate IPs and bad switches show up as ARP problems.
+    hint: "It starts with: Duplicate IPs and bad…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: IP gets a packet across networks, and the ____ gets it across the local wire. ARP is the bridge between them.
+    answer:
+      - MAC
+    hint: It starts with "M" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: A host knows the IP of its neighbour but needs one more address to actually send a frame. ARP finds it. What kind of address is that?
+    answer:
+      - mac
+      - mac address
+    hint: It starts with "m" and is 3 characters long.

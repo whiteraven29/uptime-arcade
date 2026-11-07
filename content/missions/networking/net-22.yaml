@@ -1,0 +1,85 @@
+id: net-22
+track: NET
+skill: networking
+chapter: Tools
+order: 22
+title: Read traceroute
+from: SRE
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: traceroute lists each hop with its delay. A jump that stays high on later hops shows where the delay begins.
+  example: |-
+    hop 2  5 ms
+    hop 3  90 ms
+    hop 4  92 ms
+    delay begins at hop 3
+brief: Using ~/net/traceroute.txt, at which hop does latency jump?
+goal: "Run: submit <hop number>"
+hints:
+  - Look for the big step, not the total.
+  - Latency persists to later hops.
+debrief:
+  why: A jump that carries on to later hops marks a real long link or congestion.
+  solution: cat ~/net/traceroute.txt
+  job: Lets you show your ISP exactly where the problem is.
+teaches:
+  - traceroute
+answer:
+  accept:
+    - "5"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Read traceroute". Which sentence best describes what it taught?
+    options:
+      - A CNAME points to a name, so the resolver looks that name up again.
+      - A jump that carries on to later hops marks a real long link or congestion.
+      - A gateway must be on your own subnet. Editing a file changes nothing until it's applied.
+      - A timeout means no server answered, and NXDOMAIN means it answered that the name doesn't exist. They're different faults.
+    answer: A jump that carries on to later hops marks a real long link or congestion.
+    hint: Look for the sentence about traceroute.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: Using ~/net/traceroute.txt, at which hop does latency jump?
+    options:
+      - sed -i 's/10.40.10.99/10.40.10.53/' /etc/resolv.conf
+      - 196.41.0.20
+      - "5"
+      - sed -i 's/10.40.3.1/10.40.30.1/' /etc/netplan/01-office.yaml
+    answer: "5"
+    hint: Latency persists to later hops.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Read traceroute" taught you at work?
+    options:
+      - CDNs and hosting setups chain these.
+      - "'The internet is down' is often only DNS."
+      - Check address, then route, then DNS.
+      - Lets you show your ISP exactly where the problem is.
+    answer: Lets you show your ISP exactly where the problem is.
+    hint: "It starts with: Lets you show your…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ ~/net/traceroute.txt
+    answer:
+      - cat
+    hint: It starts with "c" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Using ~/net/traceroute.txt, at which hop does latency jump?
+    answer:
+      - "5"
+    hint: It starts with "5" and is 1 characters long.

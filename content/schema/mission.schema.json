@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mission.schema.json",
+  "title": "Uptime Arcade mission",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "track", "skill", "chapter", "order", "title", "from", "difficulty", "check", "par", "lesson", "brief", "goal", "hints", "debrief", "teaches", "rewind"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z]{2,3}-[0-9]{2}$" },
+    "track": { "enum": ["SH", "VI", "PY", "GO", "NET", "LAB", "OPS", "BX"] },
+    "skill": { "enum": ["shell", "vi", "python", "go", "networking"] },
+    "chapter": { "type": "string", "minLength": 1 },
+    "order": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "from": { "type": "string", "minLength": 1 },
+    "difficulty": { "enum": ["easy", "medium", "hard", "expert", "brainfuck"] },
+    "check": { "enum": ["answer", "fs", "vi", "py", "go-out", "go-fix"] },
+    "par": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": { "enum": ["commands", "keys", "first-try"] },
+        "value": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "lesson": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "example"],
+      "properties": { "text": { "type": "string", "minLength": 1 }, "example": { "type": "string", "minLength": 1 } }
+    },
+    "brief": { "type": "string", "minLength": 1 },
+    "goal": { "type": "string", "minLength": 1 },
+    "hints": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "debrief": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["why", "solution", "job"],
+      "properties": { "why": { "type": "string" }, "solution": { "type": "string" }, "job": { "type": "string" } }
+    },
+    "teaches": { "type": "array", "items": { "type": "string" } },
+    "answer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accept"],
+      "properties": { "accept": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } } }
+    },
+    "reasoned": { "const": true },
+    "verify": { "type": "string" },
+    "file": { "type": "string" },
+    "expect": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/rule" } },
+    "fixtures": { "type": "object", "additionalProperties": { "type": "string" } },
+    "python": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["starter", "tests"],
+      "properties": {
+        "starter": { "type": "string" },
+        "tests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["expr", "want"],
+            "properties": { "expr": { "type": "string" }, "want": { "type": "string" }, "label": { "type": "string" } }
+          }
+        },
+        "prelude": { "type": "string" },
+        "capture_output": { "const": true },
+        "files": { "type": "object", "additionalProperties": { "type": "string" } },
+        "wrap": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["args", "ret"],
+          "properties": { "args": { "type": "string" }, "ret": { "type": "string" } }
+        }
+      }
+    },
+    "go": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["program"],
+      "properties": { "program": { "type": "string" }, "prints": { "type": "string" } }
+    },
+    "rewind": { "type": "array", "minItems": 5, "maxItems": 5, "items": { "$ref": "#/$defs/task" } }
+  },
+  "allOf": [
+    { "if": { "properties": { "check": { "enum": ["answer", "go-out", "go-fix"] } } }, "then": { "required": ["answer"] } },
+    { "if": { "properties": { "check": { "enum": ["fs", "vi"] } } }, "then": { "required": ["expect"] } },
+    { "if": { "properties": { "check": { "const": "vi" } } }, "then": { "required": ["file"] } },
+    { "if": { "properties": { "check": { "const": "py" } } }, "then": { "required": ["python"] } },
+    { "if": { "properties": { "check": { "enum": ["go-out", "go-fix"] } } }, "then": { "required": ["go"] } }
+  ],
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "file_exists": { "type": "string" },
+        "file_missing": { "type": "string" },
+        "file_equals": { "type": "object", "required": ["path", "content"], "additionalProperties": false, "properties": { "path": { "type": "string" }, "content": { "type": "string" } } },
+        "file_contains": { "type": "object", "required": ["path", "text"], "additionalProperties": false, "properties": { "path": { "type": "string" }, "text": { "type": "string" } } },
+        "mode_has": { "type": "object", "required": ["path", "bit"], "additionalProperties": false, "properties": { "path": { "type": "string" }, "bit": { "enum": ["r", "w", "x"] } } },
+        "cwd_is": { "type": "string" },
+        "gateway_is": { "type": "string" },
+        "script_ran": { "type": "string" },
+        "vi_saved": { "type": "string" },
+        "vi_used": { "type": "object", "required": ["path", "keys"], "additionalProperties": false, "properties": { "path": { "type": "string" }, "keys": { "type": "array", "items": { "type": "string" } } } }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "level", "label", "q", "answer", "hint"],
+      "properties": {
+        "type": { "enum": ["mc", "text", "order"] },
+        "level": { "enum": ["easy", "medium", "hard"] },
+        "label": { "type": "string" },
+        "q": { "type": "string", "minLength": 1 },
+        "context": { "type": "string" },
+        "show": { "type": "string" },
+        "code": { "type": "boolean" },
+        "options": { "type": "array", "minItems": 2, "items": { "type": "string" } },
+        "scrambled": { "type": "array", "items": { "type": "string" } },
+        "answer": { "oneOf": [{ "type": "string" }, { "type": "array", "minItems": 1, "items": { "type": "string" } }] },
+        "hint": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "mc" } } }, "then": { "required": ["options"], "properties": { "answer": { "type": "string" } } } },
+        { "if": { "properties": { "type": { "const": "order" } } }, "then": { "required": ["scrambled"], "properties": { "answer": { "type": "array" } } } },
+        { "if": { "properties": { "type": { "const": "text" } } }, "then": { "properties": { "answer": { "type": "array" } } } }
+      ]
+    }
+  }
+}

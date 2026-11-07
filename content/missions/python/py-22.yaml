@@ -1,0 +1,114 @@
+id: py-22
+track: PY
+skill: python
+chapter: Standard library
+order: 22
+title: Dates and times
+from: SRE
+difficulty: hard
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: datetime(2026, 11, 14, 23, 0) makes a moment in time. Adding a timedelta moves it forward and handles the end of a day or month for you. strftime formats it as text.
+  example: |-
+    from datetime import datetime, timedelta
+    t = datetime(2026, 1, 31, 12, 0)
+    (t + timedelta(days=1)).strftime("%Y-%m-%d")   # "2026-02-01"
+brief: A maintenance window starts in November 2026 on the given day and hour. Return when it ends, as "YYYY-MM-DD HH:MM".
+goal: Write window_end(day, hour, minutes). Tests run when you press Run tests.
+hints:
+  - datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)
+  - strftime("%Y-%m-%d %H:%M")
+debrief:
+  why: Date maths is full of traps like month ends and leap years, so never do it by hand.
+  solution: |-
+    from datetime import datetime, timedelta
+
+    def window_end(day, hour, minutes):
+        t = datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)
+        return t.strftime("%Y-%m-%d %H:%M")
+  job: Schedules, expiry dates and SLAs all need this.
+teaches:
+  - datetime
+  - timedelta
+  - strftime
+python:
+  starter: |
+    from datetime import datetime, timedelta
+
+    def window_end(day, hour, minutes):
+        # your code here
+        pass
+  tests:
+    - expr: window_end(14, 23, 90)
+      want: '"2026-11-15 00:30"'
+    - expr: window_end(1, 2, 30)
+      want: '"2026-11-01 02:30"'
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Dates and times". Which sentence best describes what it taught?
+    options:
+      - Date maths is full of traps like month ends and leap years, so never do it by hand.
+      - Errors are normal when input comes from outside. Catch what you expect and turn it into something the rest of the code can use.
+      - with guarantees the file gets closed. Reading line by line means even a huge file fits in memory.
+      - "Parse, change, serialise: never edit JSON by hand with string replacement."
+    answer: Date maths is full of traps like month ends and leap years, so never do it by hand.
+    hint: Look for the sentence about datetime and timedelta.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: A maintenance window starts in November 2026 on the given day and hour. Return when it ends, as "YYYY-MM-DD HH:MM".
+    options:
+      - t = datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)
+      - d = json.loads(text)
+      - raise ValueError("out of range")
+      - 'if line.startswith("ERROR"):'
+    answer: t = datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)
+    hint: strftime("%Y-%m-%d %H:%M")
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - '    return t.strftime("%Y-%m-%d %H:%M")'
+      - "def window_end(day, hour, minutes):"
+      - from datetime import datetime, timedelta
+      - "    t = datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)"
+    answer:
+      - from datetime import datetime, timedelta
+      - "def window_end(day, hour, minutes):"
+      - "    t = datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)"
+      - '    return t.strftime("%Y-%m-%d %H:%M")'
+    hint: "The first one is: from datetime import datetime, timedelta"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      from datetime import datetime, timedelta
+
+      ____ window_end(day, hour, minutes):
+          t = datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)
+          return t.strftime("%Y-%m-%d %H:%M")
+    answer:
+      - def
+    hint: It starts with "d" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      from datetime import datetime, timedelta
+
+      def window_end(day, hour, minutes):
+          ____
+          return t.strftime("%Y-%m-%d %H:%M")
+    answer:
+      - t = datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)
+    hint: "It starts with: t = datetime(2026, 11,"

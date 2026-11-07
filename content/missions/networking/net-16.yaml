@@ -1,0 +1,89 @@
+id: net-16
+track: NET
+skill: networking
+chapter: Services
+order: 16
+title: DNS records
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: DNS turns names into addresses. An A record gives an IPv4 address, AAAA an IPv6 one, CNAME points to another name, MX says where mail goes, and TXT holds notes. cat prints a file and grep finds lines in it.
+  example: |-
+    blog CNAME host
+    host A 1.2.3.4
+
+    grep host zone.txt
+brief: In ~/net/zone.txt, what IP does www finally resolve to?
+goal: "Run: submit <answer>"
+hints:
+  - www is a CNAME for edge.
+  - Then find edge's A record.
+debrief:
+  why: A CNAME points to a name, so the resolver looks that name up again.
+  solution: cat ~/net/zone.txt
+  job: CDNs and hosting setups chain these.
+teaches:
+  - DNS
+  - A
+  - CNAME
+  - grep
+  - cat
+answer:
+  accept:
+    - 196.41.0.20
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "DNS records". Which sentence best describes what it taught?
+    options:
+      - A host compares network bits, then uses ARP for local targets or the gateway for the rest.
+      - The handshake proves both sides can hear each other. A SYN with no reply usually means a firewall.
+      - Variable-length subnetting allocates largest first so blocks stay aligned.
+      - A CNAME points to a name, so the resolver looks that name up again.
+    answer: A CNAME points to a name, so the resolver looks that name up again.
+    hint: Look for the sentence about DNS and A.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: In ~/net/zone.txt, what IP does www finally resolve to?
+    options:
+      - gateway
+      - 196.41.0.20
+      - 10.40.60.192/27
+      - syn-ack
+    answer: 196.41.0.20
+    hint: Then find edge's A record.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "DNS records" taught you at work?
+    options:
+      - Explains most 'can't reach it' tickets.
+      - CDNs and hosting setups chain these.
+      - Connection timeouts are diagnosed by which step of this fails.
+      - How you stretch an address block across an office.
+    answer: CDNs and hosting setups chain these.
+    hint: "It starts with: CDNs and hosting setups…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ ~/net/zone.txt
+    answer:
+      - cat
+    hint: It starts with "c" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: In ~/net/zone.txt, what IP does www finally resolve to?
+    answer:
+      - 196.41.0.20
+    hint: It starts with "1" and is 11 characters long.

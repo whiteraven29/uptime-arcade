@@ -1,0 +1,85 @@
+id: bx-25
+track: BX
+skill: networking
+chapter: Brainfuck
+order: 25
+title: The black hole
+from: CTO
+difficulty: brainfuck
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: The largest packet a path can carry is its MTU. Normally a router too small for a packet tells the sender. If those ICMP messages are blocked, big packets just vanish while small ones work. That is called a path MTU black hole.
+  example: |-
+    small ping: works
+    big ping:   100% loss
+    web page:   hangs after connecting
+brief: Pings work, DNS works and the TCP connection opens, yet pages hang at the TLS handshake. Read ~/net/blackhole.txt. What is at fault?
+goal: "Run: submit <what is at fault>: dns, routing, firewall or mtu"
+hints:
+  - What differs between the ping that works and the one that fails?
+  - A TLS handshake is the first big packet of a connection.
+debrief:
+  why: Small packets pass and big ones vanish, so the path has a smaller MTU than the endpoints think, and the ICMP messages saying so are being dropped.
+  solution: cat ~/net/blackhole.txt
+  job: VPNs and tunnels cause this often, and few people recognise it. Now you will.
+teaches:
+  - beyond
+answer:
+  accept:
+    - mtu
+reasoned: true
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The black hole". Which sentence best describes what it taught?
+    options:
+      - Small packets pass and big ones vanish, so the path has a smaller MTU than the endpoints think, and the ICMP messages saying so are being dropped.
+      - An interpreter is just a loop over instructions with some state. Writing one removes the magic from every language you use.
+      - "This is why a fast link across an ocean can still feel slow: latency caps throughput until the window grows."
+      - val froze a copy when n was 1, inc changed the real t, and the deferred function ran after return and rewrote the named result.
+    answer: Small packets pass and big ones vanish, so the path has a smaller MTU than the endpoints think, and the ICMP messages saying so are being dropped.
+    hint: "The lesson said: The largest packet a path can carry is its MTU."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: Pings work, DNS works and the TCP connection opens, yet pages hang at the TLS handshake. Read ~/net/blackhole.txt. What is at fault?
+    options:
+      - mtu
+      - "5.24"
+      - 3 3 1
+      - cells[p] = (cells[p] + 1) % 256
+    answer: mtu
+    hint: A TLS handshake is the first big packet of a connection.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "The black hole" taught you at work?
+    options:
+      - If you can read this, you can read any Go code review.
+      - VPNs and tunnels cause this often, and few people recognise it. Now you will.
+      - It explains the "gigabit link, slow transfer" ticket.
+      - Nobody writes Brainfuck at work. Everybody who has written an interpreter reads code differently.
+    answer: VPNs and tunnels cause this often, and few people recognise it. Now you will.
+    hint: "It starts with: VPNs and tunnels cause…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ ~/net/blackhole.txt
+    answer:
+      - cat
+    hint: It starts with "c" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Pings work, DNS works and the TCP connection opens, yet pages hang at the TLS handshake. Read ~/net/blackhole.txt. What is at fault?
+    answer:
+      - mtu
+    hint: It starts with "m" and is 3 characters long.

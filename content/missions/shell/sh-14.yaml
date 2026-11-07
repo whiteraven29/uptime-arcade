@@ -1,0 +1,87 @@
+id: sh-14
+track: SH
+skill: shell
+chapter: Columns
+order: 14
+title: Sort it out
+from: SRE
+difficulty: medium
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: sort orders lines as text by default, so 90 lands after 800. -n sorts as numbers, -k picks the column, -r reverses, and -u drops repeats.
+  example: |-
+    sort -k2 -n scores.txt
+    sort -u names.txt
+brief: What is the highest response time in ms in ~/logs/api-access.log? It is the 6th column.
+goal: "Run: submit <ms>"
+hints:
+  - sort -n compares as numbers.
+  - -k6 sorts on column 6. The biggest ends up last.
+debrief:
+  why: Text sort compares character by character. Numeric sort is what you want for sizes and durations.
+  solution: sort -k6 -n ~/logs/api-access.log | tail -1 | cut -d' ' -f6
+  job: Worst-case latency is where user complaints come from.
+teaches:
+  - sort
+  - -k
+  - -n
+answer:
+  accept:
+    - "1787"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Sort it out". Which sentence best describes what it taught?
+    options:
+      - Text sort compares character by character. Numeric sort is what you want for sizes and durations.
+      - "> starts the file again every time, while >> adds to it. Mixing them up is the classic way to lose a report."
+      - Each command does one small job, and the pipe joins them. grep picks the lines, head keeps the first.
+      - grep is the search box of the command line. -n tells you where to go and -i stops capitals hiding a match.
+    answer: Text sort compares character by character. Numeric sort is what you want for sizes and durations.
+    hint: Look for the sentence about sort and -k.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: What is the highest response time in ms in ~/logs/api-access.log? It is the 6th column.
+    options:
+      - grep -c FATAL ~/logs/app.log >> ~/incident.txt
+      - sort -k6 -n ~/logs/api-access.log | tail -1 | cut -d' ' -f6
+      - grep -in gzip ~/conf/nginx-comments.conf
+      - grep FATAL ~/logs/app.log | head -1
+    answer: sort -k6 -n ~/logs/api-access.log | tail -1 | cut -d' ' -f6
+    hint: -k6 sorts on column 6. The biggest ends up last.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: This pipeline has been split at each | and mixed up. Tap the parts from first to last.
+    scrambled:
+      - sort -k6 -n ~/logs/api-access.log
+      - cut -d' ' -f6
+      - tail -1
+    answer:
+      - sort -k6 -n ~/logs/api-access.log
+      - tail -1
+      - cut -d' ' -f6
+    hint: "The first one is: sort -k6 -n ~/logs/api-access.log"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: sort -k6 ____ ~/logs/api-access.log | tail -1 | cut -d' ' -f6
+    answer:
+      - -n
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: What is the highest response time in ms in ~/logs/api-access.log? It is the 6th column.
+    answer:
+      - "1787"
+    hint: It starts with "1" and is 4 characters long.

@@ -1,0 +1,91 @@
+id: vi-28
+track: VI
+skill: vi
+chapter: Power
+order: 28
+title: Global commands
+from: SRE
+difficulty: hard
+check: vi
+par:
+  kind: keys
+  value: 21
+lesson:
+  text: :g/pattern/d deletes every line that matches. :v/pattern/d deletes every line that does NOT match. They work on the whole file in one go.
+  example: |-
+    :g/DEBUG/d
+    :v/keep/d
+brief: In ~/vi/global.conf delete all comment lines, then delete every line without an = in it.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/global.conf"
+hints:
+  - :g/^#/d removes the comments.
+  - :v/=/d removes what has no =.
+debrief:
+  why: :g and :v apply a command to every line that does or does not match, which is grep for your edits.
+  solution: :g/^#/d<CR>:v/=/d<CR>:wq<CR>
+  job: The quickest way to strip a noisy file down to what matters.
+teaches:
+  - :g
+  - :v
+file: ~/vi/global.conf
+expect:
+  - file_equals:
+      path: ~/vi/global.conf
+      content: |
+        port=80
+        workers=4
+  - vi_saved: ~/vi/global.conf
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Global commands". Which sentence best describes what it taught?
+    options:
+      - :g and :v apply a command to every line that does or does not match, which is grep for your edits.
+      - A macro turns one careful edit into a tool, which pays off on any repetitive change regex cannot express.
+      - Marks are bookmarks inside a file, so you can look elsewhere and come straight back.
+      - Text objects describe what you mean, inside these quotes, so the cursor does not have to be anywhere exact.
+    answer: :g and :v apply a command to every line that does or does not match, which is grep for your edits.
+    hint: Look for the sentence about :g and :v.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: In ~/vi/global.conf delete all comment lines, then delete every line without an = in it.
+    options:
+      - jmaGyy'ap:wq<CR>
+      - :g/^#/d<CR>:v/=/d<CR>:wq<CR>
+      - qaIhost <Esc>A;<Esc>jq3@a:wq<CR>
+      - ci"new<Esc>jdi(:wq<CR>
+    answer: :g/^#/d<CR>:v/=/d<CR>:wq<CR>
+    hint: :v/=/d removes what has no =.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - :g/^#/d<CR>
+      - :wq<CR>
+      - :v/=/d<CR>
+    answer:
+      - :g/^#/d<CR>
+      - :v/=/d<CR>
+      - :wq<CR>
+    hint: "The first one is: :g/^#/d<CR>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____<CR>:v/=/d<CR>:wq<CR>
+    answer:
+      - :g/^#/d
+    hint: "It starts with: :g/"
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Global commands" taught. Any one of them counts.
+    answer:
+      - :g
+      - :v
+    hint: One of them is :…

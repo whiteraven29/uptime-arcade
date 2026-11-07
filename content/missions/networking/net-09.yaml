@@ -1,0 +1,84 @@
+id: net-09
+track: NET
+skill: networking
+chapter: Subnets
+order: 9
+title: One route for four
+from: Network
+difficulty: easy
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Neighbouring networks can share one shorter route if they fit one aligned block, which is called summarising. Two /24s make a /23, and four make a /22.
+  example: |-
+    10.2.4.0/24 + 10.2.5.0/24
+    = 10.2.4.0/23
+brief: Write one route that covers exactly 10.1.0.0/24 to 10.1.3.0/24.
+goal: "Run: submit <answer>"
+hints:
+  - Four /24s fit in two fewer prefix bits.
+  - Their first 22 bits match.
+debrief:
+  why: Summarising shrinks routing tables, as long as the block is aligned.
+  solution: submit 10.1.0.0/22
+  job: Smaller tables mean simpler, faster routing.
+teaches:
+  - summaris
+answer:
+  accept:
+    - 10.1.0.0/22
+verify: str(list(ipaddress.collapse_addresses([ipaddress.ip_network(f'10.1.{i}.0/24') for i in range(4)]))[0])
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "One route for four". Which sentence best describes what it taught?
+    options:
+      - Summarising shrinks routing tables, as long as the block is aligned.
+      - The mask is the prefix written as four octets.
+      - /26 has 62 hosts and /25 has 126.
+      - An address is just one 32-bit number written in a friendly way. All subnet maths follows from that.
+    answer: Summarising shrinks routing tables, as long as the block is aligned.
+    hint: Look for the sentence about summaris.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: Write one route that covers exactly 10.1.0.0/24 to 10.1.3.0/24.
+    options:
+      - "32"
+      - 255.255.255.192
+      - 10.1.0.0/22
+      - /25
+    answer: 10.1.0.0/22
+    hint: Their first 22 bits match.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "One route for four" taught you at work?
+    options:
+      - Sizing is the first decision in any VLAN plan.
+      - Everything else in networking builds on this one fact.
+      - Older gear and many forms ask for masks.
+      - Smaller tables mean simpler, faster routing.
+    answer: Smaller tables mean simpler, faster routing.
+    hint: "It starts with: Smaller tables mean simpler,…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: ____ shrinks routing tables, as long as the block is aligned.
+    answer:
+      - Summarising
+    hint: It starts with "S" and is 11 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Write one route that covers exactly 10.1.0.0/24 to 10.1.3.0/24.
+    answer:
+      - 10.1.0.0/22
+    hint: It starts with "1" and is 11 characters long.

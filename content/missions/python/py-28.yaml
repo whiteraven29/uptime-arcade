@@ -1,0 +1,135 @@
+id: py-28
+track: PY
+skill: python
+chapter: Quality
+order: 28
+title: Test your code
+from: Platform
+difficulty: hard
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: assert checks that something is true and raises an error if not. A test is just a function full of asserts. Good tests try more than one value, because a broken function can be right by luck.
+  example: |-
+    def test_add():
+        assert add(1, 2) == 3
+        assert add(0, 0) == 0
+brief: Write test_double so it passes on the correct double and fails on broken ones. Testing only double(2) is not enough, because 2 + 2 is also 4.
+goal: Fill in test_double. Tests run when you press Run tests.
+hints:
+  - assert double(3) == 6
+  - Check at least two different values.
+debrief:
+  why: A test proves the code works today and warns you the day it stops. Picking inputs that can tell right from wrong is the skill.
+  solution: |-
+    def double(x):
+        return x * 2
+
+    def test_double():
+        assert double(3) == 6
+        assert double(5) == 10
+  job: Teams will not merge code without tests.
+teaches:
+  - assert
+python:
+  starter: |
+    def double(x):
+        return x * 2
+
+    def test_double():
+        # add assert lines here
+        pass
+  tests:
+    - expr: test_double()
+      want: None
+      label: your test passes on the correct double
+    - expr: "_catches(lambda x: x + 2)"
+      want: "True"
+      label: your test catches a double that adds 2
+    - expr: "_catches(lambda x: x * 3)"
+      want: "True"
+      label: your test catches a double that triples
+  prelude: |
+    def _catches(bad):
+        global double
+        good = double
+        double = bad
+        try:
+            test_double()
+            return False
+        except AssertionError:
+            return True
+        finally:
+            double = good
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Test your code". Which sentence best describes what it taught?
+    options:
+      - Regular expressions pull structure out of messy text, the same idea as grep -o.
+      - Generators do the work only when asked, so memory use stays flat however much data flows through.
+      - State that lives on self survives between calls, so the object remembers what happened to it.
+      - A test proves the code works today and warns you the day it stops. Picking inputs that can tell right from wrong is the skill.
+    answer: A test proves the code works today and warns you the day it stops. Picking inputs that can tell right from wrong is the skill.
+    hint: Look for the sentence about assert.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Write test_double so it passes on the correct double and fails on broken ones. Testing only double(2) is not enough, because 2 + 2 is also 4.
+    options:
+      - assert double(5) == 10
+      - self.paths[path] = self.paths.get(path, 0) + 1
+      - "for n in range(0, limit, 2):"
+      - return re.findall(r"order=(\d+)", text)
+    answer: assert double(5) == 10
+    hint: Check at least two different values.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "    assert double(5) == 10"
+      - "def double(x):"
+      - "def test_double():"
+      - "    return x * 2"
+      - "    assert double(3) == 6"
+    answer:
+      - "def double(x):"
+      - "    return x * 2"
+      - "def test_double():"
+      - "    assert double(3) == 6"
+      - "    assert double(5) == 10"
+    hint: "The first one is: def double(x):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def double(x):
+          return x * 2
+
+      def test_double():
+          ____ double(3) == 6
+          assert double(5) == 10
+    answer:
+      - assert
+    hint: It starts with "a" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def double(x):
+          return x * 2
+
+      def test_double():
+          assert double(3) == 6
+          ____
+    answer:
+      - assert double(5) == 10
+    hint: "It starts with: assert d"

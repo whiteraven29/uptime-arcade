@@ -1,0 +1,84 @@
+id: net-15
+track: NET
+skill: networking
+chapter: Transport
+order: 15
+title: Ports you must know
+from: Support
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Well-known ports are shared conventions. 22 is SSH, 25 is mail, 53 is DNS, 80 is HTTP and 3389 is Windows remote desktop. Secure web has its own port.
+  example: |-
+    HTTP uses TCP 80
+    SSH uses TCP 22
+brief: Which TCP port does HTTPS use by default?
+goal: "Run: submit <answer>"
+hints:
+  - HTTP is 80.
+debrief:
+  why: Well-known ports are conventions that firewalls and clients assume.
+  solution: submit 443
+  job: You'll read port numbers all day.
+teaches:
+  - "22"
+  - "53"
+  - "80"
+answer:
+  accept:
+    - "443"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Ports you must know". Which sentence best describes what it taught?
+    options:
+      - IP plus port identifies one service on one machine.
+      - Well-known ports are conventions that firewalls and clients assume.
+      - Variable-length subnetting allocates largest first so blocks stay aligned.
+      - DNS uses UDP for speed and falls back to TCP for large answers.
+    answer: Well-known ports are conventions that firewalls and clients assume.
+    hint: Look for the sentence about 22 and 53.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: Which TCP port does HTTPS use by default?
+    options:
+      - "8080"
+      - 10.40.60.192/27
+      - udp
+      - "443"
+    answer: "443"
+    hint: HTTP is 80.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Ports you must know" taught you at work?
+    options:
+      - Every connection you debug is described this way.
+      - How you stretch an address block across an office.
+      - You'll read port numbers all day.
+      - Firewall rules for DNS need both.
+    answer: You'll read port numbers all day.
+    hint: "It starts with: You'll read port numbers…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: Well-known ports are ____ that firewalls and clients assume.
+    answer:
+      - conventions
+    hint: It starts with "c" and is 11 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Which TCP port does HTTPS use by default?
+    answer:
+      - "443"
+    hint: It starts with "4" and is 3 characters long.

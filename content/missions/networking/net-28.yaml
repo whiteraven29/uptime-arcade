@@ -1,0 +1,85 @@
+id: net-28
+track: NET
+skill: networking
+chapter: Edge
+order: 28
+title: IPv6 basics
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "IPv6 addresses have 128 bits, written as eight groups. To shorten one, drop the leading zeros in each group and replace one run of all-zero groups with ::. Subnets are usually /64, and fe80:: addresses are link-local."
+  example: |-
+    2001:0db8:0001:0000:0000:0000:0000:0002
+    = 2001:db8:1::2
+brief: Shorten 2001:0db8:0000:0000:0000:0000:0000:0001 as far as it goes.
+goal: "Run: submit <answer>"
+hints:
+  - 0db8 becomes db8.
+  - "The six zero groups become ::"
+debrief:
+  why: "Only one :: is allowed per address, or nobody could tell how many zeros each one hides."
+  solution: submit 2001:db8::1
+  job: Cloud providers increasingly hand out IPv6 first.
+teaches:
+  - IPv6
+  - "::"
+answer:
+  accept:
+    - 2001:db8::1
+verify: str(ipaddress.ip_address('2001:0db8:0000:0000:0000:0000:0000:0001'))
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "IPv6 basics". Which sentence best describes what it taught?
+    options:
+      - A jump that carries on to later hops marks a real long link or congestion.
+      - "Only one :: is allowed per address, or nobody could tell how many zeros each one hides."
+      - Firewalls stop at the first match, so the finance deny must sit above the general permit.
+      - A gateway must be on your own subnet. Editing a file changes nothing until it's applied.
+    answer: "Only one :: is allowed per address, or nobody could tell how many zeros each one hides."
+    hint: Look for the sentence about IPv6 and ::.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: Shorten 2001:0db8:0000:0000:0000:0000:0000:0001 as far as it goes.
+    options:
+      - "5"
+      - sed -i 's/10.40.3.1/10.40.30.1/' /etc/netplan/01-office.yaml
+      - "20"
+      - 2001:db8::1
+    answer: 2001:db8::1
+    hint: "The six zero groups become ::"
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "IPv6 basics" taught you at work?
+    options:
+      - Lets you show your ISP exactly where the problem is.
+      - Cloud providers increasingly hand out IPv6 first.
+      - Check address, then route, then DNS.
+      - Network separation depends on rule order.
+    answer: Cloud providers increasingly hand out IPv6 first.
+    hint: "It starts with: Cloud providers increasingly hand…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: "Only one :: is allowed per address, or nobody could tell how many ____ each one hides."
+    answer:
+      - zeros
+    hint: It starts with "z" and is 5 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Shorten 2001:0db8:0000:0000:0000:0000:0000:0001 as far as it goes.
+    answer:
+      - 2001:db8::1
+    hint: It starts with "2" and is 11 characters long.

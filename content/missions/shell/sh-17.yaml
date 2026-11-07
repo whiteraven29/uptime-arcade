@@ -1,0 +1,82 @@
+id: sh-17
+track: SH
+skill: shell
+chapter: System
+order: 17
+title: Search the tree
+from: SRE
+difficulty: medium
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: find searches a whole folder tree. -name matches file names and -type f limits it to files. Pipe into wc -l to count results.
+  example: find ~/photos -name '*.jpg' | wc -l
+brief: How many files named exactly app.log are under ~/archive?
+goal: "Run: submit <count>"
+hints:
+  - find ~/archive -name app.log
+  - Pipe to wc -l.
+debrief:
+  why: find walks a whole tree, and -name matches the base name exactly unless you use a glob.
+  solution: find ~/archive -name app.log | wc -l
+  job: Finding files across a tree is daily sysadmin work.
+teaches:
+  - find
+  - -name
+answer:
+  accept:
+    - "7"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Search the tree". Which sentence best describes what it taught?
+    options:
+      - find walks a whole tree, and -name matches the base name exactly unless you use a glob.
+      - Linux only runs a file if its execute bit is set, which stops a downloaded file running by accident.
+      - Text sort compares character by character. Numeric sort is what you want for sizes and durations.
+      - tail and cut together pull a single value out of a structured line.
+    answer: find walks a whole tree, and -name matches the base name exactly unless you use a glob.
+    hint: Look for the sentence about find and -name.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: How many files named exactly app.log are under ~/archive?
+    options:
+      - tail -1 ~/logs/api-access.log | cut -d' ' -f4
+      - sort -k6 -n ~/logs/api-access.log | tail -1 | cut -d' ' -f6
+      - chmod +x ~/tools/backup.sh
+      - find ~/archive -name app.log | wc -l
+    answer: find ~/archive -name app.log | wc -l
+    hint: Pipe to wc -l.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Search the tree" taught you at work?
+    options:
+      - '"Permission denied" on a new script is nearly always this.'
+      - Seeing the latest entry confirms whether a service is still logging.
+      - Worst-case latency is where user complaints come from.
+      - Finding files across a tree is daily sysadmin work.
+    answer: Finding files across a tree is daily sysadmin work.
+    hint: "It starts with: Finding files across a…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: find ~/archive ____ app.log | wc -l
+    answer:
+      - -name
+    hint: It starts with "-" and is 5 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: How many files named exactly app.log are under ~/archive?
+    answer:
+      - "7"
+    hint: It starts with "7" and is 1 characters long.

@@ -1,0 +1,95 @@
+id: net-17
+track: NET
+skill: networking
+chapter: Services
+order: 17
+title: Follow a DNS lookup
+from: Support
+difficulty: medium
+check: fs
+par:
+  kind: commands
+  value: 3
+lesson:
+  text: "/etc/resolv.conf says which DNS server to ask, and dig asks it. A timeout means no server answered, which is different from NXDOMAIN, which means it answered that the name does not exist. To change a word in a file: sed -i s/old/new/ file."
+  example: |-
+    cat /etc/resolv.conf
+    dig example.test
+    sed -i 's/1.1.1.1/8.8.8.8/' settings.conf
+brief: Staff can't reach app.whiteraven.example and dig times out. The server list is ~/net/servers.txt.
+goal: Fix /etc/resolv.conf so dig app.whiteraven.example answers.
+hints:
+  - Compare the nameserver line with the list.
+  - sed -i works well here.
+debrief:
+  why: A timeout means no server answered, and NXDOMAIN means it answered that the name doesn't exist. They're different faults.
+  solution: |-
+    cat ~/net/servers.txt
+    sed -i 's/10.40.10.99/10.40.10.53/' /etc/resolv.conf
+    dig app.whiteraven.example
+  job: "'The internet is down' is often only DNS."
+teaches:
+  - dig
+  - resolv.conf
+  - sed
+  - -i
+expect:
+  - file_contains:
+      path: /etc/resolv.conf
+      text: nameserver 10.40.10.53
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Follow a DNS lookup". Which sentence best describes what it taught?
+    options:
+      - A CNAME points to a name, so the resolver looks that name up again.
+      - IP gets a packet across networks, and the MAC gets it across the local wire. ARP is the bridge between them.
+      - The handshake proves both sides can hear each other. A SYN with no reply usually means a firewall.
+      - A timeout means no server answered, and NXDOMAIN means it answered that the name doesn't exist. They're different faults.
+    answer: A timeout means no server answered, and NXDOMAIN means it answered that the name doesn't exist. They're different faults.
+    hint: Look for the sentence about dig and resolv.conf.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command fixed it?
+    context: Staff can't reach app.whiteraven.example and dig times out. The server list is ~/net/servers.txt.
+    options:
+      - sed -i 's/10.40.10.99/10.40.10.53/' /etc/resolv.conf
+      - 196.41.0.20
+      - mac
+      - syn-ack
+    answer: sed -i 's/10.40.10.99/10.40.10.53/' /etc/resolv.conf
+    hint: sed -i works well here.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the commands you ran, mixed up. Tap them from first to last.
+    scrambled:
+      - sed -i 's/10.40.10.99/10.40.10.53/' /etc/resolv.conf
+      - dig app.whiteraven.example
+      - cat ~/net/servers.txt
+    answer:
+      - cat ~/net/servers.txt
+      - sed -i 's/10.40.10.99/10.40.10.53/' /etc/resolv.conf
+      - dig app.whiteraven.example
+    hint: "The first one is: cat ~/net/servers.txt"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: sed ____ 's/10.40.10.99/10.40.10.53/' /etc/resolv.conf
+    answer:
+      - -i
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type one of the commands you used."
+    context: Staff can't reach app.whiteraven.example and dig times out. The server list is ~/net/servers.txt.
+    answer:
+      - cat ~/net/servers.txt
+      - sed -i 's/10.40.10.99/10.40.10.53/' /etc/resolv.conf
+      - dig app.whiteraven.example
+    hint: "It starts with: sed -i 's/10.40.10"

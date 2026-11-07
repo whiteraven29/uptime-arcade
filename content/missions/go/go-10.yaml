@@ -1,0 +1,131 @@
+id: go-10
+track: GO
+skill: go
+chapter: Slices
+order: 10
+title: Grow with append
+from: Backend
+difficulty: easy
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: append adds to a slice and returns the result. A slice has a length and a capacity. When there is no spare capacity, append copies to a new array, so the two slices stop sharing.
+  example: |-
+    a := []int{1}
+    b := append(a, 2)
+    b[0] = 5   // a[0] is still 1
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - "a is full: len 2, cap 2."
+  - append must allocate a new array.
+debrief:
+  why: With no capacity left, append copies to a new array, so a and b no longer share memory.
+  solution: submit 1 9
+  job: Sharing depends on capacity, so never rely on it.
+teaches:
+  - append
+answer:
+  accept:
+    - 1 9
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	a := []int{1, 2}
+    	b := append(a, 3)
+    	b[0] = 9
+    	fmt.Println(a[0], b[0])
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Grow with append". Which sentence best describes what it taught?
+    options:
+      - Explicit conversion means no surprise rounding, and the compiler catches type mix-ups for you.
+      - Unlike C, Go breaks automatically at the end of a case.
+      - iota gives a list of named numbers without typing each value, so inserting one cannot leave a duplicate.
+      - With no capacity left, append copies to a new array, so a and b no longer share memory.
+    answer: With no capacity left, append copies to a new array, so a and b no longer share memory.
+    hint: Look for the sentence about append.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 4.5 3!
+      - two end
+      - 0 1 2
+      - 1 9
+    answer: 1 9
+    hint: append must allocate a new array.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	a := []int{1, 2}
+      	b := append(a, 3)
+      	b[0] = 9
+      	fmt.Println(a[0], b[0])
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - a := []int{1, 2}
+      - b[0] = 9
+      - fmt.Println(a[0], b[0])
+      - b := append(a, 3)
+    answer:
+      - a := []int{1, 2}
+      - b := append(a, 3)
+      - b[0] = 9
+      - fmt.Println(a[0], b[0])
+    hint: "The first one is: a := []int{1, 2}"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      a := []int{1, 2}
+      b := append(a, 3)
+      b[0] = 9
+      fmt.____(a[0], b[0])
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	a := []int{1, 2}
+      	b := append(a, 3)
+      	b[0] = 9
+      	fmt.Println(a[0], b[0])
+      }
+    answer:
+      - 1 9
+    hint: It starts with "1" and is 3 characters long.

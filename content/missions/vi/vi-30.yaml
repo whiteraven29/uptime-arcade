@@ -1,0 +1,103 @@
+id: vi-30
+track: VI
+skill: vi
+chapter: Power
+order: 30
+title: "Capstone: refactor the config"
+from: CTO
+difficulty: expert
+check: vi
+par:
+  kind: keys
+  value: 65
+lesson:
+  text: "Nothing new. Pick the cheapest tool for each part: :g for lines that match, :%s for words everywhere, / to jump, dd and cw to edit, G and o to add at the end."
+  example: |-
+    :g/^#/d
+    :%s/a/b/g
+    /word<Enter>  cw...
+brief: "Refactor ~/vi/capstone.conf: remove all comments, change every staging to prod, delete the DEBUG line, change the port to 9090, and add OWNER=sre as the last line. Beat par."
+goal: Refactor the file under par
+hints:
+  - "Start with the whole-file commands: :g and :%s."
+  - /DEBUG then dd, /8080 then cw, then G and o.
+debrief:
+  why: Real edits combine everything. Whole-file commands first, then jump and change what is left.
+  solution: :g/^#/d<CR>:%s/staging/prod/g<CR>/DEBUG<CR>dd/8080<CR>cw9090<Esc>GoOWNER=sre<Esc>:wq<CR>
+  job: This is what a real config change looks like over SSH.
+teaches:
+  - capstone
+file: ~/vi/capstone.conf
+expect:
+  - file_equals:
+      path: ~/vi/capstone.conf
+      content: |
+        HOST=prod
+        PORT=9090
+        RETRIES=3
+        REGION=prod
+        OWNER=sre
+  - vi_saved: ~/vi/capstone.conf
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: 'You just finished "Capstone: refactor the config". Which sentence best describes what it taught?'
+    options:
+      - Marks are bookmarks inside a file, so you can look elsewhere and come straight back.
+      - Real edits combine everything. Whole-file commands first, then jump and change what is left.
+      - :g and :v apply a command to every line that does or does not match, which is grep for your edits.
+      - :r and :w let you combine and copy files from inside the editor.
+    answer: Real edits combine everything. Whole-file commands first, then jump and change what is left.
+    hint: "The lesson said: Nothing new."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: "Refactor ~/vi/capstone.conf: remove all comments, change every staging to prod, delete the DEBUG line, change the port to 9090, and add OWNER=sre as the last line. Beat par."
+    options:
+      - :r ~/vi/footer.txt<CR>:w ~/vi/release.txt<CR>:wq<CR>
+      - :g/^#/d<CR>:%s/staging/prod/g<CR>/DEBUG<CR>dd/8080<CR>cw9090<Esc>GoOWNER=sre<Esc>:wq<CR>
+      - jmaGyy'ap:wq<CR>
+      - :g/^#/d<CR>:v/=/d<CR>:wq<CR>
+    answer: :g/^#/d<CR>:%s/staging/prod/g<CR>/DEBUG<CR>dd/8080<CR>cw9090<Esc>GoOWNER=sre<Esc>:wq<CR>
+    hint: /DEBUG then dd, /8080 then cw, then G and o.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - :wq<CR>
+      - :g/^#/d<CR>
+      - GoOWNER=sre<Esc>
+      - /DEBUG<CR>
+      - /8080<CR>
+      - dd
+      - :%s/staging/prod/g<CR>
+      - cw9090<Esc>
+    answer:
+      - :g/^#/d<CR>
+      - :%s/staging/prod/g<CR>
+      - /DEBUG<CR>
+      - dd
+      - /8080<CR>
+      - cw9090<Esc>
+      - GoOWNER=sre<Esc>
+      - :wq<CR>
+    hint: "The first one is: :g/^#/d<CR>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____<CR>:%s/staging/prod/g<CR>/DEBUG<CR>dd/8080<CR>cw9090<Esc>GoOWNER=sre<Esc>:wq<CR>
+    answer:
+      - :g/^#/d
+    hint: "It starts with: :g/"
+  - type: text
+    level: hard
+    label: From memory
+    q: Which vi command saves the file and quits? Type it exactly, with the colon.
+    answer:
+      - :wq
+    hint: It starts with a colon, then w, then q.

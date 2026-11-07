@@ -1,0 +1,97 @@
+id: vi-22
+track: VI
+skill: vi
+chapter: Precision
+order: 22
+title: Text objects
+from: Backend
+difficulty: hard
+check: vi
+par:
+  kind: keys
+  value: 16
+lesson:
+  text: After an operator, i means inside and a means around. ciw changes the word under the cursor, ci" changes inside quotes, di( deletes inside brackets, and da( takes the brackets too. The cursor can be anywhere in the object.
+  example: |-
+    ciw  change this word
+    ci"  change inside quotes
+    di(  delete inside ( )
+    da(  delete ( ) as well
+brief: In ~/vi/call.py replace the quoted text with new, keeping the quotes. Then on the next line empty the brackets of max, keeping the brackets.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/call.py"
+hints:
+  - ci" works from anywhere on the line up to the closing quote.
+  - After Esc, j moves down onto the bracket, then di(.
+debrief:
+  why: Text objects describe what you mean, inside these quotes, so the cursor does not have to be anywhere exact.
+  solution: ci"new<Esc>jdi(:wq<CR>
+  job: This is the moment vi starts to feel faster than a mouse.
+teaches:
+  - i"
+  - i(
+  - a(
+  - iw
+file: ~/vi/call.py
+expect:
+  - file_equals:
+      path: ~/vi/call.py
+      content: |
+        name = "new"
+        size = max()
+  - vi_saved: ~/vi/call.py
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Text objects". Which sentence best describes what it taught?
+    options:
+      - Ranges let one command touch exactly the block you mean, with no cursor movement.
+      - :s works on one line by default, and only on the first match unless you add g.
+      - Text objects describe what you mean, inside these quotes, so the cursor does not have to be anywhere exact.
+      - dd is cut and p is paste. In an ACL the first match wins, so a catch-all belongs last.
+    answer: Text objects describe what you mean, inside these quotes, so the cursor does not have to be anywhere exact.
+    hint: Look for the sentence about i" and i(.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: In ~/vi/call.py replace the quoted text with new, keeping the quotes. Then on the next line empty the brackets of max, keeping the brackets.
+    options:
+      - jddGp:wq<CR>
+      - :2,3d<CR>:.,$s/on/off/<CR>:wq<CR>
+      - ci"new<Esc>jdi(:wq<CR>
+      - j:s/old/new/<CR>:wq<CR>
+    answer: ci"new<Esc>jdi(:wq<CR>
+    hint: After Esc, j moves down onto the bracket, then di(.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - :wq<CR>
+      - jdi(
+      - ci"new<Esc>
+    answer:
+      - ci"new<Esc>
+      - jdi(
+      - :wq<CR>
+    hint: 'The first one is: ci"new<Esc>'
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____new<Esc>jdi(:wq<CR>
+    answer:
+      - ci"
+    hint: It's 3 characters, and the lesson shows it.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Text objects" taught. Any one of them counts.
+    answer:
+      - i"
+      - i(
+      - a(
+      - iw
+    hint: One of them is i…

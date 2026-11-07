@@ -1,0 +1,152 @@
+id: go-26
+track: GO
+skill: go
+chapter: Concurrency
+order: 26
+title: Select and timeouts
+from: Backend
+difficulty: hard
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: select waits on several channels and runs whichever is ready first. A case on time.After gives you a timeout. With a default case it does not wait at all.
+  example: |-
+    select {
+    case v := <-c:
+    	fmt.Print(v)
+    case <-time.After(time.Second):
+    	fmt.Print("too slow")
+    }
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - Nothing is ready to send.
+  - default runs when no case is ready.
+debrief:
+  why: default makes a channel operation non-blocking, and time.After is how you stop waiting forever.
+  solution: submit empty
+  job: Handy for try-send and try-receive, and for every timeout.
+teaches:
+  - select
+answer:
+  accept:
+    - empty
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	ch := make(chan int)
+    	select {
+    	case v := <-ch:
+    		fmt.Println(v)
+    	default:
+    		fmt.Println("empty")
+    	}
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Select and timeouts". Which sentence best describes what it taught?
+    options:
+      - Wrapping adds context without losing the original, so use errors.Is rather than ==.
+      - recover only works inside a deferred function, because deferred calls are all that run during a panic.
+      - default makes a channel operation non-blocking, and time.After is how you stop waiting forever.
+      - Goroutines are cheap to start, but main does not wait for them. That is the first concurrency trap.
+    answer: default makes a channel operation non-blocking, and time.After is how you stop waiting forever.
+    hint: Look for the sentence about select.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - "false true db: down"
+      - empty
+      - caught and still running
+      - worker main
+    answer: empty
+    hint: default runs when no case is ready.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	ch := make(chan int)
+      	select {
+      	case v := <-ch:
+      		fmt.Println(v)
+      	default:
+      		fmt.Println("empty")
+      	}
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - "}"
+      - "default:"
+      - ch := make(chan int)
+      - "case v := <-ch:"
+      - select {
+      - '	fmt.Println("empty")'
+      - "\tfmt.Println(v)"
+    answer:
+      - ch := make(chan int)
+      - select {
+      - "case v := <-ch:"
+      - "\tfmt.Println(v)"
+      - "default:"
+      - '	fmt.Println("empty")'
+      - "}"
+    hint: "The first one is: ch := make(chan int)"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      ch := make(chan int)
+      select {
+      case v := <-ch:
+      	fmt.____(v)
+      default:
+      	fmt.Println("empty")
+      }
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	ch := make(chan int)
+      	select {
+      	case v := <-ch:
+      		fmt.Println(v)
+      	default:
+      		fmt.Println("empty")
+      	}
+      }
+    answer:
+      - empty
+    hint: It starts with "e" and is 5 characters long.

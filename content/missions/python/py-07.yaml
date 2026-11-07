@@ -1,0 +1,104 @@
+id: py-07
+track: PY
+skill: python
+chapter: Lists
+order: 7
+title: Lists and indexes
+from: Data
+difficulty: easy
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A list holds values in order, inside [ ]. Counting starts at 0, so x[0] is the first item and x[-1] is the last. x[a:b] takes a slice from a up to b, and len(x) is how many items it has.
+  example: |-
+    x = [10, 20, 30]
+    x[0]      # 10
+    x[-1]     # 30
+    x[0:2]    # [10, 20]
+    len(x)    # 3
+brief: Return a new list holding the first and last items.
+goal: Write ends(items). Tests run when you press Run tests.
+hints:
+  - items[0] is the first.
+  - return [items[0], items[-1]]
+debrief:
+  why: Indexing from 0 feels odd for a day and then becomes natural. -1 means count from the end.
+  solution: |-
+    def ends(items):
+        return [items[0], items[-1]]
+  job: Picking the first and last records is a daily task with logs.
+teaches:
+  - "[]"
+  - "[i]"
+  - len
+  - "[a:b]"
+python:
+  starter: |
+    def ends(items):
+        # your code here
+        pass
+  tests:
+    - expr: ends([1, 2, 3, 4])
+      want: "[1, 4]"
+    - expr: ends(["a", "b"])
+      want: '["a", "b"]'
+    - expr: ends([9])
+      want: "[9, 9]"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Lists and indexes". Which sentence best describes what it taught?
+    options:
+      - print is how a program talks to you. Quotes mark text, so Python does not try to run it.
+      - Indexing from 0 feels odd for a day and then becomes natural. -1 means count from the end.
+      - Names make programs readable, and the type decides what you can do with a value.
+      - Chaining string methods reads top to bottom like a pipeline.
+    answer: Indexing from 0 feels odd for a day and then becomes natural. -1 means count from the end.
+    hint: Look for the sentence about [] and [i].
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return a new list holding the first and last items.
+    options:
+      - return [items[0], items[-1]]
+      - host = "web01"
+      - return name.strip().lower().replace(" ", "-")
+      - print("Hello, operator")
+    answer: return [items[0], items[-1]]
+    hint: return [items[0], items[-1]]
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Lists and indexes" taught you at work?
+    options:
+      - Every product with URLs needs this.
+      - Printing values is still how most people first debug a problem.
+      - Mixing up "8080" and 8080 is a very common bug.
+      - Picking the first and last records is a daily task with logs.
+    answer: Picking the first and last records is a daily task with logs.
+    hint: "It starts with: Picking the first and…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def ends(items):
+          ____ [items[0], items[-1]]
+    answer:
+      - return
+    hint: It starts with "r" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def ends(items):
+          ____
+    answer:
+      - return [items[0], items[-1]]
+    hint: "It starts with: return [it"

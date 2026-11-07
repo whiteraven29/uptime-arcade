@@ -1,0 +1,106 @@
+id: py-16
+track: PY
+skill: python
+chapter: Functions
+order: 16
+title: Flexible functions
+from: Platform
+difficulty: medium
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A parameter can have a default, used when the caller leaves it out. Callers can also name arguments, as in f(2, cap=3), which makes calls easier to read.
+  example: |-
+    def greet(name, word="Hello"):
+        return word + " " + name
+
+    greet("Sara")              # Hello Sara
+    greet("Sara", word="Hi")   # Hi Sara
+brief: Return base * 2 ** attempt, but never more than cap.
+goal: Write delay(attempt, base=1, cap=30). Tests run when you press Run tests.
+hints:
+  - base * 2 ** attempt
+  - min(..., cap)
+debrief:
+  why: Defaults keep the common call short while still letting callers change the rare setting.
+  solution: |-
+    def delay(attempt, base=1, cap=30):
+        return min(base * 2 ** attempt, cap)
+  job: Good library functions are built around sensible defaults.
+teaches:
+  - default
+  - keyword
+python:
+  starter: |
+    def delay(attempt, base=1, cap=30):
+        # your code here
+        pass
+  tests:
+    - expr: delay(0)
+      want: "1"
+    - expr: delay(3)
+      want: "8"
+    - expr: delay(10)
+      want: "30"
+    - expr: delay(2, base=5)
+      want: "20"
+    - expr: delay(2, cap=3)
+      want: "3"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Flexible functions". Which sentence best describes what it taught?
+    options:
+      - key= tells sorted what to compare. Slicing past the end is safe in Python.
+      - Defaults keep the common call short while still letting callers change the rare setting.
+      - for is for a known list, and while is for "until this becomes true". Make sure something changes, or it runs forever.
+      - Loop, test, count is the shape of a huge amount of real code.
+    answer: Defaults keep the common call short while still letting callers change the rare setting.
+    hint: "The lesson said: A parameter can have a default, used when the caller leaves it out."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return base * 2 ** attempt, but never more than cap.
+    options:
+      - "while start < limit:"
+      - return min(base * 2 ** attempt, cap)
+      - return sorted(counts, key=counts.get, reverse=True)[:n]
+      - "if code >= 500:"
+    answer: return min(base * 2 ** attempt, cap)
+    hint: min(..., cap)
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Flexible functions" taught you at work?
+    options:
+      - Top lists fill dashboards and reports.
+      - Good library functions are built around sensible defaults.
+      - Retry loops and polling are written this way.
+      - Counting errors is the first number anyone asks for in an incident.
+    answer: Good library functions are built around sensible defaults.
+    hint: "It starts with: Good library functions are…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      ____ delay(attempt, base=1, cap=30):
+          return min(base * 2 ** attempt, cap)
+    answer:
+      - def
+    hint: It starts with "d" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def delay(attempt, base=1, cap=30):
+          ____
+    answer:
+      - return min(base * 2 ** attempt, cap)
+    hint: "It starts with: return min(b"

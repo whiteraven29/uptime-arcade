@@ -4,9 +4,12 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "node ../tools/compile_content.mjs",
     "dev": "vite",
+    "prebuild": "node ../tools/compile_content.mjs",
     "build": "vite build",
     "preview": "vite preview",
+    "pretest": "node ../tools/compile_content.mjs",
     "test": "vitest run"
   },
   "dependencies": {
@@ -19,6 +22,7 @@
     "@vitejs/plugin-react": "^5.0.0",
     "playwright-core": "^1.50.0",
     "vite": "^7.0.0",
-    "vitest": "^3.2.0"
+    "vitest": "^3.2.0",
+    "yaml": "^2.8.1"
   }
 }

@@ -1,0 +1,109 @@
+id: py-02
+track: PY
+skill: python
+chapter: Basics
+order: 2
+title: Name things
+from: Platform
+difficulty: easy
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'A variable is a name for a value, and = stores it. Each value has a type: str for text, int for whole numbers, float for decimals, and bool for True or False. Note that "80" is text and 80 is a number.'
+  example: |-
+    city = "Dar"       # str
+    users = 12         # int
+    load = 0.75        # float
+    online = True      # bool
+brief: "A server has a name, a port and a state. Store them: host holding the text web01, port holding the number 8080, and healthy holding True."
+goal: Create the three variables below. Tests run when you press Run tests.
+hints:
+  - host = "web01"
+  - Numbers and True have no quotes.
+debrief:
+  why: Names make programs readable, and the type decides what you can do with a value.
+  solution: |-
+    host = "web01"
+    port = 8080
+    healthy = True
+  job: Mixing up "8080" and 8080 is a very common bug.
+teaches:
+  - "="
+  - int
+  - str
+  - float
+  - bool
+  - "True"
+  - "False"
+python:
+  starter: |
+    # Make host, port and healthy here
+  tests:
+    - expr: host
+      want: '"web01"'
+      label: host is the text web01
+    - expr: port
+      want: "8080"
+      label: port is the number 8080
+    - expr: healthy
+      want: "True"
+      label: healthy is True
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Name things". Which sentence best describes what it taught?
+    options:
+      - print is how a program talks to you. Quotes mark text, so Python does not try to run it.
+      - for is for a known list, and while is for "until this becomes true". Make sure something changes, or it runs forever.
+      - Names make programs readable, and the type decides what you can do with a value.
+      - Conditions are checked from the top and the first true one wins, so the order matters.
+    answer: Names make programs readable, and the type decides what you can do with a value.
+    hint: Look for the sentence about = and int.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: "A server has a name, a port and a state. Store them: host holding the text web01, port holding the number 8080, and healthy holding True."
+    options:
+      - label = "client error"
+      - "while start < limit:"
+      - print("Hello, operator")
+      - host = "web01"
+    answer: host = "web01"
+    hint: Numbers and True have no quotes.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - port = 8080
+      - host = "web01"
+      - healthy = True
+    answer:
+      - host = "web01"
+      - port = 8080
+      - healthy = True
+    hint: 'The first one is: host = "web01"'
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: Names make programs readable, and the ____ decides what you can do with a value.
+    answer:
+      - type
+    hint: It starts with "t" and is 4 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      ____
+      port = 8080
+      healthy = True
+    answer:
+      - host = "web01"
+    hint: "It starts with: host "

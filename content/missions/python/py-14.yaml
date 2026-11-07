@@ -1,0 +1,98 @@
+id: py-14
+track: PY
+skill: python
+chapter: Collections
+order: 14
+title: One-line lists
+from: SRE
+difficulty: medium
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "A list comprehension builds a list in one line: [expression for item in list]. ** is power, so 2 ** 3 is 8, and min(a, b) gives the smaller value, which works as a cap."
+  example: |-
+    [n * 2 for n in [1, 2, 3]]            # [2, 4, 6]
+    [min(3 * 2 ** i, 20) for i in range(4)]  # [3, 6, 12, 20]
+brief: Return n retry delays that double from base and never exceed cap.
+goal: Write backoff(base, n, cap). Tests run when you press Run tests.
+hints:
+  - base * 2 ** i
+  - min() applies the cap.
+debrief:
+  why: Exponential backoff stops clients hammering a struggling service, and the cap limits the wait.
+  solution: |-
+    def backoff(base, n, cap):
+        return [min(base * 2 ** i, cap) for i in range(n)]
+  job: Every reliable client retries this way.
+teaches:
+  - comprehension
+  - "**"
+  - min
+python:
+  starter: |
+    def backoff(base, n, cap):
+        # your code here
+        pass
+  tests:
+    - expr: backoff(1,5,8)
+      want: "[1,2,4,8,8]"
+    - expr: backoff(2,3,100)
+      want: "[2,4,8]"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "One-line lists". Which sentence best describes what it taught?
+    options:
+      - Indexing from 0 feels odd for a day and then becomes natural. -1 means count from the end.
+      - Exponential backoff stops clients hammering a struggling service, and the cap limits the wait.
+      - A dict finds a value by name instantly, with no looping through a list.
+      - This is uniq -c as a dict. It's the same group-and-count idea in another language.
+    answer: Exponential backoff stops clients hammering a struggling service, and the cap limits the wait.
+    hint: Look for the sentence about ** and min.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return n retry delays that double from base and never exceed cap.
+    options:
+      - 'PORTS = {"ssh": 22, "dns": 53, "https": 443}'
+      - counts[s] = counts.get(s, 0) + 1
+      - return [items[0], items[-1]]
+      - return [min(base * 2 ** i, cap) for i in range(n)]
+    answer: return [min(base * 2 ** i, cap) for i in range(n)]
+    hint: min() applies the cap.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "One-line lists" taught you at work?
+    options:
+      - Lookup tables are everywhere in config and routing code.
+      - Picking the first and last records is a daily task with logs.
+      - Every reliable client retries this way.
+      - Log summaries in services start like this.
+    answer: Every reliable client retries this way.
+    hint: "It starts with: Every reliable client retries…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def backoff(base, n, cap):
+          return [min(base * 2 ** i, cap) ____ i in range(n)]
+    answer:
+      - for
+    hint: It starts with "f" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def backoff(base, n, cap):
+          ____
+    answer:
+      - return [min(base * 2 ** i, cap) for i in range(n)]
+    hint: "It starts with: return [min(base "

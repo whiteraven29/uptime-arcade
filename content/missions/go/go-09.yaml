@@ -1,0 +1,149 @@
+id: go-09
+track: GO
+skill: go
+chapter: Slices
+order: 9
+title: Arrays vs slices
+from: Backend
+difficulty: easy
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: An array has a fixed size in its type, like [2]int, and assigning it copies everything. A slice, []int, is a small view onto an array, so assigning one shares the same data.
+  example: |-
+    a := [2]int{1, 2}  // array: copied
+    s := []int{1, 2}   // slice: shared
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - b is a full copy of a.
+  - t looks at the same data as s.
+debrief:
+  why: Arrays are values and slices are views. That one difference explains most slice surprises.
+  solution: submit 1 9
+  job: You will use slices almost always, and arrays rarely.
+teaches:
+  - "[2]int"
+  - slice
+answer:
+  accept:
+    - 1 9
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	a := [2]int{1, 2}
+    	b := a
+    	b[0] = 9
+    	s := []int{1, 2}
+    	t := s
+    	t[0] = 9
+    	fmt.Println(a[0], s[0])
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Arrays vs slices". Which sentence best describes what it taught?
+    options:
+      - One loop keyword with a few shapes means less to remember. range is the one you use most.
+      - Arrays are values and slices are views. That one difference explains most slice surprises.
+      - package main and func main are where a Go program starts. Everything else is just the instructions inside.
+      - iota gives a list of named numbers without typing each value, so inserting one cannot leave a duplicate.
+    answer: Arrays are values and slices are views. That one difference explains most slice surprises.
+    hint: Look for the sentence about [2]int.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - Hello, Whiteraven
+      - 1 9
+      - 0 1 2
+      - "36"
+    answer: 1 9
+    hint: t looks at the same data as s.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	a := [2]int{1, 2}
+      	b := a
+      	b[0] = 9
+      	s := []int{1, 2}
+      	t := s
+      	t[0] = 9
+      	fmt.Println(a[0], s[0])
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - b[0] = 9
+      - s := []int{1, 2}
+      - t := s
+      - a := [2]int{1, 2}
+      - fmt.Println(a[0], s[0])
+      - b := a
+      - t[0] = 9
+    answer:
+      - a := [2]int{1, 2}
+      - b := a
+      - b[0] = 9
+      - s := []int{1, 2}
+      - t := s
+      - t[0] = 9
+      - fmt.Println(a[0], s[0])
+    hint: "The first one is: a := [2]int{1, 2}"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      a := [2]int{1, 2}
+      b := a
+      b[0] = 9
+      s := []int{1, 2}
+      t := s
+      t[0] = 9
+      fmt.____(a[0], s[0])
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	a := [2]int{1, 2}
+      	b := a
+      	b[0] = 9
+      	s := []int{1, 2}
+      	t := s
+      	t[0] = 9
+      	fmt.Println(a[0], s[0])
+      }
+    answer:
+      - 1 9
+    hint: It starts with "1" and is 3 characters long.

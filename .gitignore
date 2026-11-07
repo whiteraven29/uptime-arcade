@@ -7,3 +7,6 @@ frontend/dist/
 frontend/screenshots/
 backend/staticfiles/
 resources/
+content/build/
+.hypothesis/
+.pytest_cache/

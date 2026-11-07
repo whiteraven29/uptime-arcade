@@ -3,8 +3,8 @@ import { host, replaceState, S } from '../host.js';
 import { F, fs, HOME, norm } from '../fs/index.js';
 import { runLine, sh } from '../shell/index.js';
 import { VI, viKey } from '../vi/index.js';
-import { rewindTasks } from '../rewind-preview/index.js';
-import { TICKETS, TK } from '../../content/legacy/index.mjs';
+import { evalExpect } from '../fs/expect.js';
+import { ALL_MISSIONS, TK, TICKETS } from '../../content/index.mjs';
 
 const run = (line) => {
   const out = [];
@@ -106,28 +106,59 @@ describe('vi', () => {
   });
 });
 
-describe('rewind generation, for every mission', () => {
-  it('has a lesson and five well-formed tasks', () => {
+describe('every mission', () => {
+  const LEVELS = ['easy', 'medium', 'hard'];
+  it('has a lesson and five clear rewind tasks, easiest first', () => {
     expect(TICKETS).toHaveLength(150);
-    for (const t of TICKETS) {
-      expect(t.learn?.[0], `${t.id} lesson`).toBeTruthy();
-      const tasks = rewindTasks(t, TK);
-      expect(tasks, t.id).toHaveLength(5);
-      for (const x of tasks) {
+    expect(ALL_MISSIONS).toHaveLength(175);
+    for (const t of ALL_MISSIONS) {
+      expect(t.learn[0], t.id).toBeTruthy();
+      expect(t.rewind, t.id).toHaveLength(5);
+      const order = t.rewind.map((x) => LEVELS.indexOf(x.level));
+      expect([...order].sort(), t.id).toEqual(order);
+      for (const x of t.rewind) {
+        expect(x.q, t.id).toBeTruthy();
+        expect(x.hint, t.id).toBeTruthy();
+        expect(x.label, t.id).toBeTruthy();
         if (x.type === 'mc') {
-          expect(x.options, t.id).toContain(x.answer);
           expect(x.options.length, t.id).toBeGreaterThanOrEqual(3);
           expect(new Set(x.options).size, t.id).toBe(x.options.length);
+          expect(x.options, t.id).toContain(x.answer);
         }
-        if (x.type === 'fill') expect(x.show, t.id).toContain('____');
-        if (x.type === 'order') expect(x.scrambled, t.id).toHaveLength(x.items.length);
-        if (x.type === 'memory') expect(x.answer[0], t.id).toBeTruthy();
+        if (x.type === 'order') expect([...x.scrambled].sort(), t.id).toEqual([...x.answer].sort());
+        if (x.type === 'text') expect(x.answer.length, t.id).toBeGreaterThan(0);
       }
     }
   });
-  it('is deterministic per mission', () => {
-    const t = TICKETS[10];
-    expect(rewindTasks(t, TK)).toEqual(rewindTasks(t, TK));
+  it('keeps vi questions honest: every key is really part of the solution', () => {
+    for (const t of ALL_MISSIONS.filter((m) => m.skill === 'VI')) {
+      const gap = t.rewind[3];
+      expect(gap.show.replace('____', gap.answer[0]), t.id).toBe(t.sol);
+      const order = t.rewind[2];
+      if (order.type === 'order') expect(order.answer.join(''), t.id).toBe(t.sol);
+    }
+  });
+  it('gets harder as a track goes on', () => {
+    const rank = ['easy', 'medium', 'hard', 'expert', 'brainfuck'];
+    for (const list of Object.values(TK)) {
+      const levels = list.map((m) => rank.indexOf(m.difficulty));
+      expect([...levels].sort((a, b) => a - b)).toEqual(levels);
+    }
+    expect(TK.BX.at(-1).difficulty).toBe('brainfuck');
+  });
+});
+
+describe('expect rules', () => {
+  it('checks files, modes and the working directory', () => {
+    F(`${HOME}/e.txt`, 'hello world\n', 0o755);
+    fs.reset({});
+    expect(evalExpect([{ file_exists: '~/e.txt' }, { file_missing: '~/nope' }])).toBe(true);
+    expect(evalExpect([{ file_equals: { path: '~/e.txt', content: 'hello world\n' } }])).toBe(true);
+    expect(evalExpect([{ file_contains: { path: '~/e.txt', text: 'world' } }])).toBe(true);
+    expect(evalExpect([{ mode_has: { path: '~/e.txt', bit: 'x' } }])).toBe(true);
+    expect(evalExpect([{ cwd_is: '~' }])).toBe(true);
+    expect(evalExpect([{ file_exists: '~/nope' }])).toBe(false);
+    expect(evalExpect([{ cwd_is: '/etc' }])).toBe(false);
   });
 });
 

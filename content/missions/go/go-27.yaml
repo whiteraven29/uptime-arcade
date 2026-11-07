@@ -1,0 +1,180 @@
+id: go-27
+track: GO
+skill: go
+chapter: Concurrency
+order: 27
+title: Share safely
+from: Backend
+difficulty: hard
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "The sync package has the tools for this. WaitGroup waits for goroutines: Add before starting, Done when finished, Wait blocks until all are done. A Mutex lets only one goroutine at a time change shared data."
+  example: |-
+    wg.Add(1)
+    go func() {
+    	defer wg.Done()
+    	mu.Lock(); n++; mu.Unlock()
+    }()
+    wg.Wait()
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - The mutex protects n.
+  - Wait blocks until every Done.
+debrief:
+  why: WaitGroup waits for the goroutines, and the mutex stops lost updates. Without it the count could be wrong.
+  solution: submit 100
+  job: The basic shape of safe concurrent code.
+teaches:
+  - sync
+  - Mutex
+  - WaitGroup
+  - Add
+  - Done
+  - Wait
+  - Lock
+  - Unlock
+answer:
+  accept:
+    - "100"
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    	"sync"
+    )
+
+    func main() {
+    	var mu sync.Mutex
+    	var wg sync.WaitGroup
+    	n := 0
+    	for i := 0; i < 100; i++ {
+    		wg.Add(1)
+    		go func() {
+    			defer wg.Done()
+    			mu.Lock()
+    			n++
+    			mu.Unlock()
+    		}()
+    	}
+    	wg.Wait()
+    	fmt.Println(n)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Share safely". Which sentence best describes what it taught?
+    options:
+      - Channels are how goroutines talk safely, by handing over values instead of sharing memory.
+      - Wrapping adds context without losing the original, so use errors.Is rather than ==.
+      - Goroutines are cheap to start, but main does not wait for them. That is the first concurrency trap.
+      - WaitGroup waits for the goroutines, and the mutex stops lost updates. Without it the count could be wrong.
+    answer: WaitGroup waits for the goroutines, and the mutex stops lost updates. Without it the count could be wrong.
+    hint: Look for the sentence about sync and Mutex.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - "false true db: down"
+      - "100"
+      - 2 a b
+      - worker main
+    answer: "100"
+    hint: Wait blocks until every Done.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"sync"
+      )
+
+      func main() {
+      	var mu sync.Mutex
+      	var wg sync.WaitGroup
+      	n := 0
+      	for i := 0; i < 100; i++ {
+      		wg.Add(1)
+      		go func() {
+      			defer wg.Done()
+      			mu.Lock()
+      			n++
+      			mu.Unlock()
+      		}()
+      	}
+      	wg.Wait()
+      	fmt.Println(n)
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Share safely" taught you at work?
+    options:
+      - Servers run each request in its own goroutine.
+      - The basic shape of safe concurrent code.
+      - This is the standard Go error pattern.
+      - Pipelines and worker pools are built from channels.
+    answer: The basic shape of safe concurrent code.
+    hint: "It starts with: The basic shape of…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      var mu sync.Mutex
+      var wg sync.WaitGroup
+      n := 0
+      ____ i := 0; i < 100; i++ {
+      	wg.Add(1)
+      	go func() {
+      		defer wg.Done()
+      		mu.Lock()
+      		n++
+      		mu.Unlock()
+      	}()
+      }
+      wg.Wait()
+      fmt.Println(n)
+    answer:
+      - for
+    hint: It starts with "f" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"sync"
+      )
+
+      func main() {
+      	var mu sync.Mutex
+      	var wg sync.WaitGroup
+      	n := 0
+      	for i := 0; i < 100; i++ {
+      		wg.Add(1)
+      		go func() {
+      			defer wg.Done()
+      			mu.Lock()
+      			n++
+      			mu.Unlock()
+      		}()
+      	}
+      	wg.Wait()
+      	fmt.Println(n)
+      }
+    answer:
+      - "100"
+    hint: It starts with "1" and is 3 characters long.

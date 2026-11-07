@@ -1,0 +1,134 @@
+id: go-04
+track: GO
+skill: go
+chapter: Basics
+order: 4
+title: Constants and iota
+from: Platform
+difficulty: easy
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: const declares a value that can never change. Inside a const block iota counts up from 0, and lines left blank repeat the previous rule. It is how Go writes named levels.
+  example: |-
+    const (
+    	Red = iota  // 0
+    	Green       // 1
+    )
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - iota starts at 0.
+  - Each following line adds one.
+debrief:
+  why: iota gives a list of named numbers without typing each value, so inserting one cannot leave a duplicate.
+  solution: submit 0 1 2
+  job: Log levels and states are usually written with iota.
+teaches:
+  - const
+  - iota
+answer:
+  accept:
+    - 0 1 2
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    const (
+    	Low = iota
+    	Mid
+    	High
+    )
+
+    func main() {
+    	fmt.Println(Low, Mid, High)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Constants and iota". Which sentence best describes what it taught?
+    options:
+      - iota gives a list of named numbers without typing each value, so inserting one cannot leave a duplicate.
+      - Explicit conversion means no surprise rounding, and the compiler catches type mix-ups for you.
+      - package main and func main are where a Go program starts. Everything else is just the instructions inside.
+      - Every variable starts at its type's zero value, so there's no undefined state.
+    answer: iota gives a list of named numbers without typing each value, so inserting one cannot leave a duplicate.
+    hint: Look for the sentence about const and iota.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 0[]false
+      - 4.5 3!
+      - Hello, Whiteraven
+      - 0 1 2
+    answer: 0 1 2
+    hint: Each following line adds one.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      const (
+      	Low = iota
+      	Mid
+      	High
+      )
+
+      func main() {
+      	fmt.Println(Low, Mid, High)
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Constants and iota" taught you at work?
+    options:
+      - Every Go service you ever read starts from this exact shape.
+      - Log levels and states are usually written with iota.
+      - Numbers arriving as text must be converted before any maths.
+      - Good Go types are useful at their zero value.
+    answer: Log levels and states are usually written with iota.
+    hint: "It starts with: Log levels and states…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: fmt.____(Low, Mid, High)
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      const (
+      	Low = iota
+      	Mid
+      	High
+      )
+
+      func main() {
+      	fmt.Println(Low, Mid, High)
+      }
+    answer:
+      - 0 1 2
+    hint: It starts with "0" and is 5 characters long.

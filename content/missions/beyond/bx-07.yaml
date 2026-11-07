@@ -1,0 +1,91 @@
+id: bx-07
+track: BX
+skill: vi
+chapter: Medium
+order: 7
+title: Keep the original
+from: SRE
+difficulty: medium
+check: vi
+par:
+  kind: keys
+  value: 24
+lesson:
+  text: P pastes above and leaves the cursor on the new line. Combined with a macro, every line can get a commented copy.
+  example: |-
+    qa  yy  P  I# <Esc>  j  j  q
+    @a
+brief: 'In ~/vi/keep.txt put a commented-out copy above each line, like "# port: 80" above "port: 80". Record the edit once and replay it.'
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/keep.txt"
+hints:
+  - yy then P makes the copy above.
+  - After editing the copy, j j lands on the next original.
+debrief:
+  why: Keeping the old value in a comment is a cheap rollback, and a macro does it for a whole file.
+  solution: qayyPI# <Esc>jjq@a:wq<CR>
+  job: Careful admins leave the old value right there during a risky change.
+teaches:
+  - beyond
+file: ~/vi/keep.txt
+expect:
+  - file_equals:
+      path: ~/vi/keep.txt
+      content: |
+        # port: 80
+        port: 80
+        # workers: 2
+        workers: 2
+  - vi_saved: ~/vi/keep.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Keep the original". Which sentence best describes what it taught?
+    options:
+      - Filtering before grouping turns "how many errors" into "where are the errors", which is the question that matters.
+      - Division by zero is the classic crash in reporting code, so guard it first.
+      - x keeps what it removed, so xp is a two-key typo fix.
+      - Keeping the old value in a comment is a cheap rollback, and a macro does it for a whole file.
+    answer: Keeping the old value in a comment is a cheap rollback, and a macro does it for a whole file.
+    hint: "The lesson said: P pastes above and leaves the cursor on the new line."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: 'In ~/vi/keep.txt put a commented-out copy above each line, like "# port: 80" above "port: 80". Record the edit once and replay it.'
+    options:
+      - awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log | sort -rn | head -1
+      - return round(up / total * 100, 2)
+      - qayyPI# <Esc>jjq@a:wq<CR>
+      - lxp:wq<CR>
+    answer: qayyPI# <Esc>jjq@a:wq<CR>
+    hint: After editing the copy, j j lands on the next original.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - :wq<CR>
+      - qayyPI# <Esc>
+      - jjq@a
+    answer:
+      - qayyPI# <Esc>
+      - jjq@a
+      - :wq<CR>
+    hint: "The first one is: qayyPI# <Esc>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: qa____PI# <Esc>jjq@a:wq<CR>
+    answer:
+      - yy
+    hint: It starts with "y" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Which vi command saves the file and quits? Type it exactly, with the colon.
+    answer:
+      - :wq
+    hint: It starts with a colon, then w, then q.

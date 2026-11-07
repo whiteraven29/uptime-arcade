@@ -1,0 +1,100 @@
+id: vi-15
+track: VI
+skill: vi
+chapter: Copying
+order: 15
+title: Copy and paste
+from: Platform
+difficulty: medium
+check: vi
+par:
+  kind: keys
+  value: 22
+lesson:
+  text: y is the copy operator, called yank. yy copies a line, p pastes it below and P pastes it above.
+  example: |-
+    yy  copy the line
+    p   paste below
+    P   paste above
+brief: In ~/vi/upstream.conf duplicate the server line and change it to 10.40.10.12.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/upstream.conf"
+hints:
+  - yy copies a line and p pastes below.
+  - Search for 11, step right onto the second 1, and r replaces it.
+debrief:
+  why: Copy then tweak is faster and safer than retyping an address.
+  solution: /server<CR>yyp/11<CR>lr2:wq<CR>
+  job: Scaling out often starts with this exact edit.
+teaches:
+  - "y"
+  - p
+  - P
+file: ~/vi/upstream.conf
+expect:
+  - file_equals:
+      path: ~/vi/upstream.conf
+      content: |
+        upstream api {
+          server 10.40.10.11:8080;
+          server 10.40.10.12:8080;
+        }
+  - vi_saved: ~/vi/upstream.conf
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Copy and paste". Which sentence best describes what it taught?
+    options:
+      - Undo means mistakes are cheap, so you can try an edit freely and step back and forward through it.
+      - "Search is the fastest way to move in a big file: jump to the word instead of counting lines."
+      - r and x fix a typo without ever leaving normal mode, so there is no Esc to forget.
+      - Copy then tweak is faster and safer than retyping an address.
+    answer: Copy then tweak is faster and safer than retyping an address.
+    hint: Look for the sentence about y and p.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: In ~/vi/upstream.conf duplicate the server line and change it to 10.40.10.12.
+    options:
+      - /server<CR>yyp/11<CR>lr2:wq<CR>
+      - /timeout:<CR>nwwr9:wq<CR>
+      - ehxjhr8:wq<CR>
+      - jxxxuuu<C-r>:wq<CR>
+    answer: /server<CR>yyp/11<CR>lr2:wq<CR>
+    hint: Search for 11, step right onto the second 1, and r replaces it.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - lr2
+      - /11<CR>
+      - /server<CR>
+      - yyp
+      - :wq<CR>
+    answer:
+      - /server<CR>
+      - yyp
+      - /11<CR>
+      - lr2
+      - :wq<CR>
+    hint: "The first one is: /server<CR>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: /server<CR>____p/11<CR>lr2:wq<CR>
+    answer:
+      - yy
+    hint: It starts with "y" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Copy and paste" taught. Any one of them counts.
+    answer:
+      - "y"
+      - p
+      - P
+    hint: One of them is y…

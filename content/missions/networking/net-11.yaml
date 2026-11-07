@@ -1,0 +1,84 @@
+id: net-11
+track: NET
+skill: networking
+chapter: Local network
+order: 11
+title: Local or via the gateway?
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A host checks if the target shares its network bits. If yes it talks directly, and if not it sends to the gateway, the router for its subnet.
+  example: |-
+    10.0.0.5/24 to 10.0.0.9: local
+    10.0.0.5/24 to 10.0.1.9: gateway
+brief: A host at 10.40.30.21/24 sends to 10.40.31.9. Is it local or via the gateway?
+goal: "Run: submit local  or  submit gateway"
+hints:
+  - Compare the network parts.
+  - /24 means the first three octets.
+debrief:
+  why: A host compares network bits, then uses ARP for local targets or the gateway for the rest.
+  solution: submit gateway
+  job: Explains most 'can't reach it' tickets.
+teaches:
+  - gateway
+answer:
+  accept:
+    - gateway
+verify: "'gateway' if ipaddress.ip_address('10.40.31.9') not in ipaddress.ip_network('10.40.30.0/24') else 'local'"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Local or via the gateway?". Which sentence best describes what it taught?
+    options:
+      - The block size is 256 minus the mask octet, and networks start at its multiples. Broadcast is network plus block minus one.
+      - A host compares network bits, then uses ARP for local targets or the gateway for the rest.
+      - Two addresses are reserved in each normal subnet.
+      - IP gets a packet across networks, and the MAC gets it across the local wire. ARP is the bridge between them.
+    answer: A host compares network bits, then uses ARP for local targets or the gateway for the rest.
+    hint: Look for the sentence about gateway.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: A host at 10.40.30.21/24 sends to 10.40.31.9. Is it local or via the gateway?
+    options:
+      - "254"
+      - mac
+      - gateway
+      - 10.4.7.192 10.4.7.223
+    answer: gateway
+    hint: /24 means the first three octets.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Local or via the gateway?" taught you at work?
+    options:
+      - The first number you memorise.
+      - Helps you spot a host set to an invalid address.
+      - Duplicate IPs and bad switches show up as ARP problems.
+      - Explains most 'can't reach it' tickets.
+    answer: Explains most 'can't reach it' tickets.
+    hint: "It starts with: Explains most 'can't reach…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: A host compares network bits, then uses ARP for local targets or the ____ for the rest.
+    answer:
+      - gateway
+    hint: It starts with "g" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: A host at 10.40.30.21/24 sends to 10.40.31.9. Is it local or via the gateway?
+    answer:
+      - gateway
+    hint: It starts with "g" and is 7 characters long.

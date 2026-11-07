@@ -1,0 +1,87 @@
+id: net-21
+track: NET
+skill: networking
+chapter: Tools
+order: 21
+title: Read ping
+from: SRE
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "ping sends ICMP echo requests and times the replies. Look at three things: time (delay), TTL (hops left before the packet is dropped), and loss (how many never came back)."
+  example: |-
+    64 bytes from 10.0.0.9: ttl=62 time=3.1 ms
+    4 packets transmitted, 4 received, 0% packet loss
+brief: A user says the app feels unreliable. In ~/net/ping.txt, what percentage of packets were lost?
+goal: "Run: submit <loss percent>"
+hints:
+  - It is in the last line.
+  - icmp_seq=3 never came back.
+debrief:
+  why: Loss hurts more than delay, because TCP slows right down when packets go missing.
+  solution: cat ~/net/ping.txt
+  job: Ping is the first tool anyone reaches for.
+teaches:
+  - ICMP
+  - TTL
+  - loss
+answer:
+  accept:
+    - "25"
+    - 25%
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Read ping". Which sentence best describes what it taught?
+    options:
+      - A gateway must be on your own subnet. Editing a file changes nothing until it's applied.
+      - Loss hurts more than delay, because TCP slows right down when packets go missing.
+      - DNS uses UDP for speed and falls back to TCP for large answers.
+      - Two broadcasts and two replies, so a laptop with no address at all can still get one.
+    answer: Loss hurts more than delay, because TCP slows right down when packets go missing.
+    hint: Look for the sentence about ICMP and TTL.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: A user says the app feels unreliable. In ~/net/ping.txt, what percentage of packets were lost?
+    options:
+      - request
+      - "25"
+      - sed -i 's/10.40.3.1/10.40.30.1/' /etc/netplan/01-office.yaml
+      - udp
+    answer: "25"
+    hint: icmp_seq=3 never came back.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Read ping" taught you at work?
+    options:
+      - Check address, then route, then DNS.
+      - A 169.254 address means this conversation failed.
+      - Firewall rules for DNS need both.
+      - Ping is the first tool anyone reaches for.
+    answer: Ping is the first tool anyone reaches for.
+    hint: "It starts with: Ping is the first…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ ~/net/ping.txt
+    answer:
+      - cat
+    hint: It starts with "c" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: A user says the app feels unreliable. In ~/net/ping.txt, what percentage of packets were lost?
+    answer:
+      - "25"
+      - 25%
+    hint: It starts with "2" and is 2 characters long.

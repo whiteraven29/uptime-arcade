@@ -1,0 +1,46 @@
+difficulties:
+  - code: easy
+    label: Easy
+    xp: 100
+    beyond_xp: 200
+  - code: medium
+    label: Medium
+    xp: 130
+    beyond_xp: 300
+  - code: hard
+    label: Hard
+    xp: 160
+    beyond_xp: 400
+  - code: expert
+    label: Expert
+    xp: 200
+    beyond_xp: 500
+  - code: brainfuck
+    label: Brainfuck
+    beyond_xp: 750
+tracks:
+  - code: SH
+    name: Shell
+    subtitle: From your first command to real scripts
+    dir: shell
+  - code: VI
+    name: vi
+    subtitle: From opening a file to macros
+    dir: vi
+  - code: PY
+    name: Python
+    subtitle: From your first print to a log analyser
+    dir: python
+  - code: GO
+    name: Go
+    subtitle: From hello to a worker pool
+    dir: go
+  - code: NET
+    name: Networking
+    subtitle: From what an address is to fixing outages
+    dir: networking
+  - code: BX
+    name: Beyond
+    subtitle: "After Archmage: from Easy to Brainfuck"
+    dir: beyond
+    after_archmage: true

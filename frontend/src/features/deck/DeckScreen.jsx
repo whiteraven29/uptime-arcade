@@ -6,7 +6,7 @@ import { StatTile } from '../../ui/StatTile.jsx';
 import { Meter } from '../../ui/Meter.jsx';
 import { PlayIcon, TimerIcon } from '../../ui/icons.jsx';
 import { pad } from '../../../../engines/fs/index.js';
-import { EARN, LEVELS, S, STREAKS, TK, TRACKS, cleared, level, levelIdx, missionPath, mmss, mult, nextUp, sessionOn, stateOf, trackName } from '../../api/localGame.js';
+import { BEYOND, EARN, LEVELS, S, STREAKS, TK, TRACKS, beyondOpen, cleared, level, levelIdx, missionPath, mmss, mult, nextUp, sessionOn, stateOf, trackName } from '../../api/localGame.js';
 
 function nextAction() {
   if (S.focus) return { label: 'Back to Focus', to: '/focus', title: 'A focus block is running', sub: 'Missions stay locked until it ends' };
@@ -74,7 +74,7 @@ export function DeckScreen() {
             </div>
           </Link>
           <HudPanel label="Skill paths">
-            {TRACKS.map(([k, l]) => {
+            {[...TRACKS, ...(beyondOpen() ? [BEYOND] : [])].map(([k, l]) => {
               const d = TK[k].filter((x) => S.rewDone[x.id]).length;
               return <Meter key={k} label={l} value={`${d}/${TK[k].length}`} fraction={d / TK[k].length} />;
             })}

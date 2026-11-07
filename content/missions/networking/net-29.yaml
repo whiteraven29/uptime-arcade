@@ -1,0 +1,84 @@
+id: net-29
+track: NET
+skill: networking
+chapter: Putting it together
+order: 29
+title: How long will it take?
+from: SRE
+difficulty: expert
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Files are measured in bytes and links in bits, usually Mbps. Multiply bytes by 8, then divide by the link speed.
+  example: |-
+    500 MB = 4000 Mb
+    on 50 Mbps: 80 s
+brief: How many seconds to send 1 GB (1000 MB) over a 100 Mbps link at full speed?
+goal: "Run: submit <seconds>"
+hints:
+  - "Bytes to bits: multiply by 8."
+  - 8000 megabits at 100 per second.
+debrief:
+  why: Files are sized in bytes and links in bits, which is why speeds look eight times slower.
+  solution: submit 80
+  job: Backup and migration windows come from this sum.
+teaches:
+  - Mbps
+answer:
+  accept:
+    - "80"
+verify: str(int(1000*8/100))
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "How long will it take?". Which sentence best describes what it taught?
+    options:
+      - Files are sized in bytes and links in bits, which is why speeds look eight times slower.
+      - Loss hurts more than delay, because TCP slows right down when packets go missing.
+      - The status tells you whose fault it is before you read anything else, and 503 means the server knows it is unavailable.
+      - A service bound to 127.0.0.1 cannot be reached from outside, which is the usual cause of "connection refused".
+    answer: Files are sized in bytes and links in bits, which is why speeds look eight times slower.
+    hint: Look for the sentence about Mbps.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: How many seconds to send 1 GB (1000 MB) over a 100 Mbps link at full speed?
+    options:
+      - "25"
+      - "503"
+      - postgres
+      - "80"
+    answer: "80"
+    hint: 8000 megabits at 100 per second.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "How long will it take?" taught you at work?
+    options:
+      - Ping is the first tool anyone reaches for.
+      - curl -I is how you check a site without a browser.
+      - Backup and migration windows come from this sum.
+      - The first check when a service cannot be reached.
+    answer: Backup and migration windows come from this sum.
+    hint: "It starts with: Backup and migration windows…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: Files are sized in ____ and links in bits, which is why speeds look eight times slower.
+    answer:
+      - bytes
+    hint: It starts with "b" and is 5 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: How many seconds to send 1 GB (1000 MB) over a 100 Mbps link at full speed?
+    answer:
+      - "80"
+    hint: It starts with "8" and is 2 characters long.

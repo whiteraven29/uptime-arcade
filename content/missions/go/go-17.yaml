@@ -1,0 +1,167 @@
+id: go-17
+track: GO
+skill: go
+chapter: Types
+order: 17
+title: Interfaces
+from: Backend
+difficulty: medium
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: An interface lists methods. Any type that has those methods satisfies it automatically, with no declaration, so code can work with many types through one name.
+  example: |-
+    type Namer interface {
+    	Name() string
+    }
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - Both types have Ping, so both count as Pinger.
+  - Print separates its two values only as written here.
+debrief:
+  why: Satisfaction is implicit, so you can define an interface where it is used and existing types just fit.
+  solution: submit web ok db ok done
+  job: io.Reader and error are interfaces you will use every day.
+teaches:
+  - interface
+answer:
+  accept:
+    - web ok db ok done
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    type Pinger interface {
+    	Ping() string
+    }
+
+    type Web struct{}
+
+    func (Web) Ping() string { return "web ok" }
+
+    type DB struct{}
+
+    func (DB) Ping() string { return "db ok" }
+
+    func main() {
+    	for _, p := range []Pinger{Web{}, DB{}} {
+    		fmt.Print(p.Ping(), " ")
+    	}
+    	fmt.Println("done")
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Interfaces". Which sentence best describes what it taught?
+    options:
+      - Maps return the zero value for missing keys, so counting needs no setup. Comma-ok tells zero from missing.
+      - Satisfaction is implicit, so you can define an interface where it is used and existing types just fit.
+      - copy never grows the destination, so size it first. It gives you data that is truly separate.
+      - Value receivers work on a copy, and pointer receivers change the original.
+    answer: Satisfaction is implicit, so you can define an interface where it is used and existing types just fit.
+    hint: Look for the sentence about interface.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - "1"
+      - 2 [7 8]
+      - web ok db ok done
+      - 2 0 false
+    answer: web ok db ok done
+    hint: Print separates its two values only as written here.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      type Pinger interface {
+      	Ping() string
+      }
+
+      type Web struct{}
+
+      func (Web) Ping() string { return "web ok" }
+
+      type DB struct{}
+
+      func (DB) Ping() string { return "db ok" }
+
+      func main() {
+      	for _, p := range []Pinger{Web{}, DB{}} {
+      		fmt.Print(p.Ping(), " ")
+      	}
+      	fmt.Println("done")
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - '	fmt.Print(p.Ping(), " ")'
+      - for _, p := range []Pinger{Web{}, DB{}} {
+      - fmt.Println("done")
+      - "}"
+    answer:
+      - for _, p := range []Pinger{Web{}, DB{}} {
+      - '	fmt.Print(p.Ping(), " ")'
+      - "}"
+      - fmt.Println("done")
+    hint: "The first one is: for _, p := range []Pinger{Web{}, DB{}} {"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      ____ _, p := range []Pinger{Web{}, DB{}} {
+      	fmt.Print(p.Ping(), " ")
+      }
+      fmt.Println("done")
+    answer:
+      - for
+    hint: It starts with "f" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      type Pinger interface {
+      	Ping() string
+      }
+
+      type Web struct{}
+
+      func (Web) Ping() string { return "web ok" }
+
+      type DB struct{}
+
+      func (DB) Ping() string { return "db ok" }
+
+      func main() {
+      	for _, p := range []Pinger{Web{}, DB{}} {
+      		fmt.Print(p.Ping(), " ")
+      	}
+      	fmt.Println("done")
+      }
+    answer:
+      - web ok db ok done
+    hint: It starts with "w" and is 17 characters long.

@@ -1,0 +1,131 @@
+id: go-19
+track: GO
+skill: go
+chapter: Cleanup
+order: 19
+title: defer order
+from: Platform
+difficulty: medium
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: defer delays a call until the function ends. Several defers run last in, first out. Its arguments are worked out right away, and only the call waits.
+  example: |-
+    defer fmt.Print("b")
+    defer fmt.Print("a")
+    // prints ab
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - defer runs when the function returns.
+  - Last in, first out.
+debrief:
+  why: Deferred calls stack up and run in reverse order, so cleanup unwinds in the opposite order to setup.
+  solution: submit done 2 1 0
+  job: defer closes files and releases locks.
+teaches:
+  - defer
+answer:
+  accept:
+    - done 2 1 0
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	for i := 0; i < 3; i++ {
+    		defer fmt.Print(i, " ")
+    	}
+    	fmt.Print("done ")
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "defer order". Which sentence best describes what it taught?
+    options:
+      - Deferred calls stack up and run in reverse order, so cleanup unwinds in the opposite order to setup.
+      - Maps return the zero value for missing keys, so counting needs no setup. Comma-ok tells zero from missing.
+      - The interface holds type *E with a nil value, so it isn't nil. Return plain nil on success.
+      - Strings are bytes, so convert to runes when you need characters.
+    answer: Deferred calls stack up and run in reverse order, so cleanup unwinds in the opposite order to setup.
+    hint: Look for the sentence about defer.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 6 8 6
+      - "false"
+      - done 2 1 0
+      - 2 0 false
+    answer: done 2 1 0
+    hint: Last in, first out.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	for i := 0; i < 3; i++ {
+      		defer fmt.Print(i, " ")
+      	}
+      	fmt.Print("done ")
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - '	defer fmt.Print(i, " ")'
+      - fmt.Print("done ")
+      - for i := 0; i < 3; i++ {
+      - "}"
+    answer:
+      - for i := 0; i < 3; i++ {
+      - '	defer fmt.Print(i, " ")'
+      - "}"
+      - fmt.Print("done ")
+    hint: "The first one is: for i := 0; i < 3; i++ {"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      ____ i := 0; i < 3; i++ {
+      	defer fmt.Print(i, " ")
+      }
+      fmt.Print("done ")
+    answer:
+      - for
+    hint: It starts with "f" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	for i := 0; i < 3; i++ {
+      		defer fmt.Print(i, " ")
+      	}
+      	fmt.Print("done ")
+      }
+    answer:
+      - done 2 1 0
+    hint: It starts with "d" and is 10 characters long.

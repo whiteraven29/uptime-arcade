@@ -1,0 +1,86 @@
+id: net-26
+track: NET
+skill: networking
+chapter: Edge
+order: 26
+title: First match wins
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Firewalls read rules from the top and stop at the first match. Lower rules never see that packet.
+  example: |-
+    1 deny from A
+    2 permit from any
+    A is denied by rule 1
+brief: A guest laptop at 10.40.40.7 opens TCP 443 to 10.40.20.5. Rules are in ~/net/fw-rules.txt.
+goal: "Run: submit <rule number that decides>"
+hints:
+  - Read from the top and stop at the first full match.
+  - Rule 30 would allow it, but something comes first.
+debrief:
+  why: Firewalls stop at the first match, so the finance deny must sit above the general permit.
+  solution: |-
+    cat ~/net/fw-rules.txt
+    submit 20
+  job: Network separation depends on rule order.
+teaches:
+  - Firewall
+answer:
+  accept:
+    - "20"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "First match wins". Which sentence best describes what it taught?
+    options:
+      - The status tells you whose fault it is before you read anything else, and 503 means the server knows it is unavailable.
+      - A service bound to 127.0.0.1 cannot be reached from outside, which is the usual cause of "connection refused".
+      - Firewalls stop at the first match, so the finance deny must sit above the general permit.
+      - Loss hurts more than delay, because TCP slows right down when packets go missing.
+    answer: Firewalls stop at the first match, so the finance deny must sit above the general permit.
+    hint: Look for the sentence about Firewall.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: A guest laptop at 10.40.40.7 opens TCP 443 to 10.40.20.5. Rules are in ~/net/fw-rules.txt.
+    options:
+      - postgres
+      - "20"
+      - "25"
+      - "503"
+    answer: "20"
+    hint: Rule 30 would allow it, but something comes first.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "First match wins" taught you at work?
+    options:
+      - Network separation depends on rule order.
+      - Ping is the first tool anyone reaches for.
+      - The first check when a service cannot be reached.
+      - curl -I is how you check a site without a browser.
+    answer: Network separation depends on rule order.
+    hint: "It starts with: Network separation depends on…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ ~/net/fw-rules.txt
+    answer:
+      - cat
+    hint: It starts with "c" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: A guest laptop at 10.40.40.7 opens TCP 443 to 10.40.20.5. Rules are in ~/net/fw-rules.txt.
+    answer:
+      - "20"
+    hint: It starts with "2" and is 2 characters long.

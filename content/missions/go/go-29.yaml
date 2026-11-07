@@ -1,0 +1,172 @@
+id: go-29
+track: GO
+skill: go
+chapter: Quality
+order: 29
+title: Table tests
+from: Platform
+difficulty: expert
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "Go tests live in _test.go files and use the testing package. The common style is a table: a slice of cases, each with a name, an input and the wanted result, run in a loop. Adding a case is one more line."
+  example: |-
+    for _, c := range cases {
+    	if got := f(c.in); got != c.want {
+    		t.Errorf("%s failed", c.name)
+    	}
+    }
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - Work out double for each input.
+  - Which row has a wrong want?
+debrief:
+  why: Table tests separate the data from the logic, so covering a new edge case takes one line.
+  solution: submit FAIL three
+  job: Most Go tests you read are written this way.
+teaches:
+  - table
+  - testing
+answer:
+  accept:
+    - FAIL three
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func double(x int) int { return x + x }
+
+    func main() {
+    	cases := []struct {
+    		name    string
+    		in, want int
+    	}{
+    		{"one", 1, 2},
+    		{"two", 2, 4},
+    		{"three", 3, 7},
+    	}
+    	for _, c := range cases {
+    		if got := double(c.in); got != c.want {
+    			fmt.Println("FAIL", c.name)
+    		}
+    	}
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Table tests". Which sentence best describes what it taught?
+    options:
+      - default makes a channel operation non-blocking, and time.After is how you stop waiting forever.
+      - Table tests separate the data from the logic, so covering a new edge case takes one line.
+      - Closing doesn't throw away buffered values. Without close, this loop would deadlock.
+      - Context lets a caller stop work it no longer needs, so a slow database cannot pile up requests forever.
+    answer: Table tests separate the data from the logic, so covering a new edge case takes one line.
+    hint: Look for the sentence about testing.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 14 0
+      - context deadline exceeded
+      - empty
+      - FAIL three
+    answer: FAIL three
+    hint: Which row has a wrong want?
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func double(x int) int { return x + x }
+
+      func main() {
+      	cases := []struct {
+      		name    string
+      		in, want int
+      	}{
+      		{"one", 1, 2},
+      		{"two", 2, 4},
+      		{"three", 3, 7},
+      	}
+      	for _, c := range cases {
+      		if got := double(c.in); got != c.want {
+      			fmt.Println("FAIL", c.name)
+      		}
+      	}
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Table tests" taught you at work?
+    options:
+      - Every Go server passes a context through each request.
+      - Handy for try-send and try-receive, and for every timeout.
+      - Worker pools use send, close and range.
+      - Most Go tests you read are written this way.
+    answer: Most Go tests you read are written this way.
+    hint: "It starts with: Most Go tests you…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      cases := []struct {
+      	name    string
+      	in, want int
+      }{
+      	{"one", 1, 2},
+      	{"two", 2, 4},
+      	{"three", 3, 7},
+      }
+      for _, c := range cases {
+      	if got := double(c.in); got != c.want {
+      		fmt.____("FAIL", c.name)
+      	}
+      }
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func double(x int) int { return x + x }
+
+      func main() {
+      	cases := []struct {
+      		name    string
+      		in, want int
+      	}{
+      		{"one", 1, 2},
+      		{"two", 2, 4},
+      		{"three", 3, 7},
+      	}
+      	for _, c := range cases {
+      		if got := double(c.in); got != c.want {
+      			fmt.Println("FAIL", c.name)
+      		}
+      	}
+      }
+    answer:
+      - FAIL three
+    hint: It starts with "F" and is 10 characters long.

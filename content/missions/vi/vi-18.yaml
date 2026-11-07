@@ -1,0 +1,92 @@
+id: vi-18
+track: VI
+skill: vi
+chapter: Copying
+order: 18
+title: Fix the indent
+from: Platform
+difficulty: medium
+check: vi
+par:
+  kind: keys
+  value: 16
+lesson:
+  text: ">> indents the current line by one level, and << removes one level."
+  example: |-
+    >>  indent
+    <<  outdent
+brief: Indent the image and port lines by one level in ~/vi/svc.yaml.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/svc.yaml"
+hints:
+  - ">> indents a line."
+  - j moves down.
+debrief:
+  why: ">> shifts a line right and << shifts it left. In YAML, indentation changes the meaning."
+  solution: /image<CR>>>j>>:wq<CR>
+  job: Bad indentation is the most common YAML failure.
+teaches:
+  - ">"
+  - <
+file: ~/vi/svc.yaml
+expect:
+  - file_equals:
+      path: ~/vi/svc.yaml
+      content: |
+        service:
+          image: api:1.4
+          port: 8080
+  - vi_saved: ~/vi/svc.yaml
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Fix the indent". Which sentence best describes what it taught?
+    options:
+      - dd is cut and p is paste. In an ACL the first match wins, so a catch-all belongs last.
+      - "Counts work with almost every command: 3dd, 5j, 2w."
+      - ">> shifts a line right and << shifts it left. In YAML, indentation changes the meaning."
+      - Copy then tweak is faster and safer than retyping an address.
+    answer: ">> shifts a line right and << shifts it left. In YAML, indentation changes the meaning."
+    hint: Look for the sentence about > and <.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Indent the image and port lines by one level in ~/vi/svc.yaml.
+    options:
+      - /server<CR>yyp/11<CR>lr2:wq<CR>
+      - j3dd:wq<CR>
+      - jddGp:wq<CR>
+      - /image<CR>>>j>>:wq<CR>
+    answer: /image<CR>>>j>>:wq<CR>
+    hint: j moves down.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - :wq<CR>
+      - ">>j>>"
+      - /image<CR>
+    answer:
+      - /image<CR>
+      - ">>j>>"
+      - :wq<CR>
+    hint: "The first one is: /image<CR>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: /image<CR>____j>>:wq<CR>
+    answer:
+      - ">>"
+    hint: It's 2 characters, and the lesson shows it.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Fix the indent" taught. Any one of them counts.
+    answer:
+      - ">"
+      - <
+    hint: One of them is >…

@@ -1,0 +1,87 @@
+id: bx-01
+track: BX
+skill: shell
+chapter: Easy
+order: 1
+title: Second place
+from: Product
+difficulty: easy
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: sed -n 2p prints only line 2, so it picks second place out of any sorted list.
+  example: sort scores.txt | sed -n 2p
+brief: Everyone knows the busiest path in ~/logs/api-access.log. Which path is second busiest?
+goal: "Run: submit <path>"
+hints:
+  - Start from the top-N counter.
+  - End it with sed -n 2p instead of head -1.
+debrief:
+  why: Pipelines are built from parts, so swapping the last part changes the question they answer.
+  solution: cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | sed -n 2p
+  job: The runner-up is often the next thing to fall over.
+teaches:
+  - beyond
+answer:
+  accept:
+    - /health
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Second place". Which sentence best describes what it taught?
+    options:
+      - Pipelines are built from parts, so swapping the last part changes the question they answer.
+      - Every extra bit doubles the number of subnets and halves their size.
+      - Keeping the old value in a comment is a cheap rollback, and a macro does it for a whole file.
+      - Division by zero is the classic crash in reporting code, so guard it first.
+    answer: Pipelines are built from parts, so swapping the last part changes the question they answer.
+    hint: "The lesson said: sed -n 2p prints only line 2, so it picks second place out of any sorted list."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Everyone knows the busiest path in ~/logs/api-access.log. Which path is second busiest?
+    options:
+      - qayyPI# <Esc>jjq@a:wq<CR>
+      - return round(up / total * 100, 2)
+      - "4"
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | sed -n 2p
+    answer: cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | sed -n 2p
+    hint: End it with sed -n 2p instead of head -1.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: This pipeline has been split at each | and mixed up. Tap the parts from first to last.
+    scrambled:
+      - sort -rn
+      - sort
+      - uniq -c
+      - cut -d' ' -f4 ~/logs/api-access.log
+      - sed -n 2p
+    answer:
+      - cut -d' ' -f4 ~/logs/api-access.log
+      - sort
+      - uniq -c
+      - sort -rn
+      - sed -n 2p
+    hint: "The first one is: cut -d' ' -f4 ~/logs/api-access.log"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | sed ____ 2p
+    answer:
+      - -n
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Everyone knows the busiest path in ~/logs/api-access.log. Which path is second busiest?
+    answer:
+      - /health
+    hint: It starts with "/" and is 7 characters long.

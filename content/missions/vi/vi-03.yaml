@@ -1,0 +1,91 @@
+id: vi-03
+track: VI
+skill: vi
+chapter: Survival
+order: 3
+title: Jump by words
+from: SRE
+difficulty: easy
+check: vi
+par:
+  kind: keys
+  value: 12
+lesson:
+  text: w jumps to the start of the next word, b jumps back a word, and e jumps to the end of the word. Much faster than tapping l.
+  example: |-
+    w  next word
+    b  back a word
+    e  end of word
+brief: In ~/vi/note.txt add the word "the" before "api".
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/note.txt"
+hints:
+  - w lands on api.
+  - i, then type the word and a space, then Esc.
+debrief:
+  why: Words are the natural unit of text, and w b e let you move by them.
+  solution: withe <Esc>:wq<CR>
+  job: Long config lines are quick to cross once you move by word.
+teaches:
+  - w
+  - b
+  - e
+file: ~/vi/note.txt
+expect:
+  - file_equals:
+      path: ~/vi/note.txt
+      content: |
+        restart the api now
+  - vi_saved: ~/vi/note.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Jump by words". Which sentence best describes what it taught?
+    options:
+      - Everything in vi starts from where the cursor is, and hjkl put you there without leaving the home row.
+      - vi has modes. Normal mode is for moving and commands, and insert mode is for typing. Most new users are stuck only because they are in the wrong mode.
+      - Jumping directly to a line beats scrolling, and error messages always tell you the line.
+      - Words are the natural unit of text, and w b e let you move by them.
+    answer: Words are the natural unit of text, and w b e let you move by them.
+    hint: Look for the sentence about w and b.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: In ~/vi/note.txt add the word "the" before "api".
+    options:
+      - withe <Esc>:wq<CR>
+      - jlio<Esc>jio<Esc>:wq<CR>
+      - :3<CR>i# <Esc>Gi# <Esc>:wq<CR>
+      - iWelcome <Esc>:wq<CR>
+    answer: withe <Esc>:wq<CR>
+    hint: i, then type the word and a space, then Esc.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Jump by words" taught you at work?
+    options:
+      - YAML typos cause a large share of failed deploys.
+      - Every Linux server has vi, even when nothing else is installed.
+      - A failing config usually reports its line number.
+      - Long config lines are quick to cross once you move by word.
+    answer: Long config lines are quick to cross once you move by word.
+    hint: "It starts with: Long config lines are…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: withe <Esc>____<CR>
+    answer:
+      - :wq
+    hint: It starts with ":" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Jump by words" taught. Any one of them counts.
+    answer:
+      - w
+      - b
+      - e
+    hint: One of them is w…

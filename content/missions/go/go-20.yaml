@@ -1,0 +1,145 @@
+id: go-20
+track: GO
+skill: go
+chapter: Cleanup
+order: 20
+title: panic and recover
+from: Platform
+difficulty: medium
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: panic stops normal flow and starts unwinding the program. A deferred function can call recover to catch it. Keep panics for real programmer errors, and use returned errors for everything else.
+  example: |-
+    defer func() {
+    	if r := recover(); r != nil {
+    		fmt.Println("saved")
+    	}
+    }()
+    panic("oops")
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - The deferred function still runs during the panic.
+  - recover stops it, and the named result is what gets returned.
+debrief:
+  why: recover only works inside a deferred function, because deferred calls are all that run during a panic.
+  solution: submit caught and still running
+  job: Web servers use this to stop one bad request killing the process.
+teaches:
+  - panic
+  - recover
+answer:
+  accept:
+    - caught and still running
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func safe() (msg string) {
+    	defer func() {
+    		if r := recover(); r != nil {
+    			msg = "caught"
+    		}
+    	}()
+    	panic("boom")
+    }
+
+    func main() {
+    	fmt.Println(safe(), "and still running")
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "panic and recover". Which sentence best describes what it taught?
+    options:
+      - Maps return the zero value for missing keys, so counting needs no setup. Comma-ok tells zero from missing.
+      - Strings are bytes, so convert to runes when you need characters.
+      - recover only works inside a deferred function, because deferred calls are all that run during a panic.
+      - The interface holds type *E with a nil value, so it isn't nil. Return plain nil on success.
+    answer: recover only works inside a deferred function, because deferred calls are all that run during a panic.
+    hint: Look for the sentence about panic and recover.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - caught and still running
+      - 2 0 false
+      - "false"
+      - 6 8 6
+    answer: caught and still running
+    hint: recover stops it, and the named result is what gets returned.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func safe() (msg string) {
+      	defer func() {
+      		if r := recover(); r != nil {
+      			msg = "caught"
+      		}
+      	}()
+      	panic("boom")
+      }
+
+      func main() {
+      	fmt.Println(safe(), "and still running")
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "panic and recover" taught you at work?
+    options:
+      - This matters for limits on any text that is not plain ASCII.
+      - Web servers use this to stop one bad request killing the process.
+      - Go counters rely on this.
+      - A famous Go trap that passes error checks wrongly.
+    answer: Web servers use this to stop one bad request killing the process.
+    hint: "It starts with: Web servers use this…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: fmt.____(safe(), "and still running")
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func safe() (msg string) {
+      	defer func() {
+      		if r := recover(); r != nil {
+      			msg = "caught"
+      		}
+      	}()
+      	panic("boom")
+      }
+
+      func main() {
+      	fmt.Println(safe(), "and still running")
+      }
+    answer:
+      - caught and still running
+    hint: It starts with "c" and is 24 characters long.

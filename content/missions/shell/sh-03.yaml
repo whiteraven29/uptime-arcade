@@ -1,0 +1,86 @@
+id: sh-03
+track: SH
+skill: shell
+chapter: Getting around
+order: 3
+title: Read the welcome file
+from: Support
+difficulty: easy
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: cat prints a whole file. head shows the first lines and tail shows the last ones. Add -3 to choose how many.
+  example: |-
+    cat notes.txt
+    head -3 notes.txt
+    tail -1 notes.txt
+brief: ~/README lists the office VLANs, and guest Wi-Fi is on the last line. Which VLAN number is it?
+goal: "Run: submit <the VLAN number>"
+hints:
+  - tail -1 prints just the last line.
+  - The number comes right after the word VLAN.
+debrief:
+  why: head and tail let you peek at a file without printing all of it, which matters when a log has a million lines.
+  solution: tail -1 ~/README
+  job: tail is the first thing you run on any log file.
+teaches:
+  - cat
+  - head
+  - tail
+answer:
+  accept:
+    - "40"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Read the welcome file". Which sentence best describes what it taught?
+    options:
+      - Absolute paths start at / and work anywhere. Relative paths start from your current folder and are shorter.
+      - The shell splits on spaces, and programs read a leading dash as an option. Quoting and a path prefix fix both. Dotfiles are only hidden from plain ls.
+      - pwd answers "where am I?". Every path you type without a leading / is worked out from that folder.
+      - head and tail let you peek at a file without printing all of it, which matters when a log has a million lines.
+    answer: head and tail let you peek at a file without printing all of it, which matters when a log has a million lines.
+    hint: Look for the sentence about cat and head.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: ~/README lists the office VLANs, and guest Wi-Fi is on the last line. Which VLAN number is it?
+    options:
+      - pwd
+      - cd /etc
+      - cat ~/inbox/'week 44'/.rota
+      - tail -1 ~/README
+    answer: tail -1 ~/README
+    hint: The number comes right after the word VLAN.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Read the welcome file" taught you at work?
+    options:
+      - tail is the first thing you run on any log file.
+      - You move around servers like this all day.
+      - Backups and uploads produce names like this all the time.
+      - The first thing to check when a command says "No such file".
+    answer: tail is the first thing you run on any log file.
+    hint: "It starts with: tail is the first…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ -1 ~/README
+    answer:
+      - tail
+    hint: It starts with "t" and is 4 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: ~/README lists the office VLANs, and guest Wi-Fi is on the last line. Which VLAN number is it?
+    answer:
+      - "40"
+    hint: It starts with "4" and is 2 characters long.

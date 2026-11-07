@@ -1,0 +1,88 @@
+id: sh-19
+track: SH
+skill: shell
+chapter: awk
+order: 19
+title: Fields with awk
+from: SRE
+difficulty: medium
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: awk splits each line into fields called $1, $2 and so on, on whitespace by default. It saves the fiddling with cut.
+  example: awk '{print $3}' people.txt
+brief: One client sends far more requests than anyone else in ~/logs/api-access.log. Find its IP.
+goal: "Run: submit <ip>"
+hints:
+  - awk '{print $2}' prints the IP column.
+  - Then count with sort and uniq -c.
+debrief:
+  why: awk splits on whitespace for you, so column work needs no delimiter flags.
+  solution: awk '{print $2}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+  job: Finding a chatty client is step one for capacity and rate limit work.
+teaches:
+  - awk
+  - print
+answer:
+  accept:
+    - 198.51.100.31
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Fields with awk". Which sentence best describes what it taught?
+    options:
+      - tail and cut together pull a single value out of a structured line.
+      - awk splits on whitespace for you, so column work needs no delimiter flags.
+      - find picks the files and -exec acts on them, so a cleanup covers a whole tree in one line. Previewing first is what keeps it safe.
+      - "> starts the file again every time, while >> adds to it. Mixing them up is the classic way to lose a report."
+    answer: awk splits on whitespace for you, so column work needs no delimiter flags.
+    hint: Look for the sentence about awk and print.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: One client sends far more requests than anyone else in ~/logs/api-access.log. Find its IP.
+    options:
+      - find ~/build -name '*.tmp' -exec rm {} ;
+      - tail -1 ~/logs/api-access.log | cut -d' ' -f4
+      - awk '{print $2}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+      - grep -c FATAL ~/logs/app.log >> ~/incident.txt
+    answer: awk '{print $2}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+    hint: Then count with sort and uniq -c.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: This pipeline has been split at each | and mixed up. Tap the parts from first to last.
+    scrambled:
+      - head -1
+      - sort -rn
+      - sort
+      - uniq -c
+      - awk '{print $2}' ~/logs/api-access.log
+    answer:
+      - awk '{print $2}' ~/logs/api-access.log
+      - sort
+      - uniq -c
+      - sort -rn
+      - head -1
+    hint: "The first one is: awk '{print $2}' ~/logs/api-access.log"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: awk '{print $2}' ~/logs/api-access.log | sort | uniq ____ | sort -rn | head -1
+    answer:
+      - -c
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: One client sends far more requests than anyone else in ~/logs/api-access.log. Find its IP.
+    answer:
+      - 198.51.100.31
+    hint: It starts with "1" and is 13 characters long.

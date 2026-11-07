@@ -1,0 +1,137 @@
+id: bx-04
+track: BX
+skill: go
+chapter: Easy
+order: 4
+title: Write through the index
+from: Backend
+difficulty: easy
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: range gives you a copy in v, but s[i] writes to the real slice. That is how you change items in a loop.
+  example: |-
+    for i := range s {
+    	s[i]++
+    }
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - s[i] changes the slice itself.
+  - Println shows slices with square brackets and spaces.
+debrief:
+  why: v is a copy, and writing through the index is the one that sticks.
+  solution: submit [2 4 6]
+  job: A common loop in any Go code.
+teaches:
+  - beyond
+answer:
+  accept:
+    - "[2 4 6]"
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	s := []int{1, 2, 3}
+    	for i, v := range s {
+    		s[i] = v * 2
+    	}
+    	fmt.Println(s)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Write through the index". Which sentence best describes what it taught?
+    options:
+      - x keeps what it removed, so xp is a two-key typo fix.
+      - Division by zero is the classic crash in reporting code, so guard it first.
+      - v is a copy, and writing through the index is the one that sticks.
+      - Pipelines are built from parts, so swapping the last part changes the question they answer.
+    answer: v is a copy, and writing through the index is the one that sticks.
+    hint: "The lesson said: range gives you a copy in v, but s[i] writes to the real slice."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - "[2 4 6]"
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | sed -n 2p
+      - return round(up / total * 100, 2)
+      - lxp:wq<CR>
+    answer: "[2 4 6]"
+    hint: Println shows slices with square brackets and spaces.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	s := []int{1, 2, 3}
+      	for i, v := range s {
+      		s[i] = v * 2
+      	}
+      	fmt.Println(s)
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - "\ts[i] = v * 2"
+      - fmt.Println(s)
+      - s := []int{1, 2, 3}
+      - "}"
+      - for i, v := range s {
+    answer:
+      - s := []int{1, 2, 3}
+      - for i, v := range s {
+      - "\ts[i] = v * 2"
+      - "}"
+      - fmt.Println(s)
+    hint: "The first one is: s := []int{1, 2, 3}"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      s := []int{1, 2, 3}
+      for i, v := range s {
+      	s[i] = v * 2
+      }
+      fmt.____(s)
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	s := []int{1, 2, 3}
+      	for i, v := range s {
+      		s[i] = v * 2
+      	}
+      	fmt.Println(s)
+      }
+    answer:
+      - "[2 4 6]"
+    hint: It starts with "[" and is 7 characters long.

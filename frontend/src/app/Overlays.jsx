@@ -10,13 +10,13 @@ function Debrief({ id }) {
     <Overlay label="Mission complete">
       <p className="label">Mission complete</p>
       <h2 className="title metal">{t.title}</h2>
-      <p className="good">+{d.xp} XP. {d.note}{d.bonus ? ' (par bonus)' : ''}</p>
+      <p className="good">Solved. {d.note}{d.bonus ? ' (par bonus)' : ''}</p>
       <p>{t.why}</p>
       <pre>{t.sol}</pre>
       <p className="small">On the job: {t.job}</p>
-      <p className="obj">Clear five rewind tasks on this mission to unlock the next one.</p>
+      <p className="obj">{d.paid ? 'Answer five short questions to unlock the next mission.' : `Answer five short questions about it to earn ${d.worth} XP and unlock the next mission.`}</p>
       <div className="row">
-        <button className="btn go" type="button" onClick={() => { closeDebrief(); navigate(`/missions/${id}/rewind`); }}>Start rewind</button>
+        <button className="btn go" type="button" onClick={() => { closeDebrief(); navigate(`/missions/${id}/rewind`); }}>Start the questions</button>
         <button className="btn" type="button" onClick={() => { closeDebrief(); leaveMission(); }}>Later</button>
       </div>
     </Overlay>
@@ -41,7 +41,7 @@ function Finale() {
       <p className="label">All paths complete</p>
       <div className="name metal">Archmage</div>
       <p>You rose from Noob to Archmage at Whiteraven with {S.focusMin} minutes of real focus across {S.blocks} blocks.</p>
-      <p className="small">On-call shifts are unlocked on the Missions screen, and you can start a new season in System.</p>
+      <p className="small">The Beyond missions are now open, from Easy to Brainfuck. On-call shifts are unlocked too, and you can start a new season in System.</p>
       <div className="row"><button className="btn go" type="button" onClick={closeOverlay}>Continue</button></div>
     </Overlay>
   );

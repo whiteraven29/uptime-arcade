@@ -1,0 +1,83 @@
+id: bx-16
+track: BX
+skill: shell
+chapter: Expert
+order: 16
+title: Averages, not totals
+from: CTO
+difficulty: expert
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: "Two arrays can give you an average per key: one sums and one counts, and END divides them."
+  example: awk -F, '{s[$1]+=$2;n[$1]++} END{for(k in s)print s[k]/n[k],k}' sales.csv
+brief: In ~/data/customers.csv (id,name,plan,country,mrr,signup), which country has the highest average mrr per customer?
+goal: "Run: submit <country code>"
+hints:
+  - -F, and NR>1.
+  - s[$4]+=$5 and n[$4]++, then divide in END and sort -rn.
+debrief:
+  why: Totals favour whoever is biggest. Averages show who is actually worth more, which is often a different answer.
+  solution: awk -F, 'NR>1{s[$4]+=$5;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/data/customers.csv | sort -rn | head -1
+  job: Analysis that changes decisions is usually a ratio.
+teaches:
+  - beyond
+answer:
+  accept:
+    - TZ
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Averages, not totals". Which sentence best describes what it taught?
+    options:
+      - Totals favour whoever is biggest. Averages show who is actually worth more, which is often a different answer.
+      - Topological sort is how build tools, package managers and deploy systems decide what goes first.
+      - Slicing the timestamp turns a list of events into a timeline, which is how you line an outage up with a deploy.
+      - B thinks 10.0.0.5 is outside its /25, so it hands replies to the gateway, which gives odd one-way failures.
+    answer: Totals favour whoever is biggest. Averages show who is actually worth more, which is often a different answer.
+    hint: "The lesson said: Two arrays can give you an average per key: one sums and one counts, and END divides them."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: In ~/data/customers.csv (id,name,plan,country,mrr,signup), which country has the highest average mrr per customer?
+    options:
+      - "if s not in done and all([d in done for d in deps[s]]):"
+      - awk '$5==500{print substr($1,12,2)}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+      - awk -F, 'NR>1{s[$4]+=$5;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/data/customers.csv | sort -rn | head -1
+      - b
+    answer: awk -F, 'NR>1{s[$4]+=$5;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/data/customers.csv | sort -rn | head -1
+    hint: s[$4]+=$5 and n[$4]++, then divide in END and sort -rn.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: This pipeline has been split at each | and mixed up. Tap the parts from first to last.
+    scrambled:
+      - sort -rn
+      - head -1
+      - awk -F, 'NR>1{s[$4]+=$5;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/data/customers.csv
+    answer:
+      - awk -F, 'NR>1{s[$4]+=$5;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/data/customers.csv
+      - sort -rn
+      - head -1
+    hint: "The first one is: awk -F, 'NR>1{s[$4]+=$5;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/data/customers.csv"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: awk -F, 'NR>1{s[$4]+=$5;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/data/customers.csv | sort ____ | head -1
+    answer:
+      - -rn
+    hint: It starts with "-" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: In ~/data/customers.csv (id,name,plan,country,mrr,signup), which country has the highest average mrr per customer?
+    answer:
+      - TZ
+    hint: It starts with "T" and is 2 characters long.

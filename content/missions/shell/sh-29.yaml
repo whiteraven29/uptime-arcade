@@ -1,0 +1,91 @@
+id: sh-29
+track: SH
+skill: shell
+chapter: Scripting
+order: 29
+title: Read line by line
+from: SRE
+difficulty: expert
+check: fs
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: "while read takes a file one line at a time into a variable, and redirecting after done saves all the output. Every command also returns an exit code: a && b runs b only if a worked, and a || b runs b only if a failed."
+  example: |-
+    while read n; do echo "hello $n"; done < names.txt > out.txt
+    mkdir logs && echo made || echo failed
+brief: For each host in ~/data/hosts.txt, write a line like check srv-01 to ~/data/checks.txt.
+goal: Use a while read loop with one command line.
+hints:
+  - while read h; do echo "check $h"; done < file
+  - Redirect after done with > to collect all the output.
+debrief:
+  why: while read handles a file one line at a time, and it's safer than for when lines contain spaces.
+  solution: while read h; do echo "check $h"; done < ~/data/hosts.txt > ~/data/checks.txt
+  job: Looping over host lists is everyday fleet work.
+teaches:
+  - while
+  - read
+  - "&&"
+  - "||"
+expect:
+  - file_equals:
+      path: ~/data/checks.txt
+      content: |
+        check srv-01
+        check srv-02
+        check srv-03
+        check srv-04
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Read line by line". Which sentence best describes what it taught?
+    options:
+      - $( ) turns a command's output into a value you can reuse, which is the step from one-liners to scripts.
+      - while read handles a file one line at a time, and it's safer than for when lines contain spaces.
+      - Associative arrays group by any key, which is a GROUP BY in one line.
+      - Parameter expansion edits text with no extra tools. Without quotes, the spaced name splits into two arguments.
+    answer: while read handles a file one line at a time, and it's safer than for when lines contain spaces.
+    hint: Look for the sentence about while and read.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: For each host in ~/data/hosts.txt, write a line like check srv-01 to ~/data/checks.txt.
+    options:
+      - awk -F, 'NR>1{s[$3]+=$5} END{for(k in s)print s[k],k}' ~/data/customers.csv | sort -rn | head -1
+      - for f in ~/reports/*.TXT; do mv "$f" "${f%.TXT}.txt"; done
+      - E=$(grep -c ' 500 ' ~/logs/api-access.log)
+      - while read h; do echo "check $h"; done < ~/data/hosts.txt > ~/data/checks.txt
+    answer: while read h; do echo "check $h"; done < ~/data/hosts.txt > ~/data/checks.txt
+    hint: Redirect after done with > to collect all the output.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Read line by line" taught you at work?
+    options:
+      - Loops are where one-liners turn into scripting.
+      - Scripts capture values like this all the time, to alert when a count is too high.
+      - Quick revenue cuts save waiting for a dashboard.
+      - Looping over host lists is everyday fleet work.
+    answer: Looping over host lists is everyday fleet work.
+    hint: "It starts with: Looping over host lists…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: while read h; do ____ "check $h"; done < ~/data/hosts.txt > ~/data/checks.txt
+    answer:
+      - echo
+    hint: It starts with "e" and is 4 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type the command you used."
+    context: For each host in ~/data/hosts.txt, write a line like check srv-01 to ~/data/checks.txt.
+    answer:
+      - while read h; do echo "check $h"; done < ~/data/hosts.txt > ~/data/checks.txt
+    hint: 'It starts with: while read h; do echo "che'

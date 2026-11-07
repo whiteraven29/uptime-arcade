@@ -1,0 +1,95 @@
+id: vi-27
+track: VI
+skill: vi
+chapter: Power
+order: 27
+title: Record a macro
+from: Platform
+difficulty: hard
+check: vi
+par:
+  kind: keys
+  value: 24
+lesson:
+  text: qa starts recording keys into a, and q stops. @a plays them back, 3@a plays them three times, and @@ repeats the last macro. End a macro on the next line so it can run again.
+  example: |-
+    qa  ...keys...  j  q
+    3@a
+brief: Turn each line of ~/vi/macro.txt from web1 into host web1; by recording the edit once and replaying it.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/macro.txt"
+hints:
+  - qa, I, type host and a space, Esc, A, ;, Esc, j, q.
+  - 3@a does the remaining three.
+debrief:
+  why: A macro turns one careful edit into a tool, which pays off on any repetitive change regex cannot express.
+  solution: qaIhost <Esc>A;<Esc>jq3@a:wq<CR>
+  job: Macros reshape a list of hundreds of lines in seconds.
+teaches:
+  - q
+  - "@"
+file: ~/vi/macro.txt
+expect:
+  - file_equals:
+      path: ~/vi/macro.txt
+      content: |
+        host web1;
+        host web2;
+        host web3;
+        host web4;
+  - vi_saved: ~/vi/macro.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Record a macro". Which sentence best describes what it taught?
+    options:
+      - :s works on one line by default, and only on the first match unless you add g.
+      - Ranges let one command touch exactly the block you mean, with no cursor movement.
+      - A macro turns one careful edit into a tool, which pays off on any repetitive change regex cannot express.
+      - Text objects describe what you mean, inside these quotes, so the cursor does not have to be anywhere exact.
+    answer: A macro turns one careful edit into a tool, which pays off on any repetitive change regex cannot express.
+    hint: Look for the sentence about q and @.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Turn each line of ~/vi/macro.txt from web1 into host web1; by recording the edit once and replaying it.
+    options:
+      - :2,3d<CR>:.,$s/on/off/<CR>:wq<CR>
+      - j:s/old/new/<CR>:wq<CR>
+      - ci"new<Esc>jdi(:wq<CR>
+      - qaIhost <Esc>A;<Esc>jq3@a:wq<CR>
+    answer: qaIhost <Esc>A;<Esc>jq3@a:wq<CR>
+    hint: 3@a does the remaining three.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - jq3@a
+      - :wq<CR>
+      - A;<Esc>
+      - qaIhost <Esc>
+    answer:
+      - qaIhost <Esc>
+      - A;<Esc>
+      - jq3@a
+      - :wq<CR>
+    hint: "The first one is: qaIhost <Esc>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: qaIhost <Esc>A;<Esc>jq3@a____<CR>
+    answer:
+      - :wq
+    hint: It starts with ":" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Record a macro" taught. Any one of them counts.
+    answer:
+      - q
+      - "@"
+    hint: One of them is q…

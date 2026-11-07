@@ -1,0 +1,130 @@
+id: go-03
+track: GO
+skill: go
+chapter: Basics
+order: 3
+title: Types and conversion
+from: Platform
+difficulty: easy
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "Go never converts types silently, so an int and a float64 cannot be multiplied until you convert one: float64(x). strconv.Itoa turns an int into its text form, and + joins strings."
+  example: |-
+    n := 2
+    fmt.Println(float64(n) / 4)      // 0.5
+    fmt.Println(strconv.Itoa(n) + "x") // 2x
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - float64(3) is 3.0, and 3.0 times 1.5 is 4.5.
+  - Itoa gives the text "3", and + adds the !.
+debrief:
+  why: Explicit conversion means no surprise rounding, and the compiler catches type mix-ups for you.
+  solution: submit 4.5 3!
+  job: Numbers arriving as text must be converted before any maths.
+teaches:
+  - float64
+  - strconv
+  - Itoa
+answer:
+  accept:
+    - 4.5 3!
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    	"strconv"
+    )
+
+    func main() {
+    	x := 3
+    	y := 1.5
+    	fmt.Println(float64(x)*y, strconv.Itoa(x)+"!")
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Types and conversion". Which sentence best describes what it taught?
+    options:
+      - package main and func main are where a Go program starts. Everything else is just the instructions inside.
+      - One loop keyword with a few shapes means less to remember. range is the one you use most.
+      - Explicit conversion means no surprise rounding, and the compiler catches type mix-ups for you.
+      - Every variable starts at its type's zero value, so there's no undefined state.
+    answer: Explicit conversion means no surprise rounding, and the compiler catches type mix-ups for you.
+    hint: Look for the sentence about float64 and strconv.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - "36"
+      - 4.5 3!
+      - Hello, Whiteraven
+      - 0[]false
+    answer: 4.5 3!
+    hint: Itoa gives the text "3", and + adds the !.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"strconv"
+      )
+
+      func main() {
+      	x := 3
+      	y := 1.5
+      	fmt.Println(float64(x)*y, strconv.Itoa(x)+"!")
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - y := 1.5
+      - fmt.Println(float64(x)*y, strconv.Itoa(x)+"!")
+      - x := 3
+    answer:
+      - x := 3
+      - y := 1.5
+      - fmt.Println(float64(x)*y, strconv.Itoa(x)+"!")
+    hint: "The first one is: x := 3"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      x := 3
+      y := 1.5
+      fmt.____(float64(x)*y, strconv.Itoa(x)+"!")
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"strconv"
+      )
+
+      func main() {
+      	x := 3
+      	y := 1.5
+      	fmt.Println(float64(x)*y, strconv.Itoa(x)+"!")
+      }
+    answer:
+      - 4.5 3!
+    hint: It starts with "4" and is 6 characters long.

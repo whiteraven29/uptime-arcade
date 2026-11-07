@@ -1,0 +1,87 @@
+id: net-03
+track: NET
+skill: networking
+chapter: Addresses
+order: 3
+title: Prefix and mask
+from: Network
+difficulty: easy
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "The first bits of an address name the network, and the rest name the host. The prefix says how many are network bits: /24 means 24. A mask is the same thing written as four numbers, with network bits on."
+  example: |-
+    /24 = 255.255.255.0
+    /25 = 255.255.255.128
+    /28 = 255.255.255.240
+brief: Write the dotted subnet mask for a /26.
+goal: "Run: submit <answer>"
+hints:
+  - 26 bits means 2 bits of the last octet.
+  - 128 + 64
+debrief:
+  why: The mask is the prefix written as four octets.
+  solution: submit 255.255.255.192
+  job: Older gear and many forms ask for masks.
+teaches:
+  - prefix
+  - mask
+  - /24
+answer:
+  accept:
+    - 255.255.255.192
+verify: str(ipaddress.ip_network('10.0.0.0/26').netmask)
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Prefix and mask". Which sentence best describes what it taught?
+    options:
+      - An address is just one 32-bit number written in a friendly way. All subnet maths follows from that.
+      - Two addresses are reserved in each normal subnet.
+      - Eight place values are all you need, and they come straight back when you read subnet masks.
+      - The mask is the prefix written as four octets.
+    answer: The mask is the prefix written as four octets.
+    hint: Look for the sentence about prefix and mask.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: Write the dotted subnet mask for a /26.
+    options:
+      - 255.255.255.192
+      - "192"
+      - "32"
+      - "254"
+    answer: 255.255.255.192
+    hint: 128 + 64
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Prefix and mask" taught you at work?
+    options:
+      - Masks like 255.255.255.192 make sense once you can see the bits.
+      - Older gear and many forms ask for masks.
+      - Everything else in networking builds on this one fact.
+      - The first number you memorise.
+    answer: Older gear and many forms ask for masks.
+    hint: "It starts with: Older gear and many…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: The mask is the ____ written as four octets.
+    answer:
+      - prefix
+    hint: It starts with "p" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Write the dotted subnet mask for a /26.
+    answer:
+      - 255.255.255.192
+    hint: It starts with "2" and is 15 characters long.

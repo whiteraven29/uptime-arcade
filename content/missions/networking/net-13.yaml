@@ -1,0 +1,91 @@
+id: net-13
+track: NET
+skill: networking
+chapter: Transport
+order: 13
+title: The TCP handshake
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: TCP sets up a connection before sending data, with three messages. The client sends SYN, the server answers SYN-ACK, and the client finishes with ACK.
+  example: |-
+    -> SYN
+    <- SYN-ACK
+    -> ACK
+brief: A client sends SYN to a healthy server. What does the server send back?
+goal: "Run: submit <answer>"
+hints:
+  - It has to acknowledge and also start its own side.
+  - Two words joined by a dash.
+debrief:
+  why: The handshake proves both sides can hear each other. A SYN with no reply usually means a firewall.
+  solution: submit syn-ack
+  job: Connection timeouts are diagnosed by which step of this fails.
+teaches:
+  - SYN
+  - SYN-ACK
+  - ACK
+  - TCP
+answer:
+  accept:
+    - syn-ack
+    - synack
+    - syn ack
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The TCP handshake". Which sentence best describes what it taught?
+    options:
+      - Summarising shrinks routing tables, as long as the block is aligned.
+      - The handshake proves both sides can hear each other. A SYN with no reply usually means a firewall.
+      - /26 has 62 hosts and /25 has 126.
+      - A host compares network bits, then uses ARP for local targets or the gateway for the rest.
+    answer: The handshake proves both sides can hear each other. A SYN with no reply usually means a firewall.
+    hint: Look for the sentence about SYN and SYN-ACK.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: A client sends SYN to a healthy server. What does the server send back?
+    options:
+      - gateway
+      - /25
+      - syn-ack
+      - 10.1.0.0/22
+    answer: syn-ack
+    hint: Two words joined by a dash.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "The TCP handshake" taught you at work?
+    options:
+      - Smaller tables mean simpler, faster routing.
+      - Explains most 'can't reach it' tickets.
+      - Sizing is the first decision in any VLAN plan.
+      - Connection timeouts are diagnosed by which step of this fails.
+    answer: Connection timeouts are diagnosed by which step of this fails.
+    hint: "It starts with: Connection timeouts are diagnosed…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: The handshake proves both sides can hear each other. A ____ with no reply usually means a firewall.
+    answer:
+      - SYN
+    hint: It starts with "S" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: A client sends SYN to a healthy server. What does the server send back?
+    answer:
+      - syn-ack
+      - synack
+      - syn ack
+    hint: It starts with "s" and is 7 characters long.

@@ -1,0 +1,158 @@
+id: go-05
+track: GO
+skill: go
+chapter: Flow
+order: 5
+title: Decisions
+from: Backend
+difficulty: easy
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "if needs no brackets around its condition, and can set a variable first: if n := len(s); n > 3 { }. switch picks one case, and Go cases stop by themselves with no break needed. fmt.Print prints without a new line."
+  example: |-
+    switch n {
+    case 1:
+    	fmt.Print("one")
+    case 2:
+    	fmt.Print("two")
+    }
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - Go cases stop by themselves.
+  - fallthrough must be explicit.
+debrief:
+  why: Unlike C, Go breaks automatically at the end of a case.
+  solution: submit two end
+  job: Fewer bugs than C-style switches.
+teaches:
+  - if
+  - switch
+  - case
+  - default
+  - Print
+answer:
+  accept:
+    - two end
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	x := 2
+    	switch x {
+    	case 2:
+    		fmt.Print("two ")
+    	case 3:
+    		fmt.Print("three ")
+    	default:
+    		fmt.Print("other ")
+    	}
+    	fmt.Println("end")
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Decisions". Which sentence best describes what it taught?
+    options:
+      - package main and func main are where a Go program starts. Everything else is just the instructions inside.
+      - iota gives a list of named numbers without typing each value, so inserting one cannot leave a duplicate.
+      - Unlike C, Go breaks automatically at the end of a case.
+      - Every variable starts at its type's zero value, so there's no undefined state.
+    answer: Unlike C, Go breaks automatically at the end of a case.
+    hint: Look for the sentence about if and switch.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - two end
+      - 0 1 2
+      - Hello, Whiteraven
+      - 0[]false
+    answer: two end
+    hint: fallthrough must be explicit.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	x := 2
+      	switch x {
+      	case 2:
+      		fmt.Print("two ")
+      	case 3:
+      		fmt.Print("three ")
+      	default:
+      		fmt.Print("other ")
+      	}
+      	fmt.Println("end")
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Decisions" taught you at work?
+    options:
+      - Good Go types are useful at their zero value.
+      - Fewer bugs than C-style switches.
+      - Log levels and states are usually written with iota.
+      - Every Go service you ever read starts from this exact shape.
+    answer: Fewer bugs than C-style switches.
+    hint: "It starts with: Fewer bugs than C-style…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      x := 2
+      switch x {
+      case 2:
+      	fmt.Print("two ")
+      case 3:
+      	fmt.Print("three ")
+      default:
+      	fmt.Print("other ")
+      }
+      fmt.____("end")
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	x := 2
+      	switch x {
+      	case 2:
+      		fmt.Print("two ")
+      	case 3:
+      		fmt.Print("three ")
+      	default:
+      		fmt.Print("other ")
+      	}
+      	fmt.Println("end")
+      }
+    answer:
+      - two end
+    hint: It starts with "t" and is 7 characters long.

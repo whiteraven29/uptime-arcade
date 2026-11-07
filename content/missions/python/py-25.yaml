@@ -1,0 +1,133 @@
+id: py-25
+track: PY
+skill: python
+chapter: Objects
+order: 25
+title: Your first class
+from: Backend
+difficulty: hard
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A class is a blueprint that bundles data with the functions that use it. __init__ runs when you create an object and stores values on self. Methods are functions inside the class, and they all take self first.
+  example: |-
+    class Dog:
+        def __init__(self, name):
+            self.name = name
+        def speak(self):
+            return self.name + " says hi"
+
+    Dog("Rex").speak()
+brief: Server("web", 4) stores a name and a core count. capacity() returns cores * 100. describe() returns "web has 4 cores".
+goal: Write the Server class. Tests run when you press Run tests.
+hints:
+  - "def __init__(self, name, cores):"
+  - return f"{self.name} has {self.cores} cores"
+debrief:
+  why: A class keeps related data and behaviour together, so the rest of the program has less to track.
+  solution: |-
+    class Server:
+        def __init__(self, name, cores):
+            self.name = name
+            self.cores = cores
+        def capacity(self):
+            return self.cores * 100
+        def describe(self):
+            return f"{self.name} has {self.cores} cores"
+  job: Most large codebases are organised around classes.
+teaches:
+  - class
+  - __init__
+  - self
+python:
+  starter: |
+    class Server:
+        # your code here
+        pass
+  tests:
+    - expr: Server("web", 4).capacity()
+      want: "400"
+    - expr: Server("db", 2).describe()
+      want: '"db has 2 cores"'
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Your first class". Which sentence best describes what it taught?
+    options:
+      - Errors are normal when input comes from outside. Catch what you expect and turn it into something the rest of the code can use.
+      - You wrote this loop by hand earlier. Now you know what the library saves you.
+      - A class keeps related data and behaviour together, so the rest of the program has less to track.
+      - Date maths is full of traps like month ends and leap years, so never do it by hand.
+    answer: A class keeps related data and behaviour together, so the rest of the program has less to track.
+    hint: Look for the sentence about class and __init__.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Server("web", 4) stores a name and a core count. capacity() returns cores * 100. describe() returns "web has 4 cores".
+    options:
+      - t = datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)
+      - return Counter(paths).most_common(1)[0][0]
+      - raise ValueError("out of range")
+      - return f"{self.name} has {self.cores} cores"
+    answer: return f"{self.name} has {self.cores} cores"
+    hint: return f"{self.name} has {self.cores} cores"
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "class Server:"
+      - "    def capacity(self):"
+      - "    def describe(self):"
+      - '        return f"{self.name} has {self.cores} cores"'
+      - "        return self.cores * 100"
+      - "    def __init__(self, name, cores):"
+      - "        self.cores = cores"
+      - "        self.name = name"
+    answer:
+      - "class Server:"
+      - "    def __init__(self, name, cores):"
+      - "        self.name = name"
+      - "        self.cores = cores"
+      - "    def capacity(self):"
+      - "        return self.cores * 100"
+      - "    def describe(self):"
+      - '        return f"{self.name} has {self.cores} cores"'
+    hint: "The first one is: class Server:"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      ____ Server:
+          def __init__(self, name, cores):
+              self.name = name
+              self.cores = cores
+          def capacity(self):
+              return self.cores * 100
+          def describe(self):
+              return f"{self.name} has {self.cores} cores"
+    answer:
+      - class
+    hint: It starts with "c" and is 5 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      class Server:
+          def __init__(self, name, cores):
+              self.name = name
+              self.cores = cores
+          def capacity(self):
+              return self.cores * 100
+          def describe(self):
+              ____
+    answer:
+      - return f"{self.name} has {self.cores} cores"
+    hint: 'It starts with: return f"{self.'

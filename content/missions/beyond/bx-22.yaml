@@ -1,0 +1,90 @@
+id: bx-22
+track: BX
+skill: vi
+chapter: Brainfuck
+order: 22
+title: CSV to config, under par
+from: CTO
+difficulty: brainfuck
+check: vi
+par:
+  kind: keys
+  value: 41
+lesson:
+  text: Nothing new, and that is the hard part. Combine :g, a macro, f, r, a, A and counts, and every wasted key counts against you.
+  example: |-
+    :g/^#/d
+    qa ... j0 q
+    3@a
+brief: 'Turn ~/vi/golf.csv into config: remove the comments, then each key,value line becomes key: "value". Beat par.'
+goal: Reshape the whole file under par
+hints:
+  - Remove the comments first, so the macro only sees data.
+  - "r: replaces the comma, then a and a space and a quote. End with j0."
+debrief:
+  why: Whole-file commands first, then one careful macro. Everything you learned, with no room for waste.
+  solution: :g/^#/d<CR>qaf,r:a "<Esc>A"<Esc>j0q3@a:wq<CR>
+  job: Reshaping an export under pressure is where all those keys pay off.
+teaches:
+  - beyond
+file: ~/vi/golf.csv
+expect:
+  - file_equals:
+      path: ~/vi/golf.csv
+      content: |
+        host: "web01"
+        port: "8080"
+        mode: "prod"
+        zone: "dar"
+  - vi_saved: ~/vi/golf.csv
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "CSV to config, under par". Which sentence best describes what it taught?
+    options:
+      - With only the default register, the second delete would overwrite the first. Named ones keep both.
+      - "This is why a fast link across an ocean can still feel slow: latency caps throughput until the window grows."
+      - Whole-file commands first, then one careful macro. Everything you learned, with no room for waste.
+      - "The three-index slice is the fix for shared-array bugs: it forces append to copy instead of overwriting a neighbour."
+    answer: Whole-file commands first, then one careful macro. Everything you learned, with no room for waste.
+    hint: "The lesson said: Nothing new, and that is the hard part."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: 'Turn ~/vi/golf.csv into config: remove the comments, then each key,value line becomes key: "value". Beat par.'
+    options:
+      - "5.24"
+      - :g/^#/d<CR>qaf,r:a "<Esc>A"<Esc>j0q3@a:wq<CR>
+      - "[0 0 7 0] 2 9"
+      - '"adi"j"bdi""aPk"bP:wq<CR>'
+    answer: :g/^#/d<CR>qaf,r:a "<Esc>A"<Esc>j0q3@a:wq<CR>
+    hint: "r: replaces the comma, then a and a space and a quote. End with j0."
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "CSV to config, under par" taught you at work?
+    options:
+      - Never on a real server.
+      - Only to change the colours of the terminal.
+      - Only when a graphical editor is available.
+      - Reshaping an export under pressure is where all those keys pay off.
+    answer: Reshaping an export under pressure is where all those keys pay off.
+    hint: "It starts with: Reshaping an export under…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____<CR>qaf,r:a "<Esc>A"<Esc>j0q3@a:wq<CR>
+    answer:
+      - :g/^#/d
+    hint: "It starts with: :g/"
+  - type: text
+    level: hard
+    label: From memory
+    q: Which vi command saves the file and quits? Type it exactly, with the colon.
+    answer:
+      - :wq
+    hint: It starts with a colon, then w, then q.

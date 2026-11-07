@@ -1,0 +1,81 @@
+id: bx-21
+track: BX
+skill: shell
+chapter: Brainfuck
+order: 21
+title: The VLAN nobody typed
+from: Network
+difficulty: brainfuck
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: awk keeps variables between lines, so it can remember which block it is in and use that on a later line. !/re/ means "does not match".
+  example: awk '/^host/{h=$2} /down/{print h}' report.txt
+brief: One trunk in ~/switch/core-sw1.cfg does not carry VLAN 30. A plain grep 30 will not catch it, because someone typed a similar number.
+goal: "Run: submit <interface>"
+hints:
+  - "awk can remember: /^interface/{i=$2}"
+  - "Match the whole value: /[ ,]30(,|$)/"
+debrief:
+  why: awk keeps state between lines, so it can pair a setting with its block. Delimiters stop 130 matching 30.
+  solution: awk '/^interface/{i=$2} /allowed vlan/ && !/[ ,]30(,|$)/{print i}' ~/switch/core-sw1.cfg
+  job: Auditing by script beats reading 24 ports by eye.
+teaches:
+  - beyond
+answer:
+  accept:
+    - Gi1/0/3
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The VLAN nobody typed". Which sentence best describes what it taught?
+    options:
+      - This is the decision every router makes for every packet, written out in full.
+      - With only the default register, the second delete would overwrite the first. Named ones keep both.
+      - awk keeps state between lines, so it can pair a setting with its block. Delimiters stop 130 matching 30.
+      - "Order is everything: n goes 3, then 6, then -1, because the recovering defer was registered first and so runs last."
+    answer: awk keeps state between lines, so it can pair a setting with its block. Delimiters stop 130 matching 30.
+    hint: "The lesson said: awk keeps variables between lines, so it can remember which block it is in and use that on a later line."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: One trunk in ~/switch/core-sw1.cfg does not carry VLAN 30. A plain grep 30 will not catch it, because someone typed a similar number.
+    options:
+      - "-1"
+      - '"adi"j"bdi""aPk"bP:wq<CR>'
+      - "if to_int(ip) // size == to_int(net) // size and bits > best_bits:"
+      - awk '/^interface/{i=$2} /allowed vlan/ && !/[ ,]30(,|$)/{print i}' ~/switch/core-sw1.cfg
+    answer: awk '/^interface/{i=$2} /allowed vlan/ && !/[ ,]30(,|$)/{print i}' ~/switch/core-sw1.cfg
+    hint: "Match the whole value: /[ ,]30(,|$)/"
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "The VLAN nobody typed" taught you at work?
+    options:
+      - Servers rely on this to turn a panic into a clean error response.
+      - Auditing by script beats reading 24 ports by eye.
+      - Routers do this in hardware, but the logic is exactly this.
+      - Rearranging several pieces at once is where registers pay off.
+    answer: Auditing by script beats reading 24 ports by eye.
+    hint: "It starts with: Auditing by script beats…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ '/^interface/{i=$2} /allowed vlan/ && !/[ ,]30(,|$)/{print i}' ~/switch/core-sw1.cfg
+    answer:
+      - awk
+    hint: It starts with "a" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: One trunk in ~/switch/core-sw1.cfg does not carry VLAN 30. A plain grep 30 will not catch it, because someone typed a similar number.
+    answer:
+      - Gi1/0/3
+    hint: It starts with "G" and is 7 characters long.

@@ -1,0 +1,153 @@
+id: go-08
+track: GO
+skill: go
+chapter: Functions
+order: 8
+title: Errors are values
+from: Backend
+difficulty: easy
+check: go-fix
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Go has no exceptions. A function that can fail returns an error as its last value, and nil means no error. You check it right away with if err != nil.
+  example: |-
+    v, err := strconv.Atoi(text)
+    if err != nil {
+    	return
+    }
+brief: Finish the check so a bad number prints "bad number" instead of carrying on with a useless value.
+goal: "Run: submit <the code that replaces ____>"
+hints:
+  - err holds the failure.
+  - Compare it with nil.
+debrief:
+  why: Errors are ordinary values, so handling them is visible right where the failure happens.
+  solution: submit err != nil
+  job: if err != nil is the most common line in Go.
+teaches:
+  - err
+  - nil
+  - Atoi
+  - "!="
+answer:
+  accept:
+    - err != nil
+    - nil != err
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    	"strconv"
+    )
+
+    func main() {
+    	n, err := strconv.Atoi("abc")
+    	if ____ {
+    		fmt.Println("bad number")
+    		return
+    	}
+    	fmt.Println(n)
+    }
+  prints: bad number
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Errors are values". Which sentence best describes what it taught?
+    options:
+      - Errors are ordinary values, so handling them is visible right where the failure happens.
+      - One loop keyword with a few shapes means less to remember. range is the one you use most.
+      - Unlike C, Go breaks automatically at the end of a case.
+      - package main and func main are where a Go program starts. Everything else is just the instructions inside.
+    answer: Errors are ordinary values, so handling them is visible right where the failure happens.
+    hint: Look for the sentence about err and nil.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Finish the check so a bad number prints "bad number" instead of carrying on with a useless value.
+    options:
+      - Hello, Whiteraven
+      - err != nil
+      - two end
+      - "36"
+    answer: err != nil
+    hint: Compare it with nil.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"strconv"
+      )
+
+      func main() {
+      	n, err := strconv.Atoi("abc")
+      	if err != nil {
+      		fmt.Println("bad number")
+      		return
+      	}
+      	fmt.Println(n)
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - "\treturn"
+      - n, err := strconv.Atoi("abc")
+      - "}"
+      - fmt.Println(n)
+      - if ____ {
+      - '	fmt.Println("bad number")'
+    answer:
+      - n, err := strconv.Atoi("abc")
+      - if ____ {
+      - '	fmt.Println("bad number")'
+      - "\treturn"
+      - "}"
+      - fmt.Println(n)
+    hint: 'The first one is: n, err := strconv.Atoi("abc")'
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      n, err := strconv.Atoi("abc")
+      if ____ {
+      	fmt.____("bad number")
+      	return
+      }
+      fmt.Println(n)
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what goes in the blank?"
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"strconv"
+      )
+
+      func main() {
+      	n, err := strconv.Atoi("abc")
+      	if ____ {
+      		fmt.Println("bad number")
+      		return
+      	}
+      	fmt.Println(n)
+      }
+    answer:
+      - err != nil
+      - nil != err
+    hint: It starts with "e" and is 10 characters long.

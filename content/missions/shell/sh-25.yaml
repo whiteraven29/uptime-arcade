@@ -1,0 +1,223 @@
+id: sh-25
+track: SH
+skill: shell
+chapter: Patterns
+order: 25
+title: Rearrange with groups
+from: Data
+difficulty: hard
+check: fs
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: "sed -E lets you capture parts with ( ) and reuse them as \\1, \\2. Any character can be the delimiter, such as #, which helps when the text contains /."
+  example: sed -E 's#(\w+)/(\w+)#\2/\1#' pairs.txt
+brief: The warehouse needs YYYY-MM-DD, but the signup column in ~/data/customers.csv is DD/MM/YYYY.
+goal: Write ~/data/customers-clean.csv with one sed command and keep the header.
+hints:
+  - sed -E gives you (groups).
+  - "Rebuild as \\3-\\2-\\1. Use # as the delimiter so / needs no escaping."
+debrief:
+  why: Capture groups rearrange text without knowing the values.
+  solution: sed -E 's#([0-9]{2})/([0-9]{2})/([0-9]{4})#\3-\2-\1#' ~/data/customers.csv > ~/data/customers-clean.csv
+  job: Cleaning exports before import is routine data work.
+teaches:
+  - \1
+expect:
+  - file_equals:
+      path: ~/data/customers-clean.csv
+      content: |
+        id,name,plan,country,mrr,signup
+        C1001,Customer 1,free,NG,0,2026-10-06
+        C1002,Customer 2,starter,UG,25,2024-01-06
+        C1003,Customer 3,pro,TZ,99,2023-03-17
+        C1004,Customer 4,starter,TZ,25,2026-06-22
+        C1005,Customer 5,free,UG,0,2025-01-18
+        C1006,Customer 6,pro,RW,99,2024-03-08
+        C1007,Customer 7,enterprise,TZ,499,2024-08-11
+        C1008,Customer 8,starter,TZ,25,2023-02-05
+        C1009,Customer 9,pro,KE,99,2026-04-26
+        C1010,Customer 10,starter,RW,25,2024-09-23
+        C1011,Customer 11,free,RW,0,2025-01-19
+        C1012,Customer 12,pro,RW,99,2025-05-15
+        C1013,Customer 13,free,TZ,0,2025-04-08
+        C1014,Customer 14,enterprise,RW,499,2025-02-18
+        C1015,Customer 15,pro,NG,99,2023-06-01
+        C1016,Customer 16,starter,UG,25,2024-04-03
+        C1017,Customer 17,free,NG,0,2026-07-07
+        C1018,Customer 18,pro,TZ,99,2024-09-02
+        C1019,Customer 19,free,RW,0,2026-09-08
+        C1020,Customer 20,starter,NG,25,2023-05-20
+        C1021,Customer 21,enterprise,NG,499,2025-05-08
+        C1022,Customer 22,starter,ZA,25,2024-07-17
+        C1023,Customer 23,free,KE,0,2025-06-22
+        C1024,Customer 24,pro,RW,99,2024-12-22
+        C1025,Customer 25,free,ZA,0,2025-11-15
+        C1026,Customer 26,starter,UG,25,2023-11-13
+        C1027,Customer 27,pro,TZ,99,2023-12-24
+        C1028,Customer 28,enterprise,KE,499,2023-06-11
+        C1029,Customer 29,free,KE,0,2024-07-17
+        C1030,Customer 30,pro,KE,99,2024-08-28
+        C1031,Customer 31,free,TZ,0,2025-08-16
+        C1032,Customer 32,starter,UG,25,2024-04-07
+        C1033,Customer 33,pro,NG,99,2025-08-04
+        C1034,Customer 34,starter,RW,25,2026-07-10
+        C1035,Customer 35,enterprise,NG,499,2023-04-19
+        C1036,Customer 36,pro,TZ,99,2026-05-23
+        C1037,Customer 37,free,UG,0,2024-01-04
+        C1038,Customer 38,starter,ZA,25,2024-12-16
+        C1039,Customer 39,pro,KE,99,2023-08-22
+        C1040,Customer 40,starter,RW,25,2026-12-02
+        C1041,Customer 41,free,RW,0,2023-01-27
+        C1042,Customer 42,enterprise,NG,499,2025-09-17
+        C1043,Customer 43,free,UG,0,2026-10-09
+        C1044,Customer 44,starter,ZA,25,2026-06-01
+        C1045,Customer 45,pro,NG,99,2026-03-01
+        C1046,Customer 46,starter,KE,25,2025-09-05
+        C1047,Customer 47,free,NG,0,2024-09-26
+        C1048,Customer 48,pro,UG,99,2023-03-17
+        C1049,Customer 49,enterprise,ZA,499,2025-05-08
+        C1050,Customer 50,starter,UG,25,2023-01-07
+        C1051,Customer 51,pro,UG,99,2026-04-18
+        C1052,Customer 52,starter,NG,25,2024-08-09
+        C1053,Customer 53,free,NG,0,2023-09-25
+        C1054,Customer 54,pro,KE,99,2025-08-28
+        C1055,Customer 55,free,KE,0,2025-02-27
+        C1056,Customer 56,enterprise,TZ,499,2026-12-03
+        C1057,Customer 57,pro,NG,99,2026-09-10
+        C1058,Customer 58,starter,TZ,25,2026-03-07
+        C1059,Customer 59,free,ZA,0,2026-09-20
+        C1060,Customer 60,pro,KE,99,2023-10-20
+        C1061,Customer 61,free,UG,0,2024-05-23
+        C1062,Customer 62,starter,UG,25,2025-04-19
+        C1063,Customer 63,enterprise,TZ,499,2025-03-09
+        C1064,Customer 64,starter,ZA,25,2023-12-14
+        C1065,Customer 65,free,ZA,0,2025-12-03
+        C1066,Customer 66,pro,TZ,99,2025-09-20
+        C1067,Customer 67,free,TZ,0,2024-04-27
+        C1068,Customer 68,starter,NG,25,2023-07-14
+        C1069,Customer 69,pro,UG,99,2026-07-14
+        C1070,Customer 70,enterprise,ZA,499,2023-09-24
+        C1071,Customer 71,free,UG,0,2026-03-27
+        C1072,Customer 72,pro,KE,99,2025-08-04
+        C1073,Customer 73,free,UG,0,2024-08-01
+        C1074,Customer 74,starter,TZ,25,2025-01-20
+        C1075,Customer 75,pro,KE,99,2026-04-20
+        C1076,Customer 76,starter,ZA,25,2025-06-08
+        C1077,Customer 77,enterprise,KE,499,2026-03-22
+        C1078,Customer 78,pro,UG,99,2024-10-02
+        C1079,Customer 79,free,UG,0,2023-08-21
+        C1080,Customer 80,starter,ZA,25,2026-09-03
+        C1081,Customer 81,pro,ZA,99,2025-04-09
+        C1082,Customer 82,starter,KE,25,2025-09-22
+        C1083,Customer 83,free,UG,0,2024-09-03
+        C1084,Customer 84,enterprise,NG,499,2024-02-21
+        C1085,Customer 85,free,ZA,0,2025-01-14
+        C1086,Customer 86,starter,ZA,25,2026-12-07
+        C1087,Customer 87,pro,RW,99,2025-09-14
+        C1088,Customer 88,starter,UG,25,2026-10-04
+        C1089,Customer 89,free,NG,0,2025-06-27
+        C1090,Customer 90,pro,RW,99,2023-11-28
+        C1091,Customer 91,enterprise,TZ,499,2026-10-25
+        C1092,Customer 92,starter,TZ,25,2026-01-14
+        C1093,Customer 93,pro,TZ,99,2026-02-15
+        C1094,Customer 94,starter,ZA,25,2024-11-15
+        C1095,Customer 95,free,TZ,0,2024-06-28
+        C1096,Customer 96,pro,TZ,99,2023-06-21
+        C1097,Customer 97,free,KE,0,2023-09-09
+        C1098,Customer 98,enterprise,RW,499,2024-10-02
+        C1099,Customer 99,pro,TZ,99,2024-05-20
+        C1100,Customer 100,starter,UG,25,2025-07-19
+        C1101,Customer 101,free,UG,0,2025-11-04
+        C1102,Customer 102,pro,TZ,99,2026-07-09
+        C1103,Customer 103,free,ZA,0,2023-01-09
+        C1104,Customer 104,starter,NG,25,2025-03-28
+        C1105,Customer 105,enterprise,KE,499,2024-09-25
+        C1106,Customer 106,starter,UG,25,2024-03-19
+        C1107,Customer 107,free,KE,0,2026-08-26
+        C1108,Customer 108,pro,ZA,99,2023-04-12
+        C1109,Customer 109,free,UG,0,2024-12-22
+        C1110,Customer 110,starter,UG,25,2023-02-21
+        C1111,Customer 111,pro,TZ,99,2024-11-26
+        C1112,Customer 112,enterprise,NG,499,2026-07-24
+        C1113,Customer 113,free,UG,0,2025-11-15
+        C1114,Customer 114,pro,TZ,99,2025-03-15
+        C1115,Customer 115,free,TZ,0,2023-10-12
+        C1116,Customer 116,starter,UG,25,2025-03-21
+        C1117,Customer 117,pro,TZ,99,2024-01-06
+        C1118,Customer 118,starter,ZA,25,2025-10-23
+        C1119,Customer 119,enterprise,TZ,499,2023-05-03
+        C1120,Customer 120,pro,ZA,99,2025-09-26
+        C1121,Customer 121,free,ZA,0,2026-03-11
+        C1122,Customer 122,starter,RW,25,2025-08-06
+        C1123,Customer 123,pro,TZ,99,2024-08-15
+        C1124,Customer 124,starter,UG,25,2023-08-16
+        C1125,Customer 125,free,NG,0,2024-11-20
+        C1126,Customer 126,enterprise,TZ,499,2026-12-27
+        C1127,Customer 127,free,KE,0,2023-07-20
+        C1128,Customer 128,starter,TZ,25,2024-09-19
+        C1129,Customer 129,pro,NG,99,2024-05-09
+        C1130,Customer 130,starter,ZA,25,2025-05-03
+        C1131,Customer 131,free,UG,0,2025-08-16
+        C1132,Customer 132,pro,UG,99,2024-11-09
+        C1133,Customer 133,enterprise,TZ,499,2025-08-02
+        C1134,Customer 134,starter,NG,25,2023-09-15
+        C1135,Customer 135,pro,KE,99,2023-06-19
+        C1136,Customer 136,starter,UG,25,2024-04-02
+        C1137,Customer 137,free,TZ,0,2026-08-01
+        C1138,Customer 138,pro,ZA,99,2026-01-23
+        C1139,Customer 139,free,RW,0,2023-09-23
+        C1140,Customer 140,enterprise,RW,499,2023-03-18
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Rearrange with groups". Which sentence best describes what it taught?
+    options:
+      - find picks the files and -exec acts on them, so a cleanup covers a whole tree in one line. Previewing first is what keeps it safe.
+      - ^ and $ anchor to the start and end of a line, so ^$ means an empty line.
+      - Capture groups rearrange text without knowing the values.
+      - Associative arrays group by any key, which is a GROUP BY in one line.
+    answer: Capture groups rearrange text without knowing the values.
+    hint: Look for the sentence about \1.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: The warehouse needs YYYY-MM-DD, but the signup column in ~/data/customers.csv is DD/MM/YYYY.
+    options:
+      - sed -E 's#([0-9]{2})/([0-9]{2})/([0-9]{4})#\3-\2-\1#' ~/data/customers.csv > ~/data/customers-clean.csv
+      - awk -F, 'NR>1{s[$3]+=$5} END{for(k in s)print s[k],k}' ~/data/customers.csv | sort -rn | head -1
+      - sed '/^#/d; /^$/d' ~/conf/nginx-comments.conf > ~/conf/nginx-clean.conf
+      - find ~/build -name '*.tmp' -exec rm {} ;
+    answer: sed -E 's#([0-9]{2})/([0-9]{2})/([0-9]{4})#\3-\2-\1#' ~/data/customers.csv > ~/data/customers-clean.csv
+    hint: "Rebuild as \\3-\\2-\\1. Use # as the delimiter so / needs no escaping."
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Rearrange with groups" taught you at work?
+    options:
+      - Scoped cleanups stop disks filling up.
+      - Cleaning exports before import is routine data work.
+      - Comparing real settings between servers starts here.
+      - Quick revenue cuts save waiting for a dashboard.
+    answer: Cleaning exports before import is routine data work.
+    hint: "It starts with: Cleaning exports before import…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: sed ____ 's#([0-9]{2})/([0-9]{2})/([0-9]{4})#\3-\2-\1#' ~/data/customers.csv > ~/data/customers-clean.csv
+    answer:
+      - -E
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type the command you used."
+    context: The warehouse needs YYYY-MM-DD, but the signup column in ~/data/customers.csv is DD/MM/YYYY.
+    answer:
+      - sed -E 's#([0-9]{2})/([0-9]{2})/([0-9]{4})#\3-\2-\1#' ~/data/customers.csv > ~/data/customers-clean.csv
+    hint: "It starts with: sed -E 's#([0-9]{2})/([0-9]{2})/([0"

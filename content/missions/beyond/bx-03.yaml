@@ -1,0 +1,109 @@
+id: bx-03
+track: BX
+skill: python
+chapter: Easy
+order: 3
+title: Uptime percent
+from: SRE
+difficulty: easy
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: round(x, 2) keeps two decimals. Check for a zero before you divide by it.
+  example: |-
+    if total == 0:
+        return 0
+    round(1 / 3 * 100, 2)   # 33.33
+brief: Return up as a percentage of total, rounded to 2 decimals. If total is 0, return 0.
+goal: Write uptime_pct(up, total). Tests run when you press Run tests.
+hints:
+  - Handle total == 0 first.
+  - round(up / total * 100, 2)
+debrief:
+  why: Division by zero is the classic crash in reporting code, so guard it first.
+  solution: |-
+    def uptime_pct(up, total):
+        if total == 0:
+            return 0
+        return round(up / total * 100, 2)
+  job: Status pages show exactly this number.
+teaches:
+  - beyond
+python:
+  starter: |
+    def uptime_pct(up, total):
+        # your code here
+        pass
+  tests:
+    - expr: uptime_pct(999, 1000)
+      want: "99.9"
+    - expr: uptime_pct(1, 3)
+      want: "33.33"
+    - expr: uptime_pct(0, 0)
+      want: "0"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Uptime percent". Which sentence best describes what it taught?
+    options:
+      - Every extra bit doubles the number of subnets and halves their size.
+      - x keeps what it removed, so xp is a two-key typo fix.
+      - Pipelines are built from parts, so swapping the last part changes the question they answer.
+      - Division by zero is the classic crash in reporting code, so guard it first.
+    answer: Division by zero is the classic crash in reporting code, so guard it first.
+    hint: "The lesson said: round(x, 2) keeps two decimals."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return up as a percentage of total, rounded to 2 decimals. If total is 0, return 0.
+    options:
+      - return round(up / total * 100, 2)
+      - lxp:wq<CR>
+      - "4"
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | sed -n 2p
+    answer: return round(up / total * 100, 2)
+    hint: round(up / total * 100, 2)
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "    return round(up / total * 100, 2)"
+      - "        return 0"
+      - "def uptime_pct(up, total):"
+      - "    if total == 0:"
+    answer:
+      - "def uptime_pct(up, total):"
+      - "    if total == 0:"
+      - "        return 0"
+      - "    return round(up / total * 100, 2)"
+    hint: "The first one is: def uptime_pct(up, total):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def uptime_pct(up, total):
+          ____ total == 0:
+              return 0
+          return round(up / total * 100, 2)
+    answer:
+      - if
+    hint: It starts with "i" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def uptime_pct(up, total):
+          if total == 0:
+              return 0
+          ____
+    answer:
+      - return round(up / total * 100, 2)
+    hint: "It starts with: return roun"

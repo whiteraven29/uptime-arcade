@@ -1,0 +1,96 @@
+id: vi-08
+track: VI
+skill: vi
+chapter: Inserting
+order: 8
+title: Take it back
+from: SRE
+difficulty: easy
+check: vi
+par:
+  kind: keys
+  value: 12
+lesson:
+  text: u undoes your last change, and pressing it again goes further back. Ctrl-r redoes what you just undid, so you can step back and forward through your edits.
+  example: |-
+    u       undo
+    Ctrl-r  redo
+brief: "In ~/vi/undo.yaml only the x should go from xport. Practise recovering: go to that line, press x three times by mistake, undo all three with u, then redo just one with Ctrl-r."
+goal: "Leave the line reading port: 8080, using both u and Ctrl-r"
+hints:
+  - j, then x x x. You will see too much vanish.
+  - u u u restores it. Ctrl-r brings back only the first x.
+debrief:
+  why: Undo means mistakes are cheap, so you can try an edit freely and step back and forward through it.
+  solution: jxxxuuu<C-r>:wq<CR>
+  job: Undo is what keeps a live server edit calm.
+teaches:
+  - u
+  - C-r
+file: ~/vi/undo.yaml
+expect:
+  - file_equals:
+      path: ~/vi/undo.yaml
+      content: |
+        cache: on
+        port: 8080
+  - vi_saved: ~/vi/undo.yaml
+  - vi_used:
+      path: ~/vi/undo.yaml
+      keys:
+        - u
+        - C-r
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Take it back". Which sentence best describes what it taught?
+    options:
+      - Undo means mistakes are cheap, so you can try an edit freely and step back and forward through it.
+      - Choosing the right way into insert mode saves moving the cursor first.
+      - "^ is the one you want on indented code: it lands on the text, not on the spaces."
+      - Jumping directly to a line beats scrolling, and error messages always tell you the line.
+    answer: Undo means mistakes are cheap, so you can try an edit freely and step back and forward through it.
+    hint: Look for the sentence about u and C-r.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: "In ~/vi/undo.yaml only the x should go from xport. Practise recovering: go to that line, press x three times by mistake, undo all three with u, then redo just one with Ctrl-r."
+    options:
+      - "oMaintenance: Sunday 02:00<Esc>:wq<CR>"
+      - :3<CR>i# <Esc>Gi# <Esc>:wq<CR>
+      - jxxxuuu<C-r>:wq<CR>
+      - ^i#<Esc>:wq<CR>
+    answer: jxxxuuu<C-r>:wq<CR>
+    hint: u u u restores it. Ctrl-r brings back only the first x.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - :wq<CR>
+      - jxxxuuu
+      - <C-r>
+    answer:
+      - jxxxuuu
+      - <C-r>
+      - :wq<CR>
+    hint: "The first one is: jxxxuuu"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: jxxxuuu<C-r>____<CR>
+    answer:
+      - :wq
+    hint: It starts with ":" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Take it back" taught. Any one of them counts.
+    answer:
+      - u
+      - C-r
+    hint: One of them is u…

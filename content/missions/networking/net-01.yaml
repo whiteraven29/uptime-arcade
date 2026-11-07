@@ -1,0 +1,86 @@
+id: net-01
+track: NET
+skill: networking
+chapter: Addresses
+order: 1
+title: What an IP really is
+from: Network
+difficulty: easy
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Every device on a network has an address so that data can find it. An IPv4 address is a 32-bit number. For people it is written as four numbers from 0 to 255, each called an octet because it is 8 bits.
+  example: |-
+    10.40.30.21
+    four octets, 8 bits each
+brief: Four octets, 8 bits each. How many bits long is an IPv4 address?
+goal: "Run: submit <answer>"
+hints:
+  - An octet is 8 bits.
+  - 4 times 8.
+debrief:
+  why: An address is just one 32-bit number written in a friendly way. All subnet maths follows from that.
+  solution: submit 32
+  job: Everything else in networking builds on this one fact.
+teaches:
+  - IP
+  - bits
+  - octet
+answer:
+  accept:
+    - "32"
+verify: str(ipaddress.ip_address("10.0.0.1").max_prefixlen)
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "What an IP really is". Which sentence best describes what it taught?
+    options:
+      - /26 has 62 hosts and /25 has 126.
+      - An address is just one 32-bit number written in a friendly way. All subnet maths follows from that.
+      - Two addresses are reserved in each normal subnet.
+      - The mask is the prefix written as four octets.
+    answer: An address is just one 32-bit number written in a friendly way. All subnet maths follows from that.
+    hint: Look for the sentence about IP and bits.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: Four octets, 8 bits each. How many bits long is an IPv4 address?
+    options:
+      - "32"
+      - /25
+      - 255.255.255.192
+      - "254"
+    answer: "32"
+    hint: 4 times 8.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "What an IP really is" taught you at work?
+    options:
+      - The first number you memorise.
+      - Everything else in networking builds on this one fact.
+      - Sizing is the first decision in any VLAN plan.
+      - Older gear and many forms ask for masks.
+    answer: Everything else in networking builds on this one fact.
+    hint: "It starts with: Everything else in networking…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: An ____ is just one 32-bit number written in a friendly way. All subnet maths follows from that.
+    answer:
+      - address
+    hint: It starts with "a" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Four octets, 8 bits each. How many bits long is an IPv4 address?
+    answer:
+      - "32"
+    hint: It starts with "3" and is 2 characters long.

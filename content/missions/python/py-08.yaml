@@ -1,0 +1,125 @@
+id: py-08
+track: PY
+skill: python
+chapter: Lists
+order: 8
+title: Loop over things
+from: SRE
+difficulty: easy
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: for repeats the indented lines once per item, giving each item a name. range(3) gives 0, 1, 2 when you need to count. Start a total at 0 and add with +=.
+  example: |-
+    total = 0
+    for n in [1, 2, 3]:
+        total += n
+
+    for i in range(3):
+        print(i)
+brief: Given a list of status codes, return how many are 500 or above.
+goal: Write count_errors(codes). Tests run when you press Run tests.
+hints:
+  - Start a counter at 0.
+  - "Inside the loop: if code >= 500: n += 1"
+debrief:
+  why: Loop, test, count is the shape of a huge amount of real code.
+  solution: |-
+    def count_errors(codes):
+        n = 0
+        for code in codes:
+            if code >= 500:
+                n += 1
+        return n
+  job: Counting errors is the first number anyone asks for in an incident.
+teaches:
+  - for
+  - in
+  - range
+  - +=
+python:
+  starter: |
+    def count_errors(codes):
+        # your code here
+        pass
+  tests:
+    - expr: count_errors([200, 500, 503, 404])
+      want: "2"
+    - expr: count_errors([])
+      want: "0"
+    - expr: count_errors([500])
+      want: "1"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Loop over things". Which sentence best describes what it taught?
+    options:
+      - Indexing from 0 feels odd for a day and then becomes natural. -1 means count from the end.
+      - Chaining string methods reads top to bottom like a pipeline.
+      - Functions let you solve a problem once and reuse it. Comparisons return booleans, so an if statement here adds nothing.
+      - Loop, test, count is the shape of a huge amount of real code.
+    answer: Loop, test, count is the shape of a huge amount of real code.
+    hint: Look for the sentence about for and in.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Given a list of status codes, return how many are 500 or above.
+    options:
+      - return name.strip().lower().replace(" ", "-")
+      - return [items[0], items[-1]]
+      - "if code >= 500:"
+      - return status < 500
+    answer: "if code >= 500:"
+    hint: "Inside the loop: if code >= 500: n += 1"
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "    return n"
+      - "    for code in codes:"
+      - "        if code >= 500:"
+      - "    n = 0"
+      - "            n += 1"
+      - "def count_errors(codes):"
+    answer:
+      - "def count_errors(codes):"
+      - "    n = 0"
+      - "    for code in codes:"
+      - "        if code >= 500:"
+      - "            n += 1"
+      - "    return n"
+    hint: "The first one is: def count_errors(codes):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      ____ count_errors(codes):
+          n = 0
+          for code in codes:
+              if code >= 500:
+                  n += 1
+          return n
+    answer:
+      - def
+    hint: It starts with "d" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def count_errors(codes):
+          n = 0
+          for code in codes:
+              ____
+                  n += 1
+          return n
+    answer:
+      - "if code >= 500:"
+    hint: "It starts with: if co"

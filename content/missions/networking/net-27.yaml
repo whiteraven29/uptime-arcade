@@ -1,0 +1,89 @@
+id: net-27
+track: NET
+skill: networking
+chapter: Edge
+order: 27
+title: TLS at a glance
+from: SRE
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: TLS encrypts traffic and proves who the server is, using a certificate with an expiry date. openssl s_client shows it. notAfter is the moment it stops being valid, and browsers then refuse the site.
+  example: |-
+    openssl s_client -connect example.test:443
+    notAfter=Jan  9 23:59:59 2027 GMT
+brief: In ~/net/cert.txt, when does the certificate for app.whiteraven.example expire?
+goal: "Run: submit <month and day>, for example: submit dec 14"
+hints:
+  - Look for notAfter.
+  - grep notAfter ~/net/cert.txt
+debrief:
+  why: A certificate is only trusted until its expiry date, so expiry is a calendar problem that looks like an outage.
+  solution: grep notAfter ~/net/cert.txt
+  job: Expired certificates still take down major sites every year.
+teaches:
+  - TLS
+  - certificate
+  - openssl
+answer:
+  accept:
+    - dec 14
+    - dec 14 2026
+    - "2026-12-14"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "TLS at a glance". Which sentence best describes what it taught?
+    options:
+      - Firewalls stop at the first match, so the finance deny must sit above the general permit.
+      - NAT shares one public IP by mapping inside address and port pairs to outside ports.
+      - .140 is in 10.40.30.128/25 but not in .192/26, so longest match gives 10.40.0.4.
+      - A certificate is only trusted until its expiry date, so expiry is a calendar problem that looks like an outage.
+    answer: A certificate is only trusted until its expiry date, so expiry is a calendar problem that looks like an outage.
+    hint: Look for the sentence about TLS and certificate.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: In ~/net/cert.txt, when does the certificate for app.whiteraven.example expire?
+    options:
+      - "20"
+      - dec 14
+      - "40002"
+      - 10.40.0.4
+    answer: dec 14
+    hint: grep notAfter ~/net/cert.txt
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "TLS at a glance" taught you at work?
+    options:
+      - Essential when tracing who made a connection.
+      - Expired certificates still take down major sites every year.
+      - Explains why traffic took an unexpected path.
+      - Network separation depends on rule order.
+    answer: Expired certificates still take down major sites every year.
+    hint: "It starts with: Expired certificates still take…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ notAfter ~/net/cert.txt
+    answer:
+      - grep
+    hint: It starts with "g" and is 4 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: In ~/net/cert.txt, when does the certificate for app.whiteraven.example expire?
+    answer:
+      - dec 14
+      - dec 14 2026
+      - "2026-12-14"
+    hint: It starts with "d" and is 6 characters long.

@@ -1,0 +1,86 @@
+id: net-30
+track: NET
+skill: networking
+chapter: Putting it together
+order: 30
+title: "Capstone: the troubleshooting ladder"
+from: CTO
+difficulty: expert
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "Nothing new. Work up the ladder and stop at the first thing that fails: is the link up? Does the gateway answer? Does an outside IP answer? Do names resolve? Each pass rules out everything below it."
+  example: |-
+    ip addr      link
+    ping gateway local
+    ping 1.1.1.1 internet
+    dig name     dns
+brief: A laptop "has no internet". Sara ran the checks and saved them in ~/net/incident.txt. Which layer is actually broken?
+goal: "Run: submit <the layer at fault>: link, gateway, internet or dns"
+hints:
+  - Read from the top and find the first failure.
+  - Pings to an IP worked, so what is left?
+debrief:
+  why: Going up the ladder in order means every passed step rules out a whole class of faults, so you find the broken layer instead of guessing.
+  solution: cat ~/net/incident.txt
+  job: This is the method behind every network ticket you will ever close.
+teaches:
+  - capstone
+answer:
+  accept:
+    - dns
+reasoned: true
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: 'You just finished "Capstone: the troubleshooting ladder". Which sentence best describes what it taught?'
+    options:
+      - A certificate is only trusted until its expiry date, so expiry is a calendar problem that looks like an outage.
+      - Going up the ladder in order means every passed step rules out a whole class of faults, so you find the broken layer instead of guessing.
+      - A service bound to 127.0.0.1 cannot be reached from outside, which is the usual cause of "connection refused".
+      - NAT shares one public IP by mapping inside address and port pairs to outside ports.
+    answer: Going up the ladder in order means every passed step rules out a whole class of faults, so you find the broken layer instead of guessing.
+    hint: "The lesson said: Nothing new."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: A laptop "has no internet". Sara ran the checks and saved them in ~/net/incident.txt. Which layer is actually broken?
+    options:
+      - dec 14
+      - postgres
+      - dns
+      - "40002"
+    answer: dns
+    hint: Pings to an IP worked, so what is left?
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: 'Where would you use what "Capstone: the troubleshooting ladder" taught you at work?'
+    options:
+      - This is the method behind every network ticket you will ever close.
+      - Expired certificates still take down major sites every year.
+      - Essential when tracing who made a connection.
+      - The first check when a service cannot be reached.
+    answer: This is the method behind every network ticket you will ever close.
+    hint: "It starts with: This is the method…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ ~/net/incident.txt
+    answer:
+      - cat
+    hint: It starts with "c" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: A laptop "has no internet". Sara ran the checks and saved them in ~/net/incident.txt. Which layer is actually broken?
+    answer:
+      - dns
+    hint: It starts with "d" and is 3 characters long.

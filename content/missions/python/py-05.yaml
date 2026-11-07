@@ -1,0 +1,96 @@
+id: py-05
+track: PY
+skill: python
+chapter: Strings
+order: 5
+title: Clean user input
+from: Product
+difficulty: easy
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "String methods return new strings, and you can chain them: strip removes outer spaces, lower lowercases, and replace swaps text."
+  example: '" Hi There ".strip().lower().replace(" ", "_")'
+brief: 'Lowercase, turn spaces into dashes, and strip outer spaces: " Cold Room 3 " gives "cold-room-3".'
+goal: Write slugify(name). Tests run when you press Run tests.
+hints:
+  - strip() then lower().
+  - replace(' ', '-')
+debrief:
+  why: Chaining string methods reads top to bottom like a pipeline.
+  solution: |-
+    def slugify(name):
+        return name.strip().lower().replace(" ", "-")
+  job: Every product with URLs needs this.
+teaches:
+  - strip
+  - lower
+  - replace
+python:
+  starter: |
+    def slugify(name):
+        # your code here
+        pass
+  tests:
+    - expr: slugify(" Cold Room 3 ")
+      want: '"cold-room-3"'
+    - expr: slugify("API")
+      want: '"api"'
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Clean user input". Which sentence best describes what it taught?
+    options:
+      - print is how a program talks to you. Quotes mark text, so Python does not try to run it.
+      - Conditions are checked from the top and the first true one wins, so the order matters.
+      - Chaining string methods reads top to bottom like a pipeline.
+      - Names make programs readable, and the type decides what you can do with a value.
+    answer: Chaining string methods reads top to bottom like a pipeline.
+    hint: Look for the sentence about strip and lower.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: 'Lowercase, turn spaces into dashes, and strip outer spaces: " Cold Room 3 " gives "cold-room-3".'
+    options:
+      - label = "client error"
+      - return name.strip().lower().replace(" ", "-")
+      - host = "web01"
+      - print("Hello, operator")
+    answer: return name.strip().lower().replace(" ", "-")
+    hint: replace(' ', '-')
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Clean user input" taught you at work?
+    options:
+      - Mixing up "8080" and 8080 is a very common bug.
+      - Status logic like this sits behind every dashboard.
+      - Printing values is still how most people first debug a problem.
+      - Every product with URLs needs this.
+    answer: Every product with URLs needs this.
+    hint: "It starts with: Every product with URLs…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def slugify(name):
+          ____ name.strip().lower().replace(" ", "-")
+    answer:
+      - return
+    hint: It starts with "r" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def slugify(name):
+          ____
+    answer:
+      - return name.strip().lower().replace(" ", "-")
+    hint: "It starts with: return name.str"

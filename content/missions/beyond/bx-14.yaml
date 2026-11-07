@@ -1,0 +1,148 @@
+id: bx-14
+track: BX
+skill: go
+chapter: Hard
+order: 14
+title: Two defers and a panic
+from: Platform
+difficulty: hard
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: During a panic, deferred calls still run in reverse order, and they can see and change a named result. recover only stops the panic inside the deferred function that calls it.
+  example: |-
+    defer first()
+    defer second()
+    panic("x")
+    // second runs, then first
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - The last defer runs first, and n becomes 6.
+  - Then the recover runs and overwrites n.
+debrief:
+  why: "Order is everything: n goes 3, then 6, then -1, because the recovering defer was registered first and so runs last."
+  solution: submit -1
+  job: Servers rely on this to turn a panic into a clean error response.
+teaches:
+  - beyond
+answer:
+  accept:
+    - "-1"
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func f() (n int) {
+    	defer func() {
+    		if r := recover(); r != nil {
+    			n = -1
+    		}
+    	}()
+    	defer func() { n *= 2 }()
+    	n = 3
+    	panic("x")
+    }
+
+    func main() {
+    	fmt.Println(f())
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Two defers and a panic". Which sentence best describes what it taught?
+    options:
+      - Slicing the timestamp turns a list of events into a timeline, which is how you line an outage up with a deploy.
+      - Topological sort is how build tools, package managers and deploy systems decide what goes first.
+      - 0 and 3 differ in two bits, so the shared prefix is 22 bits, and the route also covers 10.0.1.0 and 10.0.2.0.
+      - "Order is everything: n goes 3, then 6, then -1, because the recovering defer was registered first and so runs last."
+    answer: "Order is everything: n goes 3, then 6, then -1, because the recovering defer was registered first and so runs last."
+    hint: "The lesson said: During a panic, deferred calls still run in reverse order, and they can see and change a named result."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - "if s not in done and all([d in done for d in deps[s]]):"
+      - awk '$5==500{print substr($1,12,2)}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+      - "-1"
+      - 10.0.0.0/22
+    answer: "-1"
+    hint: Then the recover runs and overwrites n.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func f() (n int) {
+      	defer func() {
+      		if r := recover(); r != nil {
+      			n = -1
+      		}
+      	}()
+      	defer func() { n *= 2 }()
+      	n = 3
+      	panic("x")
+      }
+
+      func main() {
+      	fmt.Println(f())
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Two defers and a panic" taught you at work?
+    options:
+      - Servers rely on this to turn a panic into a clean error response.
+      - Knowing when it started narrows down what caused it.
+      - Every orchestrator contains this algorithm.
+      - Summaries often cover more than you meant, which can swallow traffic.
+    answer: Servers rely on this to turn a panic into a clean error response.
+    hint: "It starts with: Servers rely on this…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: fmt.____(f())
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func f() (n int) {
+      	defer func() {
+      		if r := recover(); r != nil {
+      			n = -1
+      		}
+      	}()
+      	defer func() { n *= 2 }()
+      	n = 3
+      	panic("x")
+      }
+
+      func main() {
+      	fmt.Println(f())
+      }
+    answer:
+      - "-1"
+    hint: It starts with "-" and is 2 characters long.

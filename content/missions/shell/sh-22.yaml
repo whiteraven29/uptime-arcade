@@ -1,0 +1,86 @@
+id: sh-22
+track: SH
+skill: shell
+chapter: sed
+order: 22
+title: Find and replace
+from: Platform
+difficulty: hard
+check: fs
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: sed s/old/new/ replaces text on each line, and adding g replaces every match on the line. A dot matches any character, so write \. when you mean a real dot.
+  example: sed 's/foo\.com/bar.com/' sites.txt > new.txt
+brief: Every host in ~/conf/endpoints.conf must move from old-host.example to whiteraven.example.
+goal: Write the result to ~/conf/endpoints-new.conf with one sed command.
+hints:
+  - s/old/new/ replaces. Dots match anything unless escaped.
+  - Use > to write a new file.
+debrief:
+  why: sed applies a substitution to every line. Writing to a new file keeps the original for a safe rollback.
+  solution: sed 's/old-host\.example/whiteraven.example/' ~/conf/endpoints.conf > ~/conf/endpoints-new.conf
+  job: Migrations are full of edits like this.
+teaches:
+  - sed
+  - s/
+expect:
+  - file_equals:
+      path: ~/conf/endpoints-new.conf
+      content: |
+        upstream=api.whiteraven.example
+        metrics=stats.whiteraven.example
+        cdn=cdn.whiteraven.example
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Find and replace". Which sentence best describes what it taught?
+    options:
+      - Associative arrays group by any key, which is a GROUP BY in one line.
+      - sed applies a substitution to every line. Writing to a new file keeps the original for a safe rollback.
+      - Text sort compares character by character. Numeric sort is what you want for sizes and durations.
+      - awk splits on whitespace for you, so column work needs no delimiter flags.
+    answer: sed applies a substitution to every line. Writing to a new file keeps the original for a safe rollback.
+    hint: Look for the sentence about sed and s/.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Every host in ~/conf/endpoints.conf must move from old-host.example to whiteraven.example.
+    options:
+      - awk '{print $2}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+      - sed 's/old-host\.example/whiteraven.example/' ~/conf/endpoints.conf > ~/conf/endpoints-new.conf
+      - awk -F, 'NR>1{s[$3]+=$5} END{for(k in s)print s[k],k}' ~/data/customers.csv | sort -rn | head -1
+      - sort -k6 -n ~/logs/api-access.log | tail -1 | cut -d' ' -f6
+    answer: sed 's/old-host\.example/whiteraven.example/' ~/conf/endpoints.conf > ~/conf/endpoints-new.conf
+    hint: Use > to write a new file.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Find and replace" taught you at work?
+    options:
+      - Migrations are full of edits like this.
+      - Quick revenue cuts save waiting for a dashboard.
+      - Worst-case latency is where user complaints come from.
+      - Finding a chatty client is step one for capacity and rate limit work.
+    answer: Migrations are full of edits like this.
+    hint: "It starts with: Migrations are full of…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ 's/old-host\.example/whiteraven.example/' ~/conf/endpoints.conf > ~/conf/endpoints-new.conf
+    answer:
+      - sed
+    hint: It starts with "s" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type the command you used."
+    context: Every host in ~/conf/endpoints.conf must move from old-host.example to whiteraven.example.
+    answer:
+      - sed 's/old-host\.example/whiteraven.example/' ~/conf/endpoints.conf > ~/conf/endpoints-new.conf
+    hint: "It starts with: sed 's/old-host\\.example/whitera"

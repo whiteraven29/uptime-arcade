@@ -1,0 +1,93 @@
+id: sh-02
+track: SH
+skill: shell
+chapter: Getting around
+order: 2
+title: Moving between folders
+from: Support
+difficulty: easy
+check: fs
+par:
+  kind: commands
+  value: 3
+lesson:
+  text: "cd changes folder. A path starting with / is absolute: it works from anywhere. Any other path is relative to where you are. .. means the folder above, and ~ means your home folder."
+  example: |-
+    cd /etc        # absolute
+    cd ~           # home
+    cd photos      # relative
+    cd ..          # up one
+brief: Take the tour. Visit /etc using an absolute path, come home with ~, then step into logs using a relative path.
+goal: End up in ~/logs. It finishes by itself when you get there.
+hints:
+  - cd /etc gets you the first stop.
+  - cd ~ then cd logs. Run pwd any time you feel lost.
+debrief:
+  why: Absolute paths start at / and work anywhere. Relative paths start from your current folder and are shorter.
+  solution: |-
+    cd /etc
+    cd ~
+    cd logs
+  job: You move around servers like this all day.
+teaches:
+  - cd
+  - ..
+  - "~"
+expect:
+  - cwd_is: ~/logs
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Moving between folders". Which sentence best describes what it taught?
+    options:
+      - pwd answers "where am I?". Every path you type without a leading / is worked out from that folder.
+      - One line per request means counting lines counts requests.
+      - rm is permanent, so name exactly what you mean. Careless rm -r is how people lose production data.
+      - Absolute paths start at / and work anywhere. Relative paths start from your current folder and are shorter.
+    answer: Absolute paths start at / and work anywhere. Relative paths start from your current folder and are shorter.
+    hint: Look for the sentence about cd and ...
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Take the tour. Visit /etc using an absolute path, come home with ~, then step into logs using a relative path.
+    options:
+      - cd /etc
+      - pwd
+      - rm ~/desk/old.log
+      - wc -l ~/logs/api-access.log
+    answer: cd /etc
+    hint: cd ~ then cd logs. Run pwd any time you feel lost.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the commands you ran, mixed up. Tap them from first to last.
+    scrambled:
+      - cd logs
+      - cd ~
+      - cd /etc
+    answer:
+      - cd /etc
+      - cd ~
+      - cd logs
+    hint: "The first one is: cd /etc"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ /etc
+    answer:
+      - cd
+    hint: It starts with "c" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type one of the commands you used."
+    context: Take the tour. Visit /etc using an absolute path, come home with ~, then step into logs using a relative path.
+    answer:
+      - cd /etc
+      - cd ~
+      - cd logs
+    hint: "It starts with: cd "

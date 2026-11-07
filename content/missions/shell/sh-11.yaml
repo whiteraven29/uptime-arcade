@@ -1,0 +1,83 @@
+id: sh-11
+track: SH
+skill: shell
+chapter: Pipes
+order: 11
+title: Your first pipe
+from: SRE
+difficulty: medium
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: A pipe | sends the output of one command into the next. Small tools chained together do big jobs, and this is the core idea of the shell.
+  example: |-
+    grep cat pets.txt | head -2
+    grep dog pets.txt | wc -l
+brief: Which service wrote the very first FATAL line in ~/logs/app.log? The service is the 4th word on the line.
+goal: "Run: submit <service>"
+hints:
+  - grep FATAL finds them all.
+  - Pipe into head -1 to keep only the first.
+debrief:
+  why: Each command does one small job, and the pipe joins them. grep picks the lines, head keeps the first.
+  solution: grep FATAL ~/logs/app.log | head -1
+  job: Almost every useful one-liner has a pipe in it.
+teaches:
+  - "|"
+answer:
+  accept:
+    - payments
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Your first pipe". Which sentence best describes what it taught?
+    options:
+      - head and tail let you peek at a file without printing all of it, which matters when a log has a million lines.
+      - Each command does one small job, and the pipe joins them. grep picks the lines, head keeps the first.
+      - mkdir -p creates the whole chain and doesn't complain if a folder is already there, so it's safe to run twice.
+      - rm is permanent, so name exactly what you mean. Careless rm -r is how people lose production data.
+    answer: Each command does one small job, and the pipe joins them. grep picks the lines, head keeps the first.
+    hint: Look for the sentence about |.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Which service wrote the very first FATAL line in ~/logs/app.log? The service is the 4th word on the line.
+    options:
+      - rm ~/desk/old.log
+      - tail -1 ~/README
+      - grep FATAL ~/logs/app.log | head -1
+      - touch ~/work/today/notes.txt
+    answer: grep FATAL ~/logs/app.log | head -1
+    hint: Pipe into head -1 to keep only the first.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Your first pipe" taught you at work?
+    options:
+      - Almost every useful one-liner has a pipe in it.
+      - tail is the first thing you run on any log file.
+      - Setup scripts use mkdir -p because it can be run again safely.
+      - Everyone gets one rm -r story. Make sure yours is small.
+    answer: Almost every useful one-liner has a pipe in it.
+    hint: "It starts with: Almost every useful one-liner…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ FATAL ~/logs/app.log | head -1
+    answer:
+      - grep
+    hint: It starts with "g" and is 4 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Which service wrote the very first FATAL line in ~/logs/app.log? The service is the 4th word on the line.
+    answer:
+      - payments
+    hint: It starts with "p" and is 8 characters long.

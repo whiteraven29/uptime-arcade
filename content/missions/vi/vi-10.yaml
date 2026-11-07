@@ -1,0 +1,87 @@
+id: vi-10
+track: VI
+skill: vi
+chapter: Operators
+order: 10
+title: Do it N times
+from: SRE
+difficulty: easy
+check: vi
+par:
+  kind: keys
+  value: 8
+lesson:
+  text: A number before a command repeats it. 3dd deletes three lines, 5j moves down five, and 2w jumps two words.
+  example: |-
+    2dd  delete two lines
+    4j   down four lines
+brief: Delete the three temporary lines (the BEGIN TEMP marker and the two test jobs) from ~/vi/cron.txt.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/cron.txt"
+hints:
+  - j gets you onto the marker.
+  - 3dd deletes three lines.
+debrief:
+  why: "Counts work with almost every command: 3dd, 5j, 2w."
+  solution: j3dd:wq<CR>
+  job: Removing temporary jobs is a habit that prevents surprises.
+teaches:
+  - 3dd
+file: ~/vi/cron.txt
+expect:
+  - file_equals:
+      path: ~/vi/cron.txt
+      content: |
+        0 2 * * * backup
+        0 5 * * * rotate
+  - vi_saved: ~/vi/cron.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Do it N times". Which sentence best describes what it taught?
+    options:
+      - Words are the natural unit of text, and w b e let you move by them.
+      - Choosing the right way into insert mode saves moving the cursor first.
+      - Everything in vi starts from where the cursor is, and hjkl put you there without leaving the home row.
+      - "Counts work with almost every command: 3dd, 5j, 2w."
+    answer: "Counts work with almost every command: 3dd, 5j, 2w."
+    hint: Look for the sentence about 3dd.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Delete the three temporary lines (the BEGIN TEMP marker and the two test jobs) from ~/vi/cron.txt.
+    options:
+      - "oMaintenance: Sunday 02:00<Esc>:wq<CR>"
+      - jlio<Esc>jio<Esc>:wq<CR>
+      - withe <Esc>:wq<CR>
+      - j3dd:wq<CR>
+    answer: j3dd:wq<CR>
+    hint: 3dd deletes three lines.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Do it N times" taught you at work?
+    options:
+      - Removing temporary jobs is a habit that prevents surprises.
+      - Long config lines are quick to cross once you move by word.
+      - A message of the day warns everyone who logs in.
+      - YAML typos cause a large share of failed deploys.
+    answer: Removing temporary jobs is a habit that prevents surprises.
+    hint: "It starts with: Removing temporary jobs is…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: j____:wq<CR>
+    answer:
+      - 3dd
+    hint: It starts with "3" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Do it N times" taught. Any one of them counts.
+    answer:
+      - 3dd
+    hint: One of them is 3…

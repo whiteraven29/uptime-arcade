@@ -50,7 +50,18 @@
   --violet-lo: #6f5bff;
   --gold-hi: #fff3c4;
   --gold-lo: #c98a12;
+  --rank-hi: #e6edf5;
+  --rank-lo: #6d86a3;
+  --blood-hi: #ffc9c9;
+  --blood-lo: #a80f2d;
   --emblem-core: #06121f;
+
+  /* difficulty, from gentle to painful */
+  --diff-easy: #6bf0b2;
+  --diff-medium: #62dcff;
+  --diff-hard: #ffb340;
+  --diff-expert: #ff7a3d;
+  --diff-brainfuck: #ff4d6d;
 
   /* state */
   --ok: #6bf0b2;

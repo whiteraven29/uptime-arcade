@@ -1,0 +1,83 @@
+id: bx-06
+track: BX
+skill: shell
+chapter: Medium
+order: 6
+title: Where the errors live
+from: SRE
+difficulty: medium
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: "awk can filter and group in the same program: a condition picks the lines, and an array counts them per key."
+  example: awk '$2=="lost"{c[$1]++} END{for(k in c)print c[k],k}' games.txt
+brief: Which path in ~/logs/api-access.log returns the most 500 errors? Status is field 5 and path is field 4.
+goal: "Run: submit <path>"
+hints:
+  - $5==500 picks the lines.
+  - c[$4]++ counts per path. Print in END, then sort -rn.
+debrief:
+  why: Filtering before grouping turns "how many errors" into "where are the errors", which is the question that matters.
+  solution: awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log | sort -rn | head -1
+  job: This is the second query of every incident.
+teaches:
+  - beyond
+answer:
+  accept:
+    - /v1/orders
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Where the errors live". Which sentence best describes what it taught?
+    options:
+      - x keeps what it removed, so xp is a two-key typo fix.
+      - Filtering before grouping turns "how many errors" into "where are the errors", which is the question that matters.
+      - Pipelines are built from parts, so swapping the last part changes the question they answer.
+      - Every extra bit doubles the number of subnets and halves their size.
+    answer: Filtering before grouping turns "how many errors" into "where are the errors", which is the question that matters.
+    hint: "The lesson said: awk can filter and group in the same program: a condition picks the lines, and an array counts them per key."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Which path in ~/logs/api-access.log returns the most 500 errors? Status is field 5 and path is field 4.
+    options:
+      - "4"
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | sed -n 2p
+      - awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log | sort -rn | head -1
+      - lxp:wq<CR>
+    answer: awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log | sort -rn | head -1
+    hint: c[$4]++ counts per path. Print in END, then sort -rn.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: This pipeline has been split at each | and mixed up. Tap the parts from first to last.
+    scrambled:
+      - sort -rn
+      - head -1
+      - awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log
+    answer:
+      - awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log
+      - sort -rn
+      - head -1
+    hint: "The first one is: awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log | sort ____ | head -1
+    answer:
+      - -rn
+    hint: It starts with "-" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Which path in ~/logs/api-access.log returns the most 500 errors? Status is field 5 and path is field 4.
+    answer:
+      - /v1/orders
+    hint: It starts with "/" and is 10 characters long.

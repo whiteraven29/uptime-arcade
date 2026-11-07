@@ -1,0 +1,130 @@
+id: py-29
+track: PY
+skill: python
+chapter: Quality
+order: 29
+title: Merge the windows
+from: SRE
+difficulty: expert
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Sort by start time, then walk through once. out[-1] is the last item, and you extend it when the next item overlaps. max(a, b) gives the larger value.
+  example: |-
+    for s, e in sorted(items):
+        if out and s <= out[-1][1]:
+            out[-1][1] = max(out[-1][1], e)
+brief: Given [start, end] pairs, merge overlapping ones and return them sorted.
+goal: Write merge(windows). Tests run when you press Run tests.
+hints:
+  - Sort by start.
+  - Extend the last window when the next one overlaps.
+debrief:
+  why: Sorting first turns an all-pairs problem into one pass.
+  solution: |-
+    def merge(windows):
+        out = []
+        for s, e in sorted(windows):
+            if out and s <= out[-1][1]:
+                out[-1][1] = max(out[-1][1], e)
+            else:
+                out.append([s, e])
+        return out
+  job: Calendars, schedulers and IP ranges all use this.
+teaches:
+  - max
+  - and
+python:
+  starter: |
+    def merge(windows):
+        # your code here
+        pass
+  tests:
+    - expr: merge([[1,3],[2,6],[8,10]])
+      want: "[[1,6],[8,10]]"
+    - expr: merge([[5,7],[1,2]])
+      want: "[[1,2],[5,7]]"
+    - expr: merge([])
+      want: "[]"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Merge the windows". Which sentence best describes what it taught?
+    options:
+      - Generators do the work only when asked, so memory use stays flat however much data flows through.
+      - Regular expressions pull structure out of messy text, the same idea as grep -o.
+      - An IP is a 32-bit number, and shifting off the host bits does what a subnet mask does.
+      - Sorting first turns an all-pairs problem into one pass.
+    answer: Sorting first turns an all-pairs problem into one pass.
+    hint: Look for the sentence about max and and.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Given [start, end] pairs, merge overlapping ones and return them sorted.
+    options:
+      - return re.findall(r"order=(\d+)", text)
+      - "for n in range(0, limit, 2):"
+      - return to_int(a) >> s == to_int(b) >> s
+      - out[-1][1] = max(out[-1][1], e)
+    answer: out[-1][1] = max(out[-1][1], e)
+    hint: Extend the last window when the next one overlaps.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "def merge(windows):"
+      - "            out.append([s, e])"
+      - "    for s, e in sorted(windows):"
+      - "            out[-1][1] = max(out[-1][1], e)"
+      - "    return out"
+      - "        if out and s <= out[-1][1]:"
+      - "        else:"
+      - "    out = []"
+    answer:
+      - "def merge(windows):"
+      - "    out = []"
+      - "    for s, e in sorted(windows):"
+      - "        if out and s <= out[-1][1]:"
+      - "            out[-1][1] = max(out[-1][1], e)"
+      - "        else:"
+      - "            out.append([s, e])"
+      - "    return out"
+    hint: "The first one is: def merge(windows):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def merge(windows):
+          out = []
+          for s, e in sorted(windows):
+              if out and s <= out[-1][1]:
+                  out[-1][1] = max(out[-1][1], e)
+              else:
+                  out.____([s, e])
+          return out
+    answer:
+      - append
+    hint: It starts with "a" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def merge(windows):
+          out = []
+          for s, e in sorted(windows):
+              if out and s <= out[-1][1]:
+                  ____
+              else:
+                  out.append([s, e])
+          return out
+    answer:
+      - out[-1][1] = max(out[-1][1], e)
+    hint: "It starts with: out[-1][1] "

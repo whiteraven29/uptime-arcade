@@ -1,0 +1,125 @@
+id: go-12
+track: GO
+skill: go
+chapter: Slices
+order: 12
+title: Copy safely
+from: Backend
+difficulty: medium
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: make creates a slice of a given length. copy fills the destination up to the shorter length and returns how many items it copied, so it never grows anything.
+  example: |-
+    d := make([]int, 1)
+    n := copy(d, []int{4, 5})   // n is 1
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - copy takes the shorter length.
+  - It returns how many it copied.
+debrief:
+  why: copy never grows the destination, so size it first. It gives you data that is truly separate.
+  solution: submit 2 [7 8]
+  job: Buffer code uses this all the time.
+teaches:
+  - make
+  - copy
+answer:
+  accept:
+    - 2 [7 8]
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	dst := make([]int, 2)
+    	n := copy(dst, []int{7, 8, 9})
+    	fmt.Println(n, dst)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Copy safely". Which sentence best describes what it taught?
+    options:
+      - Multiple returns remove the need for special out-parameters, and they make error handling possible.
+      - With no capacity left, append copies to a new array, so a and b no longer share memory.
+      - Arrays are values and slices are views. That one difference explains most slice surprises.
+      - copy never grows the destination, so size it first. It gives you data that is truly separate.
+    answer: copy never grows the destination, so size it first. It gives you data that is truly separate.
+    hint: Look for the sentence about make and copy.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 1 9
+      - 3 2
+      - 2 [7 8]
+      - err != nil
+    answer: 2 [7 8]
+    hint: It returns how many it copied.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	dst := make([]int, 2)
+      	n := copy(dst, []int{7, 8, 9})
+      	fmt.Println(n, dst)
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - fmt.Println(n, dst)
+      - n := copy(dst, []int{7, 8, 9})
+      - dst := make([]int, 2)
+    answer:
+      - dst := make([]int, 2)
+      - n := copy(dst, []int{7, 8, 9})
+      - fmt.Println(n, dst)
+    hint: "The first one is: dst := make([]int, 2)"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      dst := make([]int, 2)
+      n := ____(dst, []int{7, 8, 9})
+      fmt.Println(n, dst)
+    answer:
+      - copy
+    hint: It starts with "c" and is 4 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	dst := make([]int, 2)
+      	n := copy(dst, []int{7, 8, 9})
+      	fmt.Println(n, dst)
+      }
+    answer:
+      - 2 [7 8]
+    hint: It starts with "2" and is 7 characters long.

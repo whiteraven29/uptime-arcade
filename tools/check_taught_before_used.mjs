@@ -71,7 +71,7 @@ function pyTokens(sol) {
 
 const GO_WORDS = ['package', 'import', 'func', 'var', 'const', 'iota', 'if', 'switch', 'for', 'range', 'return', 'type', 'struct', 'interface', 'defer', 'go', 'select', 'chan', 'make', 'append', 'copy', 'len', 'cap', 'close', 'panic', 'recover', 'nil', 'map'];
 function goTokens(t) {
-  const code = `${t.decl || ''}\n${t.code}`.replace(/"[^"]*"/g, '""').replace(/\/\/.*$/gm, '');
+  const code = t.program.replace(/^package main[\s\S]*?\n\)\n/, '').replace(/"[^"]*"/g, '""').replace(/\/\/.*$/gm, '');
   const out = new Set();
   for (const w of GO_WORDS) if (new RegExp(`\\b${w}\\b`).test(code)) out.add(w);
   for (const m of code.matchAll(/\b(fmt|strconv|strings|errors|time|sync|context)\.([A-Z]\w*)/g)) { out.add(m[1]); out.add(m[2]); }

@@ -1,0 +1,84 @@
+id: net-24
+track: NET
+skill: networking
+chapter: Tools
+order: 24
+title: Talk HTTP by hand
+from: SRE
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "curl fetches a URL, and curl -I asks for only the headers. The first line has the status: 2xx worked, 3xx redirects, 4xx is the client's fault, 5xx is the server's fault."
+  example: |-
+    curl -I https://example.test
+    HTTP/1.1 200 OK
+brief: What status does https://app.whiteraven.example return right now?
+goal: "Run: submit <status code>"
+hints:
+  - curl -I shows just the headers.
+  - The number on the first line.
+debrief:
+  why: The status tells you whose fault it is before you read anything else, and 503 means the server knows it is unavailable.
+  solution: curl -I https://app.whiteraven.example
+  job: curl -I is how you check a site without a browser.
+teaches:
+  - curl
+  - -I
+answer:
+  accept:
+    - "503"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Talk HTTP by hand". Which sentence best describes what it taught?
+    options:
+      - The status tells you whose fault it is before you read anything else, and 503 means the server knows it is unavailable.
+      - Two broadcasts and two replies, so a laptop with no address at all can still get one.
+      - A timeout means no server answered, and NXDOMAIN means it answered that the name doesn't exist. They're different faults.
+      - Loss hurts more than delay, because TCP slows right down when packets go missing.
+    answer: The status tells you whose fault it is before you read anything else, and 503 means the server knows it is unavailable.
+    hint: Look for the sentence about curl and -I.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: What status does https://app.whiteraven.example return right now?
+    options:
+      - "25"
+      - sed -i 's/10.40.10.99/10.40.10.53/' /etc/resolv.conf
+      - request
+      - "503"
+    answer: "503"
+    hint: The number on the first line.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Talk HTTP by hand" taught you at work?
+    options:
+      - "'The internet is down' is often only DNS."
+      - curl -I is how you check a site without a browser.
+      - A 169.254 address means this conversation failed.
+      - Ping is the first tool anyone reaches for.
+    answer: curl -I is how you check a site without a browser.
+    hint: "It starts with: curl -I is how…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: curl ____ https://app.whiteraven.example
+    answer:
+      - -I
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: What status does https://app.whiteraven.example return right now?
+    answer:
+      - "503"
+    hint: It starts with "5" and is 3 characters long.

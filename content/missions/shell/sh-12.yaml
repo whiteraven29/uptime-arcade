@@ -1,0 +1,100 @@
+id: sh-12
+track: SH
+skill: shell
+chapter: Pipes
+order: 12
+title: Save the output
+from: SRE
+difficulty: medium
+check: fs
+par:
+  kind: commands
+  value: 2
+lesson:
+  text: "> writes output to a file, replacing what was there. >> adds to the end instead. 2>/dev/null throws error messages away."
+  example: |-
+    grep cat pets.txt > cats.txt
+    grep -c cat pets.txt >> cats.txt
+    ls missing 2>/dev/null
+brief: The incident channel wants the FATAL lines from ~/logs/app.log in a file, with the total count on the last line.
+goal: Write the lines to ~/incident.txt, then add the count to the end of it.
+hints:
+  - Use > for the lines.
+  - grep -c with >> adds the count without wiping the file.
+debrief:
+  why: "> starts the file again every time, while >> adds to it. Mixing them up is the classic way to lose a report."
+  solution: |-
+    grep FATAL ~/logs/app.log > ~/incident.txt
+    grep -c FATAL ~/logs/app.log >> ~/incident.txt
+  job: Evidence saved to a file survives after your terminal scrolls away.
+teaches:
+  - ">"
+  - ">>"
+expect:
+  - file_equals:
+      path: ~/incident.txt
+      content: |
+        2026-10-14 06:00:33 FATAL payments retrying order=1120
+        2026-10-14 07:37:44 FATAL billing retrying order=1210
+        2026-10-14 09:14:26 FATAL search retrying order=1121
+        2026-10-14 10:51:24 FATAL billing retrying order=1022
+        2026-10-14 12:28:20 FATAL auth retrying order=1085
+        2026-10-14 14:05:30 FATAL payments retrying order=1028
+        2026-10-14 15:42:56 FATAL billing retrying order=1074
+        2026-10-14 17:19:06 FATAL auth retrying order=1094
+        2026-10-14 18:56:03 FATAL auth retrying order=1080
+        2026-10-14 20:33:18 FATAL mailer retrying order=1223
+        10
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Save the output". Which sentence best describes what it taught?
+    options:
+      - The shell splits on spaces, and programs read a leading dash as an option. Quoting and a path prefix fix both. Dotfiles are only hidden from plain ls.
+      - mkdir -p creates the whole chain and doesn't complain if a folder is already there, so it's safe to run twice.
+      - Each command does one small job, and the pipe joins them. grep picks the lines, head keeps the first.
+      - "> starts the file again every time, while >> adds to it. Mixing them up is the classic way to lose a report."
+    answer: "> starts the file again every time, while >> adds to it. Mixing them up is the classic way to lose a report."
+    hint: Look for the sentence about > and >>.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: The incident channel wants the FATAL lines from ~/logs/app.log in a file, with the total count on the last line.
+    options:
+      - cat ~/inbox/'week 44'/.rota
+      - grep -c FATAL ~/logs/app.log >> ~/incident.txt
+      - grep FATAL ~/logs/app.log | head -1
+      - touch ~/work/today/notes.txt
+    answer: grep -c FATAL ~/logs/app.log >> ~/incident.txt
+    hint: grep -c with >> adds the count without wiping the file.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Save the output" taught you at work?
+    options:
+      - Almost every useful one-liner has a pipe in it.
+      - Setup scripts use mkdir -p because it can be run again safely.
+      - Backups and uploads produce names like this all the time.
+      - Evidence saved to a file survives after your terminal scrolls away.
+    answer: Evidence saved to a file survives after your terminal scrolls away.
+    hint: "It starts with: Evidence saved to a…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: grep ____ FATAL ~/logs/app.log >> ~/incident.txt
+    answer:
+      - -c
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type one of the commands you used."
+    context: The incident channel wants the FATAL lines from ~/logs/app.log in a file, with the total count on the last line.
+    answer:
+      - grep FATAL ~/logs/app.log > ~/incident.txt
+      - grep -c FATAL ~/logs/app.log >> ~/incident.txt
+    hint: "It starts with: grep -c FATAL ~/"

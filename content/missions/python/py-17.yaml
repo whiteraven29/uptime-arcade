@@ -1,0 +1,138 @@
+id: py-17
+track: PY
+skill: python
+chapter: Functions
+order: 17
+title: When things go wrong
+from: Backend
+difficulty: medium
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: int("abc") raises an error that would stop the program. try runs risky code, and except catches the error so you can respond. raise creates an error yourself. None means "no value".
+  example: |-
+    try:
+        n = int(text)
+    except ValueError:
+        n = None
+
+    if n < 0:
+        raise ValueError("negative")
+brief: Return the text as an int if it is a valid port from 1 to 65535. Return None otherwise.
+goal: Write parse_port(text). Tests run when you press Run tests.
+hints:
+  - Put int(text) inside try, and raise ValueError when it is out of range.
+  - "except ValueError: return None"
+debrief:
+  why: Errors are normal when input comes from outside. Catch what you expect and turn it into something the rest of the code can use.
+  solution: |-
+    def parse_port(text):
+        try:
+            n = int(text)
+            if n < 1 or n > 65535:
+                raise ValueError("out of range")
+            return n
+        except ValueError:
+            return None
+  job: Every program that reads input needs this.
+teaches:
+  - try
+  - except
+  - raise
+  - None
+  - ValueError
+  - int
+python:
+  starter: |
+    def parse_port(text):
+        # your code here
+        pass
+  tests:
+    - expr: parse_port("8080")
+      want: "8080"
+    - expr: parse_port("abc")
+      want: None
+    - expr: parse_port("70000")
+      want: None
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "When things go wrong". Which sentence best describes what it taught?
+    options:
+      - Errors are normal when input comes from outside. Catch what you expect and turn it into something the rest of the code can use.
+      - A dict finds a value by name instantly, with no looping through a list.
+      - Exponential backoff stops clients hammering a struggling service, and the cap limits the wait.
+      - This is uniq -c as a dict. It's the same group-and-count idea in another language.
+    answer: Errors are normal when input comes from outside. Catch what you expect and turn it into something the rest of the code can use.
+    hint: Look for the sentence about try and except.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return the text as an int if it is a valid port from 1 to 65535. Return None otherwise.
+    options:
+      - 'PORTS = {"ssh": 22, "dns": 53, "https": 443}'
+      - counts[s] = counts.get(s, 0) + 1
+      - return [min(base * 2 ** i, cap) for i in range(n)]
+      - raise ValueError("out of range")
+    answer: raise ValueError("out of range")
+    hint: "except ValueError: return None"
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "    try:"
+      - "        if n < 1 or n > 65535:"
+      - "def parse_port(text):"
+      - "        return n"
+      - "        return None"
+      - "        n = int(text)"
+      - "    except ValueError:"
+      - '            raise ValueError("out of range")'
+    answer:
+      - "def parse_port(text):"
+      - "    try:"
+      - "        n = int(text)"
+      - "        if n < 1 or n > 65535:"
+      - '            raise ValueError("out of range")'
+      - "        return n"
+      - "    except ValueError:"
+      - "        return None"
+    hint: "The first one is: def parse_port(text):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def parse_port(text):
+          try:
+              n = int(text)
+              if n < 1 or n > 65535:
+                  raise ValueError("out of range")
+              ____ n
+          except ValueError:
+              return None
+    answer:
+      - return
+    hint: It starts with "r" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def parse_port(text):
+          try:
+              n = int(text)
+              if n < 1 or n > 65535:
+                  ____
+              return n
+          except ValueError:
+              return None
+    answer:
+      - raise ValueError("out of range")
+    hint: "It starts with: raise Value"

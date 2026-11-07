@@ -1,0 +1,87 @@
+id: sh-27
+track: SH
+skill: shell
+chapter: Scripting
+order: 27
+title: Variables and quoting
+from: SRE
+difficulty: hard
+check: answer
+par:
+  kind: commands
+  value: 2
+lesson:
+  text: NAME=value sets a variable, with no spaces around the =. $NAME reads it back, and $(command) captures what a command printed. Double quotes keep the value as one piece and still expand it. Single quotes keep everything literal.
+  example: |-
+    N=$(wc -l < notes.txt)
+    echo "Notes: $N"
+brief: Store the number of 500 errors in ~/logs/api-access.log in a variable, then print it in a sentence.
+goal: "Run: submit <the count>"
+hints:
+  - Put spaces around 500 in grep so it can't match a byte count.
+  - E=$(grep -c ' 500 ' ~/logs/api-access.log)
+debrief:
+  why: $( ) turns a command's output into a value you can reuse, which is the step from one-liners to scripts.
+  solution: |-
+    E=$(grep -c ' 500 ' ~/logs/api-access.log)
+    echo "Count: $E"
+  job: Scripts capture values like this all the time, to alert when a count is too high.
+teaches:
+  - $(
+  - echo
+  - "="
+answer:
+  accept:
+    - "66"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Variables and quoting". Which sentence best describes what it taught?
+    options:
+      - sed applies a substitution to every line. Writing to a new file keeps the original for a safe rollback.
+      - ^ and $ anchor to the start and end of a line, so ^$ means an empty line.
+      - $( ) turns a command's output into a value you can reuse, which is the step from one-liners to scripts.
+      - awk splits on whitespace for you, so column work needs no delimiter flags.
+    answer: $( ) turns a command's output into a value you can reuse, which is the step from one-liners to scripts.
+    hint: Look for the sentence about $( and echo.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Store the number of 500 errors in ~/logs/api-access.log in a variable, then print it in a sentence.
+    options:
+      - sed '/^#/d; /^$/d' ~/conf/nginx-comments.conf > ~/conf/nginx-clean.conf
+      - E=$(grep -c ' 500 ' ~/logs/api-access.log)
+      - sed 's/old-host\.example/whiteraven.example/' ~/conf/endpoints.conf > ~/conf/endpoints-new.conf
+      - awk '{print $2}' ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+    answer: E=$(grep -c ' 500 ' ~/logs/api-access.log)
+    hint: E=$(grep -c ' 500 ' ~/logs/api-access.log)
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Variables and quoting" taught you at work?
+    options:
+      - Finding a chatty client is step one for capacity and rate limit work.
+      - Migrations are full of edits like this.
+      - Scripts capture values like this all the time, to alert when a count is too high.
+      - Comparing real settings between servers starts here.
+    answer: Scripts capture values like this all the time, to alert when a count is too high.
+    hint: "It starts with: Scripts capture values like…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: E=$(grep ____ ' 500 ' ~/logs/api-access.log)
+    answer:
+      - -c
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Store the number of 500 errors in ~/logs/api-access.log in a variable, then print it in a sentence.
+    answer:
+      - "66"
+    hint: It starts with "6" and is 2 characters long.

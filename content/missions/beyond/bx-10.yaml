@@ -1,0 +1,84 @@
+id: bx-10
+track: BX
+skill: networking
+chapter: Medium
+order: 10
+title: The covering route
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Two networks can be covered by one shorter route. Find how many leading bits they share. It may cover more than just those two.
+  example: |-
+    10.0.2.0/24 and 10.0.3.0/24
+    share 23 bits, so 10.0.2.0/23
+brief: What is the smallest single route that covers both 10.0.0.0/24 and 10.0.3.0/24?
+goal: "Run: submit <answer>"
+hints:
+  - "Write the third octets in binary: 00000000 and 00000011."
+  - They differ in the last two bits of that octet.
+debrief:
+  why: 0 and 3 differ in two bits, so the shared prefix is 22 bits, and the route also covers 10.0.1.0 and 10.0.2.0.
+  solution: submit 10.0.0.0/22
+  job: Summaries often cover more than you meant, which can swallow traffic.
+teaches:
+  - beyond
+answer:
+  accept:
+    - 10.0.0.0/22
+verify: str(ipaddress.ip_network('10.0.3.0/22', strict=False))
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The covering route". Which sentence best describes what it taught?
+    options:
+      - v is a copy, and writing through the index is the one that sticks.
+      - 0 and 3 differ in two bits, so the shared prefix is 22 bits, and the route also covers 10.0.1.0 and 10.0.2.0.
+      - Compression is really about spotting runs. Forgetting the last run after the loop is the classic bug.
+      - Filtering before grouping turns "how many errors" into "where are the errors", which is the question that matters.
+    answer: 0 and 3 differ in two bits, so the shared prefix is 22 bits, and the route also covers 10.0.1.0 and 10.0.2.0.
+    hint: "The lesson said: Two networks can be covered by one shorter route."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: What is the smallest single route that covers both 10.0.0.0/24 and 10.0.3.0/24?
+    options:
+      - awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log | sort -rn | head -1
+      - 10.0.0.0/22
+      - "[2 4 6]"
+      - out += prev + str(n)
+    answer: 10.0.0.0/22
+    hint: They differ in the last two bits of that octet.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "The covering route" taught you at work?
+    options:
+      - This is the second query of every incident.
+      - A common loop in any Go code.
+      - Log compressors and image formats start from this.
+      - Summaries often cover more than you meant, which can swallow traffic.
+    answer: Summaries often cover more than you meant, which can swallow traffic.
+    hint: "It starts with: Summaries often cover more…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: 0 and 3 differ in two ____, so the shared prefix is 22 bits, and the route also covers 10.0.1.0 and 10.0.2.0.
+    answer:
+      - bits
+    hint: It starts with "b" and is 4 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: What is the smallest single route that covers both 10.0.0.0/24 and 10.0.3.0/24?
+    answer:
+      - 10.0.0.0/22
+    hint: It starts with "1" and is 11 characters long.

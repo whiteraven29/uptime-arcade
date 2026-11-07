@@ -1,0 +1,84 @@
+id: bx-05
+track: BX
+skill: networking
+chapter: Easy
+order: 5
+title: How many fit?
+from: Network
+difficulty: easy
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Each extra prefix bit splits a block in two. So the count is 2 to the power of the difference between prefixes.
+  example: |-
+    A /24 holds two /25s
+    and four /26s
+brief: How many /26 subnets fit in one /24?
+goal: "Run: submit <answer>"
+hints:
+  - 26 minus 24 is 2.
+  - 2 to the power of 2.
+debrief:
+  why: Every extra bit doubles the number of subnets and halves their size.
+  solution: submit 4
+  job: The quick sum behind every address plan.
+teaches:
+  - beyond
+answer:
+  accept:
+    - "4"
+verify: str(len(list(ipaddress.ip_network('10.0.0.0/24').subnets(new_prefix=26))))
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "How many fit?". Which sentence best describes what it taught?
+    options:
+      - x keeps what it removed, so xp is a two-key typo fix.
+      - Division by zero is the classic crash in reporting code, so guard it first.
+      - v is a copy, and writing through the index is the one that sticks.
+      - Every extra bit doubles the number of subnets and halves their size.
+    answer: Every extra bit doubles the number of subnets and halves their size.
+    hint: "The lesson said: Each extra prefix bit splits a block in two."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: How many /26 subnets fit in one /24?
+    options:
+      - "4"
+      - return round(up / total * 100, 2)
+      - "[2 4 6]"
+      - lxp:wq<CR>
+    answer: "4"
+    hint: 2 to the power of 2.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "How many fit?" taught you at work?
+    options:
+      - Status pages show exactly this number.
+      - You will use xp for the rest of your life.
+      - A common loop in any Go code.
+      - The quick sum behind every address plan.
+    answer: The quick sum behind every address plan.
+    hint: "It starts with: The quick sum behind…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: Every extra bit ____ the number of subnets and halves their size.
+    answer:
+      - doubles
+    hint: It starts with "d" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: How many /26 subnets fit in one /24?
+    answer:
+      - "4"
+    hint: It starts with "4" and is 1 characters long.

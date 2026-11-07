@@ -1,0 +1,133 @@
+id: go-11
+track: GO
+skill: go
+chapter: Slices
+order: 11
+title: The slice that changed by itself
+from: Backend
+difficulty: medium
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: a[:2] is a view of the first two items, sharing memory with a. len is how many it holds and cap is how far it could grow. append writes in place when the array has spare room.
+  example: |-
+    a := []int{1, 2, 3}
+    b := a[:1]
+    b = append(b, 7)   // a[1] is now 7
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - b shares a's array.
+  - append writes in place when capacity allows.
+debrief:
+  why: A slice is a pointer, a length and a capacity. With room left, append overwrites. Use a[:2:2] to force a copy.
+  solution: submit 99 3 4
+  job: This is one of the commonest real Go bugs.
+teaches:
+  - len
+  - cap
+  - "[:"
+answer:
+  accept:
+    - 99 3 4
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	a := []int{1, 2, 3, 4}
+    	b := a[:2]
+    	b = append(b, 99)
+    	fmt.Println(a[2], len(b), cap(b))
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The slice that changed by itself". Which sentence best describes what it taught?
+    options:
+      - Multiple returns remove the need for special out-parameters, and they make error handling possible.
+      - A slice is a pointer, a length and a capacity. With room left, append overwrites. Use a[:2:2] to force a copy.
+      - One loop keyword with a few shapes means less to remember. range is the one you use most.
+      - Arrays are values and slices are views. That one difference explains most slice surprises.
+    answer: A slice is a pointer, a length and a capacity. With room left, append overwrites. Use a[:2:2] to force a copy.
+    hint: Look for the sentence about len and cap.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 99 3 4
+      - 1 9
+      - 3 2
+      - "36"
+    answer: 99 3 4
+    hint: append writes in place when capacity allows.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	a := []int{1, 2, 3, 4}
+      	b := a[:2]
+      	b = append(b, 99)
+      	fmt.Println(a[2], len(b), cap(b))
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - fmt.Println(a[2], len(b), cap(b))
+      - b = append(b, 99)
+      - b := a[:2]
+      - a := []int{1, 2, 3, 4}
+    answer:
+      - a := []int{1, 2, 3, 4}
+      - b := a[:2]
+      - b = append(b, 99)
+      - fmt.Println(a[2], len(b), cap(b))
+    hint: "The first one is: a := []int{1, 2, 3, 4}"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      a := []int{1, 2, 3, 4}
+      b := a[:2]
+      b = append(b, 99)
+      fmt.Println(a[2], len(b), ____(b))
+    answer:
+      - cap
+    hint: It starts with "c" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	a := []int{1, 2, 3, 4}
+      	b := a[:2]
+      	b = append(b, 99)
+      	fmt.Println(a[2], len(b), cap(b))
+      }
+    answer:
+      - 99 3 4
+    hint: It starts with "9" and is 6 characters long.

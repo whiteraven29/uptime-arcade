@@ -1,0 +1,143 @@
+id: go-15
+track: GO
+skill: go
+chapter: Types
+order: 15
+title: Structs
+from: Backend
+difficulty: medium
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: type and struct define your own group of named fields. Create one with a literal, and read or change fields with a dot.
+  example: |-
+    type Pet struct {
+    	Name string
+    }
+    p := Pet{Name: "Rex"}
+    p.Name = "Max"
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - Port starts at 80.
+  - The next line changes it.
+debrief:
+  why: Structs bundle related data under one name, like a class without the ceremony.
+  solution: submit web 8080
+  job: Every API request and config in Go is a struct.
+teaches:
+  - type
+  - struct
+answer:
+  accept:
+    - web 8080
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    type Server struct {
+    	Name string
+    	Port int
+    }
+
+    func main() {
+    	s := Server{Name: "web", Port: 80}
+    	s.Port = 8080
+    	fmt.Println(s.Name, s.Port)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Structs". Which sentence best describes what it taught?
+    options:
+      - copy never grows the destination, so size it first. It gives you data that is truly separate.
+      - Strings are bytes, so convert to runes when you need characters.
+      - Structs bundle related data under one name, like a class without the ceremony.
+      - A slice is a pointer, a length and a capacity. With room left, append overwrites. Use a[:2:2] to force a copy.
+    answer: Structs bundle related data under one name, like a class without the ceremony.
+    hint: Look for the sentence about type and struct.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 99 3 4
+      - 6 8 6
+      - 2 [7 8]
+      - web 8080
+    answer: web 8080
+    hint: The next line changes it.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      type Server struct {
+      	Name string
+      	Port int
+      }
+
+      func main() {
+      	s := Server{Name: "web", Port: 80}
+      	s.Port = 8080
+      	fmt.Println(s.Name, s.Port)
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - 's := Server{Name: "web", Port: 80}'
+      - fmt.Println(s.Name, s.Port)
+      - s.Port = 8080
+    answer:
+      - 's := Server{Name: "web", Port: 80}'
+      - s.Port = 8080
+      - fmt.Println(s.Name, s.Port)
+    hint: 'The first one is: s := Server{Name: "web", Port: 80}'
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      s := Server{Name: "web", Port: 80}
+      s.Port = 8080
+      fmt.____(s.Name, s.Port)
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      type Server struct {
+      	Name string
+      	Port int
+      }
+
+      func main() {
+      	s := Server{Name: "web", Port: 80}
+      	s.Port = 8080
+      	fmt.Println(s.Name, s.Port)
+      }
+    answer:
+      - web 8080
+    hint: It starts with "w" and is 8 characters long.

@@ -1,0 +1,131 @@
+id: go-13
+track: GO
+skill: go
+chapter: Maps and text
+order: 13
+title: Look up with comma-ok
+from: Backend
+difficulty: medium
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A map stores keys and values. Reading a missing key gives the zero value and adds nothing. v, ok := m[k] also tells you if it exists. m[k]++ creates the key. A nil map can be read, but writing to one crashes.
+  example: |-
+    m := map[string]int{}
+    v, ok := m["z"]   // 0 false
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - Reading a missing key gives zero and adds nothing.
+  - ++ does create the key.
+debrief:
+  why: Maps return the zero value for missing keys, so counting needs no setup. Comma-ok tells zero from missing.
+  solution: submit 2 0 false
+  job: Go counters rely on this.
+teaches:
+  - map
+  - ok
+answer:
+  accept:
+    - 2 0 false
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	hits := map[string]int{"a": 2}
+    	hits["b"]++
+    	v, ok := hits["c"]
+    	fmt.Println(len(hits), v, ok)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Look up with comma-ok". Which sentence best describes what it taught?
+    options:
+      - Maps return the zero value for missing keys, so counting needs no setup. Comma-ok tells zero from missing.
+      - With no capacity left, append copies to a new array, so a and b no longer share memory.
+      - Unlike C, Go breaks automatically at the end of a case.
+      - copy never grows the destination, so size it first. It gives you data that is truly separate.
+    answer: Maps return the zero value for missing keys, so counting needs no setup. Comma-ok tells zero from missing.
+    hint: Look for the sentence about map and ok.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 2 0 false
+      - 2 [7 8]
+      - two end
+      - 1 9
+    answer: 2 0 false
+    hint: ++ does create the key.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	hits := map[string]int{"a": 2}
+      	hits["b"]++
+      	v, ok := hits["c"]
+      	fmt.Println(len(hits), v, ok)
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - v, ok := hits["c"]
+      - 'hits := map[string]int{"a": 2}'
+      - fmt.Println(len(hits), v, ok)
+      - hits["b"]++
+    answer:
+      - 'hits := map[string]int{"a": 2}'
+      - hits["b"]++
+      - v, ok := hits["c"]
+      - fmt.Println(len(hits), v, ok)
+    hint: 'The first one is: hits := map[string]int{"a": 2}'
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      hits := map[string]int{"a": 2}
+      hits["b"]++
+      v, ok := hits["c"]
+      fmt.____(len(hits), v, ok)
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	hits := map[string]int{"a": 2}
+      	hits["b"]++
+      	v, ok := hits["c"]
+      	fmt.Println(len(hits), v, ok)
+      }
+    answer:
+      - 2 0 false
+    hint: It starts with "2" and is 9 characters long.

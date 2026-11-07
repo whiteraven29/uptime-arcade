@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { HudPanel } from '../../ui/HudPanel.jsx';
+import { DifficultyTag } from '../../ui/DifficultyTag.jsx';
 import { TK, byId, parText, setCurrent, stateOf, toast, trackName } from '../../api/localGame.js';
 
 export function BriefingScreen() {
@@ -20,7 +21,8 @@ export function BriefingScreen() {
           <h1 className="title metal">{m.title}</h1>
           <div className="meta">
             <span>From <b>{m.from}</b></span>
-            <span>Worth <b>{m.xp} XP</b></span>
+            <DifficultyTag code={m.difficulty} />
+            <span>Worth <b>{m.xp} XP</b> when you finish the mission and its rewind</span>
             <span>Par <b>{parText(m)}</b></span>
           </div>
           <p className="label">Lesson</p>

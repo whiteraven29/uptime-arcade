@@ -1,0 +1,121 @@
+id: py-19
+track: PY
+skill: python
+chapter: Parsing
+order: 19
+title: Read and write JSON
+from: Backend
+difficulty: medium
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: import brings in a module of extra tools. JSON is the text format APIs use. json.loads turns JSON text into dicts and lists, and json.dumps turns them back into text.
+  example: |-
+    import json
+    d = json.loads('{"a": 1}')
+    d["a"] = 2
+    json.dumps(d)   # '{"a": 2}'
+brief: The text is a JSON object with a version number. Add 1 to it and return the new JSON text.
+goal: Write bump_version(text). Tests run when you press Run tests.
+hints:
+  - d = json.loads(text)
+  - d["version"] += 1, then json.dumps(d).
+debrief:
+  why: "Parse, change, serialise: never edit JSON by hand with string replacement."
+  solution: |-
+    import json
+
+    def bump_version(text):
+        d = json.loads(text)
+        d["version"] += 1
+        return json.dumps(d)
+  job: Nearly every API you call speaks JSON.
+teaches:
+  - import
+  - json
+  - loads
+  - dumps
+python:
+  starter: |
+    import json
+
+    def bump_version(text):
+        # your code here
+        pass
+  tests:
+    - expr: "bump_version('{\"name\": \"api\", \"version\": 3}')"
+      want: "'{\"name\": \"api\", \"version\": 4}'"
+    - expr: "bump_version('{\"version\": 0}')"
+      want: "'{\"version\": 1}'"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Read and write JSON". Which sentence best describes what it taught?
+    options:
+      - Defaults keep the common call short while still letting callers change the rare setting.
+      - This is uniq -c as a dict. It's the same group-and-count idea in another language.
+      - "Parse, change, serialise: never edit JSON by hand with string replacement."
+      - Exponential backoff stops clients hammering a struggling service, and the cap limits the wait.
+    answer: "Parse, change, serialise: never edit JSON by hand with string replacement."
+    hint: Look for the sentence about import and json.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: The text is a JSON object with a version number. Add 1 to it and return the new JSON text.
+    options:
+      - return [min(base * 2 ** i, cap) for i in range(n)]
+      - counts[s] = counts.get(s, 0) + 1
+      - d = json.loads(text)
+      - return min(base * 2 ** attempt, cap)
+    answer: d = json.loads(text)
+    hint: d["version"] += 1, then json.dumps(d).
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "    return json.dumps(d)"
+      - '    d["version"] += 1'
+      - import json
+      - "    d = json.loads(text)"
+      - "def bump_version(text):"
+    answer:
+      - import json
+      - "def bump_version(text):"
+      - "    d = json.loads(text)"
+      - '    d["version"] += 1'
+      - "    return json.dumps(d)"
+    hint: "The first one is: import json"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      import json
+
+      def bump_version(text):
+          d = json.loads(text)
+          d["version"] += 1
+          ____ json.dumps(d)
+    answer:
+      - return
+    hint: It starts with "r" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      import json
+
+      def bump_version(text):
+          ____
+          d["version"] += 1
+          return json.dumps(d)
+    answer:
+      - d = json.loads(text)
+    hint: "It starts with: d = jso"

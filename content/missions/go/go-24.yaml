@@ -1,0 +1,132 @@
+id: go-24
+track: GO
+skill: go
+chapter: Concurrency
+order: 24
+title: Channels
+from: Backend
+difficulty: hard
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A channel passes values between goroutines. ch <- v sends and <-ch receives, and values come out in order. An unbuffered channel blocks until the other side is ready. A buffered one holds a few values without blocking.
+  example: |-
+    c := make(chan int, 1)
+    c <- 5
+    fmt.Println(<-c)   // 5
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - Two values are waiting when len runs.
+  - They come out in the order they went in.
+debrief:
+  why: Channels are how goroutines talk safely, by handing over values instead of sharing memory.
+  solution: submit 2 a b
+  job: Pipelines and worker pools are built from channels.
+teaches:
+  - chan
+  - <-
+answer:
+  accept:
+    - 2 a b
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	ch := make(chan string, 2)
+    	ch <- "a"
+    	ch <- "b"
+    	fmt.Println(len(ch), <-ch, <-ch)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Channels". Which sentence best describes what it taught?
+    options:
+      - Satisfaction is implicit, so you can define an interface where it is used and existing types just fit.
+      - Goroutines are cheap to start, but main does not wait for them. That is the first concurrency trap.
+      - recover only works inside a deferred function, because deferred calls are all that run during a panic.
+      - Channels are how goroutines talk safely, by handing over values instead of sharing memory.
+    answer: Channels are how goroutines talk safely, by handing over values instead of sharing memory.
+    hint: Look for the sentence about chan and <-.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - web ok db ok done
+      - 2 a b
+      - caught and still running
+      - worker main
+    answer: 2 a b
+    hint: They come out in the order they went in.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	ch := make(chan string, 2)
+      	ch <- "a"
+      	ch <- "b"
+      	fmt.Println(len(ch), <-ch, <-ch)
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - ch := make(chan string, 2)
+      - ch <- "b"
+      - ch <- "a"
+      - fmt.Println(len(ch), <-ch, <-ch)
+    answer:
+      - ch := make(chan string, 2)
+      - ch <- "a"
+      - ch <- "b"
+      - fmt.Println(len(ch), <-ch, <-ch)
+    hint: "The first one is: ch := make(chan string, 2)"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      ch := make(chan string, 2)
+      ch <- "a"
+      ch <- "b"
+      fmt.Println(____(ch), <-ch, <-ch)
+    answer:
+      - len
+    hint: It starts with "l" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	ch := make(chan string, 2)
+      	ch <- "a"
+      	ch <- "b"
+      	fmt.Println(len(ch), <-ch, <-ch)
+      }
+    answer:
+      - 2 a b
+    hint: It starts with "2" and is 5 characters long.

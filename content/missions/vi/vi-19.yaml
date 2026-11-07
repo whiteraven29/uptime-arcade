@@ -1,0 +1,87 @@
+id: vi-19
+track: VI
+skill: vi
+chapter: Ex commands
+order: 19
+title: Replace on one line
+from: Platform
+difficulty: medium
+check: vi
+par:
+  kind: keys
+  value: 17
+lesson:
+  text: ":s/old/new/ replaces the first match on the current line. Typing : opens the command line at the bottom, where ex commands like this and :wq live."
+  example: :s/cat/dog/<Enter>
+brief: In ~/vi/tags.txt, on line 2 only, change the first old to new.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/tags.txt"
+hints:
+  - j gets you to line 2.
+  - :s/old/new/ only touches the first match on this line.
+debrief:
+  why: :s works on one line by default, and only on the first match unless you add g.
+  solution: j:s/old/new/<CR>:wq<CR>
+  job: A precise one-line replace leaves everything else untouched.
+teaches:
+  - :s
+file: ~/vi/tags.txt
+expect:
+  - file_equals:
+      path: ~/vi/tags.txt
+      content: |
+        keep: old
+        change: new old
+  - vi_saved: ~/vi/tags.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Replace on one line". Which sentence best describes what it taught?
+    options:
+      - dd is cut and p is paste. In an ACL the first match wins, so a catch-all belongs last.
+      - ">> shifts a line right and << shifts it left. In YAML, indentation changes the meaning."
+      - :s works on one line by default, and only on the first match unless you add g.
+      - "Search is the fastest way to move in a big file: jump to the word instead of counting lines."
+    answer: :s works on one line by default, and only on the first match unless you add g.
+    hint: Look for the sentence about :s.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: In ~/vi/tags.txt, on line 2 only, change the first old to new.
+    options:
+      - /image<CR>>>j>>:wq<CR>
+      - /timeout:<CR>nwwr9:wq<CR>
+      - j:s/old/new/<CR>:wq<CR>
+      - jddGp:wq<CR>
+    answer: j:s/old/new/<CR>:wq<CR>
+    hint: :s/old/new/ only touches the first match on this line.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - :s/old/new/<CR>
+      - j
+      - :wq<CR>
+    answer:
+      - j
+      - :s/old/new/<CR>
+      - :wq<CR>
+    hint: "The first one is: j"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: j____<CR>:wq<CR>
+    answer:
+      - :s/old/new/
+    hint: "It starts with: :s/"
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Replace on one line" taught. Any one of them counts.
+    answer:
+      - :s
+    hint: One of them is :…

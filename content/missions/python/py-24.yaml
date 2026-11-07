@@ -1,0 +1,139 @@
+id: py-24
+track: PY
+skill: python
+chapter: Standard library
+order: 24
+title: Networks in code
+from: Network
+difficulty: hard
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: An IP address is really one 32-bit number. n * 256 + octet builds that number. >> shifts bits away, so x >> 8 drops the last 8 bits. Real programs use the ipaddress module, but doing it by hand shows what a subnet is.
+  example: |-
+    n = 0
+    for o in [1, 2]:
+        n = n * 256 + o
+    n >> 8   # 1
+brief: Return True when two IPv4 strings share a subnet. Prefixes run from 8 to 30.
+goal: Write same_subnet(a, b, prefix). Tests run when you press Run tests.
+hints:
+  - n = n * 256 + octet makes one integer.
+  - Shift right by 32 - prefix and compare.
+debrief:
+  why: An IP is a 32-bit number, and shifting off the host bits does what a subnet mask does.
+  solution: |-
+    def to_int(ip):
+        n = 0
+        for o in ip.split("."):
+            n = n * 256 + int(o)
+        return n
+
+    def same_subnet(a, b, prefix):
+        s = 32 - prefix
+        return to_int(a) >> s == to_int(b) >> s
+  job: Your computer makes this exact check before every packet.
+teaches:
+  - ">>"
+python:
+  starter: |
+    def to_int(ip):
+        # turn "10.0.0.1" into one number
+        pass
+
+    def same_subnet(a, b, prefix):
+        # your code here
+        pass
+  tests:
+    - expr: same_subnet("10.40.30.5","10.40.30.200",24)
+      want: "True"
+    - expr: same_subnet("10.40.30.5","10.40.30.200",25)
+      want: "False"
+    - expr: same_subnet("200.1.1.1","200.9.9.9",8)
+      want: "True"
+    - expr: same_subnet("200.1.1.1","200.1.2.1",24)
+      want: "False"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Networks in code". Which sentence best describes what it taught?
+    options:
+      - Group-and-sum is awk's s[$2]+=$3 written as a dict.
+      - with guarantees the file gets closed. Reading line by line means even a huge file fits in memory.
+      - Date maths is full of traps like month ends and leap years, so never do it by hand.
+      - An IP is a 32-bit number, and shifting off the host bits does what a subnet mask does.
+    answer: An IP is a 32-bit number, and shifting off the host bits does what a subnet mask does.
+    hint: Look for the sentence about >>.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return True when two IPv4 strings share a subnet. Prefixes run from 8 to 30.
+    options:
+      - t = datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)
+      - return to_int(a) >> s == to_int(b) >> s
+      - 'if line.startswith("ERROR"):'
+      - out[c] = out.get(c, 0) + int(mb)
+    answer: return to_int(a) >> s == to_int(b) >> s
+    hint: Shift right by 32 - prefix and compare.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "    return to_int(a) >> s == to_int(b) >> s"
+      - "    n = 0"
+      - "    s = 32 - prefix"
+      - "        n = n * 256 + int(o)"
+      - "def to_int(ip):"
+      - "def same_subnet(a, b, prefix):"
+      - '    for o in ip.split("."):'
+      - "    return n"
+    answer:
+      - "def to_int(ip):"
+      - "    n = 0"
+      - '    for o in ip.split("."):'
+      - "        n = n * 256 + int(o)"
+      - "    return n"
+      - "def same_subnet(a, b, prefix):"
+      - "    s = 32 - prefix"
+      - "    return to_int(a) >> s == to_int(b) >> s"
+    hint: "The first one is: def to_int(ip):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def to_int(ip):
+          n = 0
+          for o in ip.split("."):
+              n = n * 256 + ____(o)
+          return n
+
+      def same_subnet(a, b, prefix):
+          s = 32 - prefix
+          return to_int(a) >> s == to_int(b) >> s
+    answer:
+      - int
+    hint: It starts with "i" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def to_int(ip):
+          n = 0
+          for o in ip.split("."):
+              n = n * 256 + int(o)
+          return n
+
+      def same_subnet(a, b, prefix):
+          s = 32 - prefix
+          ____
+    answer:
+      - return to_int(a) >> s == to_int(b) >> s
+    hint: "It starts with: return to_int"

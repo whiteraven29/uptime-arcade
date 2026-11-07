@@ -1,0 +1,111 @@
+id: py-21
+track: PY
+skill: python
+chapter: Standard library
+order: 21
+title: Counter and defaultdict
+from: SRE
+difficulty: hard
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: The collections module has ready-made tools. Counter counts a list for you, and most_common(1) gives the top item with its count. defaultdict(list) creates a missing key as an empty list.
+  example: |-
+    from collections import Counter, defaultdict
+    Counter(["a", "b", "a"]).most_common(1)   # [("a", 2)]
+    groups = defaultdict(list)
+    groups["x"].append(1)
+brief: Return the path that appears most often.
+goal: Write busiest(paths). Tests run when you press Run tests.
+hints:
+  - Counter(paths).most_common(1)
+  - That gives a list holding a (path, count) pair, so take [0][0].
+debrief:
+  why: You wrote this loop by hand earlier. Now you know what the library saves you.
+  solution: |-
+    from collections import Counter
+
+    def busiest(paths):
+        return Counter(paths).most_common(1)[0][0]
+  job: Knowing the standard library means writing less code.
+teaches:
+  - from
+  - Counter
+  - most_common
+  - defaultdict
+python:
+  starter: |
+    from collections import Counter
+
+    def busiest(paths):
+        # your code here
+        pass
+  tests:
+    - expr: busiest(["/a", "/b", "/a"])
+      want: '"/a"'
+    - expr: busiest(["/x"])
+      want: '"/x"'
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Counter and defaultdict". Which sentence best describes what it taught?
+    options:
+      - You wrote this loop by hand earlier. Now you know what the library saves you.
+      - A set gives fast membership checks and a list keeps the order, so you use both.
+      - with guarantees the file gets closed. Reading line by line means even a huge file fits in memory.
+      - "Parse, change, serialise: never edit JSON by hand with string replacement."
+    answer: You wrote this loop by hand earlier. Now you know what the library saves you.
+    hint: Look for the sentence about from and Counter.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return the path that appears most often.
+    options:
+      - return Counter(paths).most_common(1)[0][0]
+      - "if x not in seen:"
+      - d = json.loads(text)
+      - 'if line.startswith("ERROR"):'
+    answer: return Counter(paths).most_common(1)[0][0]
+    hint: That gives a list holding a (path, count) pair, so take [0][0].
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "def busiest(paths):"
+      - "    return Counter(paths).most_common(1)[0][0]"
+      - from collections import Counter
+    answer:
+      - from collections import Counter
+      - "def busiest(paths):"
+      - "    return Counter(paths).most_common(1)[0][0]"
+    hint: "The first one is: from collections import Counter"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      from collections import Counter
+
+      ____ busiest(paths):
+          return Counter(paths).most_common(1)[0][0]
+    answer:
+      - def
+    hint: It starts with "d" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      from collections import Counter
+
+      def busiest(paths):
+          ____
+    answer:
+      - return Counter(paths).most_common(1)[0][0]
+    hint: "It starts with: return Counter"

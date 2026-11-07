@@ -1,0 +1,148 @@
+id: go-06
+track: GO
+skill: go
+chapter: Flow
+order: 6
+title: The only loop
+from: Backend
+difficulty: easy
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: for is the only loop in Go. It takes three parts like for i := 0; i < 3; i++, or just a condition, like while in other languages. range walks a slice like []int{1, 2}, giving the index and the value. Use _ for a value you do not need, and += to add to a total.
+  example: |-
+    for i := 0; i < 3; i++ { }
+    for n < 10 { }
+    for _, v := range items { }
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - 1 + 2 + 3 is 6.
+  - Then add 10 and 20.
+debrief:
+  why: One loop keyword with a few shapes means less to remember. range is the one you use most.
+  solution: submit 36
+  job: Nearly every Go function has one of these loops.
+teaches:
+  - for
+  - range
+  - _
+  - "[]int"
+  - +=
+  - ++
+answer:
+  accept:
+    - "36"
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	sum := 0
+    	for i := 1; i <= 3; i++ {
+    		sum += i
+    	}
+    	for _, n := range []int{10, 20} {
+    		sum += n
+    	}
+    	fmt.Println(sum)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The only loop". Which sentence best describes what it taught?
+    options:
+      - One loop keyword with a few shapes means less to remember. range is the one you use most.
+      - Unlike C, Go breaks automatically at the end of a case.
+      - Explicit conversion means no surprise rounding, and the compiler catches type mix-ups for you.
+      - Every variable starts at its type's zero value, so there's no undefined state.
+    answer: One loop keyword with a few shapes means less to remember. range is the one you use most.
+    hint: Look for the sentence about for and range.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - two end
+      - "36"
+      - 0[]false
+      - 4.5 3!
+    answer: "36"
+    hint: Then add 10 and 20.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	sum := 0
+      	for i := 1; i <= 3; i++ {
+      		sum += i
+      	}
+      	for _, n := range []int{10, 20} {
+      		sum += n
+      	}
+      	fmt.Println(sum)
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "The only loop" taught you at work?
+    options:
+      - Good Go types are useful at their zero value.
+      - Fewer bugs than C-style switches.
+      - Nearly every Go function has one of these loops.
+      - Numbers arriving as text must be converted before any maths.
+    answer: Nearly every Go function has one of these loops.
+    hint: "It starts with: Nearly every Go function…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      sum := 0
+      for i := 1; i <= 3; i++ {
+      	sum += i
+      }
+      for _, n := range []int{10, 20} {
+      	sum += n
+      }
+      fmt.____(sum)
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	sum := 0
+      	for i := 1; i <= 3; i++ {
+      		sum += i
+      	}
+      	for _, n := range []int{10, 20} {
+      		sum += n
+      	}
+      	fmt.Println(sum)
+      }
+    answer:
+      - "36"
+    hint: It starts with "3" and is 2 characters long.

@@ -6,6 +6,7 @@ import { TerminalWorkspace } from './workspaces/terminal/TerminalWorkspace.jsx';
 import { ViWorkspace } from './workspaces/vi/ViWorkspace.jsx';
 import { PythonWorkspace, ensurePython } from './workspaces/python/PythonWorkspace.jsx';
 import { GoReader } from './workspaces/go/GoReader.jsx';
+import { DifficultyTag } from '../../ui/DifficultyTag.jsx';
 
 function Lock() {
   const canOpen = S.bank > 0 && !S.focus && !S.claim;
@@ -23,6 +24,7 @@ function SidePanel({ t, pyFallback }) {
   return (
     <HudPanel className="side" label={t.oc ? `On-call ${S.ocShift + 1} of 5` : trackName(t.track)}>
       <h3>{t.title}</h3>
+      {t.difficulty && <DifficultyTag code={t.difficulty} />}
       <p>{pyFallback ? `The Python runner couldn't start, so read this code and work out the result of: ${t.tests[0][2] || t.tests[0][0]}.` : t.brief}</p>
       {pyFallback ? <pre>{t.sol}</pre> : t.code && t.track !== 'GO' ? <pre>{t.code}</pre> : null}
       <p className="obj">{pyFallback ? 'Run: submit <the value, written as Python>' : t.goal}</p>
@@ -51,7 +53,7 @@ export function PlayArea({ t }) {
     if (isPy) ensurePython();
   }, [isPy]);
   const pyFallback = isPy && ui.py.state === 'failed';
-  const workspace = isPy && !pyFallback ? 'python' : t.track === 'GO' && t.code ? 'go' : 'terminal';
+  const workspace = isPy && !pyFallback ? 'python' : t.program || (t.track === 'GO' && t.code) ? 'go' : 'terminal';
   return (
     <div className="play">
       <SidePanel t={t} pyFallback={pyFallback} />

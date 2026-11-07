@@ -1,0 +1,120 @@
+id: py-10
+track: PY
+skill: python
+chapter: Dicts
+order: 10
+title: Look things up
+from: Network
+difficulty: easy
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A dict maps keys to values, written with {} braces. d["a"] looks a key up, and it crashes if the key is missing, so check first with in.
+  example: |-
+    ages = {"amina": 31, "joel": 27}
+    ages["joel"]        # 27
+    "sara" in ages      # False
+brief: Return the port for a service from PORTS, or "unknown" if it is not there.
+goal: Write port_of(service). Tests run when you press Run tests.
+hints:
+  - "if service in PORTS:"
+  - return PORTS[service], otherwise "unknown".
+debrief:
+  why: A dict finds a value by name instantly, with no looping through a list.
+  solution: |-
+    PORTS = {"ssh": 22, "dns": 53, "https": 443}
+
+    def port_of(service):
+        if service in PORTS:
+            return PORTS[service]
+        return "unknown"
+  job: Lookup tables are everywhere in config and routing code.
+teaches:
+  - "{}"
+  - in
+python:
+  starter: |
+    PORTS = {"ssh": 22, "dns": 53, "https": 443}
+
+    def port_of(service):
+        # your code here
+        pass
+  tests:
+    - expr: port_of("ssh")
+      want: "22"
+    - expr: port_of("https")
+      want: "443"
+    - expr: port_of("gopher")
+      want: '"unknown"'
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Look things up". Which sentence best describes what it taught?
+    options:
+      - Conditions are checked from the top and the first true one wins, so the order matters.
+      - A dict finds a value by name instantly, with no looping through a list.
+      - Loop, test, count is the shape of a huge amount of real code.
+      - for is for a known list, and while is for "until this becomes true". Make sure something changes, or it runs forever.
+    answer: A dict finds a value by name instantly, with no looping through a list.
+    hint: Look for the sentence about {} and in.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return the port for a service from PORTS, or "unknown" if it is not there.
+    options:
+      - label = "client error"
+      - "if code >= 500:"
+      - 'PORTS = {"ssh": 22, "dns": 53, "https": 443}'
+      - "while start < limit:"
+    answer: 'PORTS = {"ssh": 22, "dns": 53, "https": 443}'
+    hint: return PORTS[service], otherwise "unknown".
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "        return PORTS[service]"
+      - "def port_of(service):"
+      - 'PORTS = {"ssh": 22, "dns": 53, "https": 443}'
+      - '    return "unknown"'
+      - "    if service in PORTS:"
+    answer:
+      - 'PORTS = {"ssh": 22, "dns": 53, "https": 443}'
+      - "def port_of(service):"
+      - "    if service in PORTS:"
+      - "        return PORTS[service]"
+      - '    return "unknown"'
+    hint: 'The first one is: PORTS = {"ssh": 22, "dns": 53, "https": 443}'
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      PORTS = {"ssh": 22, "dns": 53, "https": 443}
+
+      ____ port_of(service):
+          if service in PORTS:
+              return PORTS[service]
+          return "unknown"
+    answer:
+      - def
+    hint: It starts with "d" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      ____
+
+      def port_of(service):
+          if service in PORTS:
+              return PORTS[service]
+          return "unknown"
+    answer:
+      - 'PORTS = {"ssh": 22, "dns": 53, "https": 443}'
+    hint: 'It starts with: PORTS = {"ssh":'

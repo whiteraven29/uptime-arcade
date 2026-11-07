@@ -1,0 +1,164 @@
+id: bx-24
+track: BX
+skill: go
+chapter: Brainfuck
+order: 24
+title: Everything at once
+from: CTO
+difficulty: brainfuck
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A method value like t.Val saves its receiver when you take it. With a value receiver that is a copy, frozen right there. With a pointer receiver it stays linked to t.
+  example: |-
+    val := t.Val   // copies t now
+    inc := t.Inc   // keeps a pointer to t
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - val captured a copy of t when n was 1.
+  - inc works on the real t, so n is 3 by the return.
+debrief:
+  why: val froze a copy when n was 1, inc changed the real t, and the deferred function ran after return and rewrote the named result.
+  solution: submit 3 3 1
+  job: If you can read this, you can read any Go code review.
+teaches:
+  - beyond
+answer:
+  accept:
+    - 3 3 1
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    type T struct{ n int }
+
+    func (t T) Val() int   { return t.n }
+    func (t *T) Inc()      { t.n++ }
+
+    func run() (out string) {
+    	t := T{1}
+    	val := t.Val
+    	inc := t.Inc
+    	defer func() {
+    		out = fmt.Sprint(out, " ", t.n, " ", val())
+    	}()
+    	inc()
+    	inc()
+    	return fmt.Sprint(t.Val())
+    }
+
+    func main() {
+    	fmt.Println(run())
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Everything at once". Which sentence best describes what it taught?
+    options:
+      - val froze a copy when n was 1, inc changed the real t, and the deferred function ran after return and rewrote the named result.
+      - "The three-index slice is the fix for shared-array bugs: it forces append to copy instead of overwriting a neighbour."
+      - With only the default register, the second delete would overwrite the first. Named ones keep both.
+      - An interpreter is just a loop over instructions with some state. Writing one removes the magic from every language you use.
+    answer: val froze a copy when n was 1, inc changed the real t, and the deferred function ran after return and rewrote the named result.
+    hint: "The lesson said: A method value like t.Val saves its receiver when you take it."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 3 3 1
+      - cells[p] = (cells[p] + 1) % 256
+      - '"adi"j"bdi""aPk"bP:wq<CR>'
+      - "[0 0 7 0] 2 9"
+    answer: 3 3 1
+    hint: inc works on the real t, so n is 3 by the return.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      type T struct{ n int }
+
+      func (t T) Val() int   { return t.n }
+      func (t *T) Inc()      { t.n++ }
+
+      func run() (out string) {
+      	t := T{1}
+      	val := t.Val
+      	inc := t.Inc
+      	defer func() {
+      		out = fmt.Sprint(out, " ", t.n, " ", val())
+      	}()
+      	inc()
+      	inc()
+      	return fmt.Sprint(t.Val())
+      }
+
+      func main() {
+      	fmt.Println(run())
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Everything at once" taught you at work?
+    options:
+      - Nobody writes Brainfuck at work. Everybody who has written an interpreter reads code differently.
+      - If you can read this, you can read any Go code review.
+      - Libraries that hand out sub-slices use this to protect their data.
+      - Rearranging several pieces at once is where registers pay off.
+    answer: If you can read this, you can read any Go code review.
+    hint: "It starts with: If you can read…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: fmt.____(run())
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      type T struct{ n int }
+
+      func (t T) Val() int   { return t.n }
+      func (t *T) Inc()      { t.n++ }
+
+      func run() (out string) {
+      	t := T{1}
+      	val := t.Val
+      	inc := t.Inc
+      	defer func() {
+      		out = fmt.Sprint(out, " ", t.n, " ", val())
+      	}()
+      	inc()
+      	inc()
+      	return fmt.Sprint(t.Val())
+      }
+
+      func main() {
+      	fmt.Println(run())
+      }
+    answer:
+      - 3 3 1
+    hint: It starts with "3" and is 5 characters long.

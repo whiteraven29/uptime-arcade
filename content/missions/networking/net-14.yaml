@@ -1,0 +1,82 @@
+id: net-14
+track: NET
+skill: networking
+chapter: Transport
+order: 14
+title: TCP or UDP?
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: TCP sets up a connection and retries, which is reliable but slower. UDP just sends, which is fast and simple, and the application handles any loss.
+  example: |-
+    Video calls often use UDP
+    File transfer uses TCP
+brief: Normal DNS queries use which transport first?
+goal: "Run: submit tcp  or  submit udp"
+hints:
+  - Short question, short answer, no handshake.
+debrief:
+  why: DNS uses UDP for speed and falls back to TCP for large answers.
+  solution: submit udp
+  job: Firewall rules for DNS need both.
+teaches:
+  - UDP
+answer:
+  accept:
+    - udp
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "TCP or UDP?". Which sentence best describes what it taught?
+    options:
+      - IP gets a packet across networks, and the MAC gets it across the local wire. ARP is the bridge between them.
+      - A host compares network bits, then uses ARP for local targets or the gateway for the rest.
+      - DNS uses UDP for speed and falls back to TCP for large answers.
+      - Variable-length subnetting allocates largest first so blocks stay aligned.
+    answer: DNS uses UDP for speed and falls back to TCP for large answers.
+    hint: Look for the sentence about UDP.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: Normal DNS queries use which transport first?
+    options:
+      - mac
+      - 10.40.60.192/27
+      - gateway
+      - udp
+    answer: udp
+    hint: Short question, short answer, no handshake.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "TCP or UDP?" taught you at work?
+    options:
+      - Duplicate IPs and bad switches show up as ARP problems.
+      - Explains most 'can't reach it' tickets.
+      - Firewall rules for DNS need both.
+      - How you stretch an address block across an office.
+    answer: Firewall rules for DNS need both.
+    hint: "It starts with: Firewall rules for DNS…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: DNS uses ____ for speed and falls back to TCP for large answers.
+    answer:
+      - UDP
+    hint: It starts with "U" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Normal DNS queries use which transport first?
+    answer:
+      - udp
+    hint: It starts with "u" and is 3 characters long.

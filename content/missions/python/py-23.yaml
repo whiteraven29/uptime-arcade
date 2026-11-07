@@ -1,0 +1,107 @@
+id: py-23
+track: PY
+skill: python
+chapter: Standard library
+order: 23
+title: Patterns in text
+from: Support
+difficulty: hard
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: The re module searches with regular expressions. re.findall returns every match, and if the pattern has ( ) you get just that group. \d+ means one or more digits. Write patterns as r"..." so backslashes stay literal.
+  example: |-
+    import re
+    re.findall(r"id=(\d+)", "id=7 id=9")   # ["7", "9"]
+brief: Return every number that follows order= in the text, as strings.
+goal: Write order_ids(text). Tests run when you press Run tests.
+hints:
+  - re.findall with a group.
+  - r"order=(\d+)"
+debrief:
+  why: Regular expressions pull structure out of messy text, the same idea as grep -o.
+  solution: |-
+    import re
+
+    def order_ids(text):
+        return re.findall(r"order=(\d+)", text)
+  job: Log parsers lean on this all the time.
+teaches:
+  - re
+  - findall
+python:
+  starter: |
+    import re
+
+    def order_ids(text):
+        # your code here
+        pass
+  tests:
+    - expr: order_ids("x order=12 y order=345")
+      want: '["12", "345"]'
+    - expr: order_ids("nothing here")
+      want: "[]"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Patterns in text". Which sentence best describes what it taught?
+    options:
+      - Regular expressions pull structure out of messy text, the same idea as grep -o.
+      - Defaults keep the common call short while still letting callers change the rare setting.
+      - Date maths is full of traps like month ends and leap years, so never do it by hand.
+      - key= tells sorted what to compare. Slicing past the end is safe in Python.
+    answer: Regular expressions pull structure out of messy text, the same idea as grep -o.
+    hint: Look for the sentence about re and findall.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return every number that follows order= in the text, as strings.
+    options:
+      - t = datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)
+      - return re.findall(r"order=(\d+)", text)
+      - return sorted(counts, key=counts.get, reverse=True)[:n]
+      - return min(base * 2 ** attempt, cap)
+    answer: return re.findall(r"order=(\d+)", text)
+    hint: r"order=(\d+)"
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - '    return re.findall(r"order=(\d+)", text)'
+      - "def order_ids(text):"
+      - import re
+    answer:
+      - import re
+      - "def order_ids(text):"
+      - '    return re.findall(r"order=(\d+)", text)'
+    hint: "The first one is: import re"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      import re
+
+      def order_ids(text):
+          ____ re.findall(r"order=(\d+)", text)
+    answer:
+      - return
+    hint: It starts with "r" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      import re
+
+      def order_ids(text):
+          ____
+    answer:
+      - return re.findall(r"order=(\d+)", text)
+    hint: "It starts with: return re.fin"

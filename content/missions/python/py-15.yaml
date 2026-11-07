@@ -1,0 +1,96 @@
+id: py-15
+track: PY
+skill: python
+chapter: Collections
+order: 15
+title: Sort by anything
+from: Product
+difficulty: medium
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: sorted returns a new sorted list. key= says what to compare and reverse=True gives biggest first. [:n] takes the first n items.
+  example: sorted(d, key=d.get, reverse=True)[:3]
+brief: Given a dict of name to count, return the n names with the highest counts, highest first.
+goal: Write top_n(counts, n). Tests run when you press Run tests.
+hints:
+  - sorted(d, key=d.get, reverse=True)
+  - Slice with [:n].
+debrief:
+  why: key= tells sorted what to compare. Slicing past the end is safe in Python.
+  solution: |-
+    def top_n(counts, n):
+        return sorted(counts, key=counts.get, reverse=True)[:n]
+  job: Top lists fill dashboards and reports.
+teaches:
+  - sorted
+  - key
+  - reverse
+python:
+  starter: |
+    def top_n(counts, n):
+        # your code here
+        pass
+  tests:
+    - expr: top_n({"a":3,"b":9,"c":5},2)
+      want: '["b","c"]'
+    - expr: top_n({"a":1},5)
+      want: '["a"]'
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Sort by anything". Which sentence best describes what it taught?
+    options:
+      - This is uniq -c as a dict. It's the same group-and-count idea in another language.
+      - key= tells sorted what to compare. Slicing past the end is safe in Python.
+      - Loop, test, count is the shape of a huge amount of real code.
+      - Unpacking names each part as it comes out, so the rest of the code reads clearly.
+    answer: key= tells sorted what to compare. Slicing past the end is safe in Python.
+    hint: Look for the sentence about sorted and key.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Given a dict of name to count, return the n names with the highest counts, highest first.
+    options:
+      - counts[s] = counts.get(s, 0) + 1
+      - return user[0] + "***@" + domain
+      - "if code >= 500:"
+      - return sorted(counts, key=counts.get, reverse=True)[:n]
+    answer: return sorted(counts, key=counts.get, reverse=True)[:n]
+    hint: Slice with [:n].
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Sort by anything" taught you at work?
+    options:
+      - Log summaries in services start like this.
+      - Counting errors is the first number anyone asks for in an incident.
+      - Privacy laws expect this in production logs.
+      - Top lists fill dashboards and reports.
+    answer: Top lists fill dashboards and reports.
+    hint: "It starts with: Top lists fill dashboards…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def top_n(counts, n):
+          ____ sorted(counts, key=counts.get, reverse=True)[:n]
+    answer:
+      - return
+    hint: It starts with "r" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def top_n(counts, n):
+          ____
+    answer:
+      - return sorted(counts, key=counts.get, reverse=True)[:n]
+    hint: "It starts with: return sorted(count"

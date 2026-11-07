@@ -1,0 +1,194 @@
+id: bx-23
+track: BX
+skill: python
+chapter: Brainfuck
+order: 23
+title: Write a Brainfuck interpreter
+from: CTO
+difficulty: brainfuck
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Brainfuck is a real programming language with eight commands. > and < move along a row of cells, + and - change the current cell (0 to 255, wrapping), . outputs it as a character, and [ ] loop while it is not zero. The hard part is matching the brackets first.
+  example: |-
+    jump = {}
+    stack = []
+    # on [ push its position
+    # on ] pop, and record both directions
+brief: Return everything the program outputs, as a string. There is no input command. Cells wrap at 256.
+goal: Write run_bf(code). Tests run when you press Run tests.
+hints:
+  - Scan the code once to pair every [ with its ], in a dict both ways.
+  - chr(cell) turns a value into a character. Use % 256 to wrap.
+debrief:
+  why: An interpreter is just a loop over instructions with some state. Writing one removes the magic from every language you use.
+  solution: |-
+    def run_bf(code):
+        jump = {}
+        stack = []
+        for i, c in enumerate(code):
+            if c == "[":
+                stack.append(i)
+            elif c == "]":
+                j = stack.pop()
+                jump[i] = j
+                jump[j] = i
+        cells = [0] * 3000
+        p = 0
+        i = 0
+        out = ""
+        while i < len(code):
+            c = code[i]
+            if c == ">":
+                p += 1
+            elif c == "<":
+                p -= 1
+            elif c == "+":
+                cells[p] = (cells[p] + 1) % 256
+            elif c == "-":
+                cells[p] = (cells[p] - 1) % 256
+            elif c == ".":
+                out += chr(cells[p])
+            elif c == "[" and cells[p] == 0:
+                i = jump[i]
+            elif c == "]" and cells[p] != 0:
+                i = jump[i]
+            i += 1
+        return out
+  job: Nobody writes Brainfuck at work. Everybody who has written an interpreter reads code differently.
+teaches:
+  - beyond
+python:
+  starter: |
+    def run_bf(code):
+        # your code here
+        pass
+  tests:
+    - expr: run_bf("+++++++++[>++++++++<-]>.")
+      want: '"H"'
+    - expr: run_bf("++[>+++<-]>[<+>-]<.")
+      want: '"\x06"'
+    - expr: run_bf(">+<[.]")
+      want: '""'
+    - expr: run_bf("-[+]+++.")
+      want: '"\x03"'
+    - expr: run_bf("++++[>++++++++++<-]>+.+.")
+      want: '")*"'
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Write a Brainfuck interpreter". Which sentence best describes what it taught?
+    options:
+      - An interpreter is just a loop over instructions with some state. Writing one removes the magic from every language you use.
+      - awk keeps state between lines, so it can pair a setting with its block. Delimiters stop 130 matching 30.
+      - Totals favour whoever is biggest. Averages show who is actually worth more, which is often a different answer.
+      - "This is why a fast link across an ocean can still feel slow: latency caps throughput until the window grows."
+    answer: An interpreter is just a loop over instructions with some state. Writing one removes the magic from every language you use.
+    hint: "The lesson said: Brainfuck is a real programming language with eight commands."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return everything the program outputs, as a string. There is no input command. Cells wrap at 256.
+    options:
+      - "5.24"
+      - awk '/^interface/{i=$2} /allowed vlan/ && !/[ ,]30(,|$)/{print i}' ~/switch/core-sw1.cfg
+      - awk -F, 'NR>1{s[$4]+=$5;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/data/customers.csv | sort -rn | head -1
+      - cells[p] = (cells[p] + 1) % 256
+    answer: cells[p] = (cells[p] + 1) % 256
+    hint: chr(cell) turns a value into a character. Use % 256 to wrap.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Write a Brainfuck interpreter" taught you at work?
+    options:
+      - Nobody writes Brainfuck at work. Everybody who has written an interpreter reads code differently.
+      - It explains the "gigabit link, slow transfer" ticket.
+      - Auditing by script beats reading 24 ports by eye.
+      - Analysis that changes decisions is usually a ratio.
+    answer: Nobody writes Brainfuck at work. Everybody who has written an interpreter reads code differently.
+    hint: "It starts with: Nobody writes Brainfuck at…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def run_bf(code):
+          jump = {}
+          stack = []
+          for i, c in enumerate(code):
+              if c == "[":
+                  stack.append(i)
+              elif c == "]":
+                  j = stack.pop()
+                  jump[i] = j
+                  jump[j] = i
+          cells = [0] * 3000
+          p = 0
+          i = 0
+          out = ""
+          while i < len(code):
+              c = code[i]
+              if c == ">":
+                  p += 1
+              elif c == "<":
+                  p -= 1
+              elif c == "+":
+                  cells[p] = (cells[p] + 1) % 256
+              elif c == "-":
+                  cells[p] = (cells[p] - 1) % 256
+              elif c == ".":
+                  out += chr(cells[p])
+              elif c == "[" and cells[p] == 0:
+                  i = jump[i]
+              elif c == "]" and cells[p] != 0:
+                  i = jump[i]
+              i += 1
+          ____ out
+    answer:
+      - return
+    hint: It starts with "r" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def run_bf(code):
+          jump = {}
+          stack = []
+          for i, c in enumerate(code):
+              if c == "[":
+                  stack.append(i)
+              elif c == "]":
+                  j = stack.pop()
+                  jump[i] = j
+                  jump[j] = i
+          cells = [0] * 3000
+          p = 0
+          i = 0
+          out = ""
+          while i < len(code):
+              c = code[i]
+              if c == ">":
+                  p += 1
+              elif c == "<":
+                  p -= 1
+              elif c == "+":
+                  ____
+              elif c == "-":
+                  cells[p] = (cells[p] - 1) % 256
+              elif c == ".":
+                  out += chr(cells[p])
+              elif c == "[" and cells[p] == 0:
+                  i = jump[i]
+              elif c == "]" and cells[p] != 0:
+                  i = jump[i]
+              i += 1
+          return out
+    answer:
+      - cells[p] = (cells[p] + 1) % 256
+    hint: "It starts with: cells[p] = "

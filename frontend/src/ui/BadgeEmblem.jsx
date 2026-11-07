@@ -8,6 +8,8 @@ const FAMILY = {
   first: 'holo', par50: 'holo', nohints: 'holo', night: 'violet',
   tSH: 'violet', tVI: 'violet', tPY: 'violet', tGO: 'violet', tNET: 'violet',
   arch: 'gold',
+  lv2: 'rank', lv3: 'rank', lv4: 'rank', lv5: 'rank', lv6: 'rank', lv7: 'rank', lv8: 'rank', lv9: 'rank',
+  bx1: 'jade', bx2: 'holo', bx3: 'ember', bx4: 'gold', bx5: 'blood',
 };
 const HEX = '60,6 107,33 107,87 60,114 13,87 13,33';
 const INNER = '60,16 98,38 98,82 60,104 22,82 22,38';
@@ -25,7 +27,39 @@ const Clock = ({ cy = 60, r = 24 }) => (
   </g>
 );
 
+/* A rank: one chevron for every level climbed, stacked from the bottom. */
+const Rank = ({ level }) => {
+  const n = level - 1;
+  const gap = n > 5 ? 7 : 9;
+  const top = 60 - ((n - 1) * gap) / 2;
+  return (
+    <g fill="none" stroke="currentColor" strokeWidth={n > 5 ? 3 : 3.5} strokeLinecap="round" strokeLinejoin="round">
+      {Array.from({ length: n }, (_, i) => <path key={i} d={`M42 ${top + i * gap + 5} 60 ${top + i * gap - 5} 78 ${top + i * gap + 5}`} />)}
+    </g>
+  );
+};
+/* A Beyond tier: one more star each time. */
+const Stars = ({ n }) => {
+  const star = 'M0 -9 2.6 -2.8 9 -2.8 3.9 1.2 5.6 7.6 0 3.9 -5.6 7.6 -3.9 1.2 -9 -2.8 -2.6 -2.8Z';
+  const spots = { 1: [[60, 60]], 2: [[48, 60], [72, 60]], 3: [[60, 46], [46, 70], [74, 70]], 4: [[46, 46], [74, 46], [46, 74], [74, 74]] }[n];
+  return <g fill="currentColor">{spots.map(([x, y]) => <path key={`${x}${y}`} d={star} transform={`translate(${x} ${y}) scale(${n === 1 ? 1.9 : 1.15})`} />)}</g>;
+};
+
 const GLYPH = {
+  ...Object.fromEntries([2, 3, 4, 5, 6, 7, 8, 9].map((l) => [`lv${l}`, <Rank key={l} level={l} />])),
+  bx1: <Stars n={1} />,
+  bx2: <Stars n={2} />,
+  bx3: <Stars n={3} />,
+  bx4: <Stars n={4} />,
+  bx5: (
+    <g>
+      <path fill="currentColor" fillOpacity="0.18" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" d="M60 30C45 30 36 41 36 54 36 63 40 69 46 73V84H74V73C80 69 84 63 84 54 84 41 75 30 60 30Z" />
+      <circle cx="50" cy="56" r="6.5" fill="currentColor" />
+      <circle cx="70" cy="56" r="6.5" fill="currentColor" />
+      <path fill="currentColor" d="M60 63 55.5 71H64.5Z" />
+      <path stroke="currentColor" strokeWidth="2.5" d="M53 76V84M60 76V84M67 76V84" />
+    </g>
+  ),
   firstblock: (
     <g stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round">
       <path fill="currentColor" fillOpacity="0.5" d="M60 32 84 45 60 58 36 45Z" />

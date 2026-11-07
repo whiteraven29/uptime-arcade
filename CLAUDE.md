@@ -10,6 +10,8 @@ Real focus earns play time, and play time teaches real technical skills. `docs/D
 - Animate only what matters, and respect `prefers-reduced-motion`.
 - `make check` must pass before a change is finished. `node tools/screenshots.mjs` checks every screen at 1400px and 400px.
 
-**Where the build stands:** see `docs/adr/0002-local-game-before-the-api.md`. The game runs in the browser from `frontend/src/api/localGame.js` with missions in `content/legacy/`, until M1 and M2 move them to YAML and the server. Each track has its 30 missions, in order, from zero (`docs/adr/0004-thirty-missions-from-zero.md`).
+**Where the build stands:** missions live only in `content/missions/*.yaml`, and each track runs from zero (`docs/adr/0004-thirty-missions-from-zero.md`). The server enforces the rules through the API (`docs/adr/0005-yaml-and-server-rules.md`), but the screens aren't connected to it yet: the browser game still runs from `frontend/src/api/localGame.js`, until M3. A rule change has to go in both `localGame.js` and `backend/apps/game/rules.py` until then.
+
+**Security:** never add a server-only field to a public serializer, list fields one by one, and never read a time from the client.
 
 **Curriculum rule:** a solution may only use what its own or an earlier lesson in that track teaches. List new ideas under `teaches`; `tools/check_taught_before_used.mjs` enforces it.

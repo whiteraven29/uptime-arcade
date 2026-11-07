@@ -1,0 +1,87 @@
+id: sh-05
+track: SH
+skill: shell
+chapter: Files
+order: 5
+title: Set up a workspace
+from: Platform
+difficulty: easy
+check: fs
+par:
+  kind: commands
+  value: 2
+lesson:
+  text: mkdir makes a folder, and -p also makes any missing parents. touch creates an empty file.
+  example: |-
+    mkdir -p ~/trips/2026/june
+    touch ~/trips/2026/june/plan.txt
+brief: You'll need somewhere to keep your notes.
+goal: Create the folder ~/work/today with an empty file notes.txt inside it.
+hints:
+  - Two folders are missing, so mkdir needs -p.
+  - touch ~/work/today/notes.txt
+debrief:
+  why: mkdir -p creates the whole chain and doesn't complain if a folder is already there, so it's safe to run twice.
+  solution: |-
+    mkdir -p ~/work/today
+    touch ~/work/today/notes.txt
+  job: Setup scripts use mkdir -p because it can be run again safely.
+teaches:
+  - mkdir
+  - -p
+  - touch
+expect:
+  - file_exists: ~/work/today/notes.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Set up a workspace". Which sentence best describes what it taught?
+    options:
+      - Absolute paths start at / and work anywhere. Relative paths start from your current folder and are shorter.
+      - head and tail let you peek at a file without printing all of it, which matters when a log has a million lines.
+      - mkdir -p creates the whole chain and doesn't complain if a folder is already there, so it's safe to run twice.
+      - pwd answers "where am I?". Every path you type without a leading / is worked out from that folder.
+    answer: mkdir -p creates the whole chain and doesn't complain if a folder is already there, so it's safe to run twice.
+    hint: Look for the sentence about mkdir and -p.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: You'll need somewhere to keep your notes.
+    options:
+      - cd /etc
+      - pwd
+      - tail -1 ~/README
+      - touch ~/work/today/notes.txt
+    answer: touch ~/work/today/notes.txt
+    hint: touch ~/work/today/notes.txt
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Set up a workspace" taught you at work?
+    options:
+      - You move around servers like this all day.
+      - tail is the first thing you run on any log file.
+      - Setup scripts use mkdir -p because it can be run again safely.
+      - The first thing to check when a command says "No such file".
+    answer: Setup scripts use mkdir -p because it can be run again safely.
+    hint: "It starts with: Setup scripts use mkdir…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ ~/work/today/notes.txt
+    answer:
+      - touch
+    hint: It starts with "t" and is 5 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type one of the commands you used."
+    context: You'll need somewhere to keep your notes.
+    answer:
+      - mkdir -p ~/work/today
+      - touch ~/work/today/notes.txt
+    hint: "It starts with: touch ~/wo"

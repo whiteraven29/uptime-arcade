@@ -1,0 +1,82 @@
+id: sh-08
+track: SH
+skill: shell
+chapter: Counting and finding
+order: 8
+title: How much traffic today?
+from: Support
+difficulty: easy
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: wc counts things. -l counts lines, and logs usually hold one event per line.
+  example: wc -l notes.txt
+brief: Support asks how many API requests are in ~/logs/api-access.log.
+goal: "Run: submit <count>"
+hints:
+  - wc counts lines.
+  - wc -l prints the count and the file name.
+debrief:
+  why: One line per request means counting lines counts requests.
+  solution: wc -l ~/logs/api-access.log
+  job: Quick size checks tell you what you're dealing with before deeper work.
+teaches:
+  - wc
+  - -l
+answer:
+  accept:
+    - "1600"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "How much traffic today?". Which sentence best describes what it taught?
+    options:
+      - rm is permanent, so name exactly what you mean. Careless rm -r is how people lose production data.
+      - Absolute paths start at / and work anywhere. Relative paths start from your current folder and are shorter.
+      - pwd answers "where am I?". Every path you type without a leading / is worked out from that folder.
+      - One line per request means counting lines counts requests.
+    answer: One line per request means counting lines counts requests.
+    hint: Look for the sentence about wc and -l.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Support asks how many API requests are in ~/logs/api-access.log.
+    options:
+      - rm ~/desk/old.log
+      - pwd
+      - wc -l ~/logs/api-access.log
+      - cd /etc
+    answer: wc -l ~/logs/api-access.log
+    hint: wc -l prints the count and the file name.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "How much traffic today?" taught you at work?
+    options:
+      - Quick size checks tell you what you're dealing with before deeper work.
+      - You move around servers like this all day.
+      - Everyone gets one rm -r story. Make sure yours is small.
+      - The first thing to check when a command says "No such file".
+    answer: Quick size checks tell you what you're dealing with before deeper work.
+    hint: "It starts with: Quick size checks tell…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: wc ____ ~/logs/api-access.log
+    answer:
+      - -l
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Support asks how many API requests are in ~/logs/api-access.log.
+    answer:
+      - "1600"
+    hint: It starts with "1" and is 4 characters long.

@@ -1,0 +1,86 @@
+id: sh-01
+track: SH
+skill: shell
+chapter: Getting around
+order: 1
+title: Where am I?
+from: Support
+difficulty: easy
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: The shell is a program that runs what you type. Files live in folders, folders sit inside folders, and it all forms a tree that starts at / (the root). You are always standing in one folder. pwd prints that folder's full path, and ls lists what's in it.
+  example: |-
+    $ pwd
+    /home/amina
+    $ ls
+    photos  notes.txt
+brief: You've just logged in to Whiteraven's training server for the first time. Before touching anything, find out where you are.
+goal: "Run pwd, then: submit <the path it printed>"
+hints:
+  - Type pwd and press Enter.
+  - Then type submit followed by what it printed.
+debrief:
+  why: pwd answers "where am I?". Every path you type without a leading / is worked out from that folder.
+  solution: pwd
+  job: The first thing to check when a command says "No such file".
+teaches:
+  - pwd
+  - ls
+answer:
+  accept:
+    - /home/ops
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Where am I?". Which sentence best describes what it taught?
+    options:
+      - The shell splits on spaces, and programs read a leading dash as an option. Quoting and a path prefix fix both. Dotfiles are only hidden from plain ls.
+      - pwd answers "where am I?". Every path you type without a leading / is worked out from that folder.
+      - Absolute paths start at / and work anywhere. Relative paths start from your current folder and are shorter.
+      - mv is both move and rename, because a file's name is just part of its path.
+    answer: pwd answers "where am I?". Every path you type without a leading / is worked out from that folder.
+    hint: Look for the sentence about pwd and ls.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: You've just logged in to Whiteraven's training server for the first time. Before touching anything, find out where you are.
+    options:
+      - cd /etc
+      - cat ~/inbox/'week 44'/.rota
+      - pwd
+      - cp ~/desk/draft.txt ~/desk/backup.txt
+    answer: pwd
+    hint: Then type submit followed by what it printed.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Where am I?" taught you at work?
+    options:
+      - "Copy before you change: it is the cheapest rollback there is."
+      - You move around servers like this all day.
+      - The first thing to check when a command says "No such file".
+      - Backups and uploads produce names like this all the time.
+    answer: The first thing to check when a command says "No such file".
+    hint: "It starts with: The first thing to…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____
+    answer:
+      - pwd
+    hint: It starts with "p" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: You've just logged in to Whiteraven's training server for the first time. Before touching anything, find out where you are.
+    answer:
+      - /home/ops
+    hint: It starts with "/" and is 9 characters long.

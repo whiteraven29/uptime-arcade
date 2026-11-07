@@ -1,0 +1,87 @@
+id: vi-20
+track: VI
+skill: vi
+chapter: Ex commands
+order: 20
+title: Replace everywhere
+from: Platform
+difficulty: medium
+check: vi
+par:
+  kind: keys
+  value: 25
+lesson:
+  text: "% in front of :s means every line in the file. g on the end means every match on each line."
+  example: :%s/cat/dog/g<Enter>
+brief: Replace every staging with prod in ~/vi/env.yaml in one command.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/env.yaml"
+hints:
+  - :%s/old/new/g runs on the whole file.
+  - "% means every line."
+debrief:
+  why: :s is sed inside vi. % selects the whole file and g every match per line.
+  solution: :%s/staging/prod/g<CR>:wq<CR>
+  job: Global replace is the fastest big edit you can make.
+teaches:
+  - "%"
+file: ~/vi/env.yaml
+expect:
+  - file_equals:
+      path: ~/vi/env.yaml
+      content: |
+        db: prod-db
+        cache: prod-cache
+        queue: prod-queue
+        region: dar
+  - vi_saved: ~/vi/env.yaml
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Replace everywhere". Which sentence best describes what it taught?
+    options:
+      - :s is sed inside vi. % selects the whole file and g every match per line.
+      - J handles the newline and the spacing in one key.
+      - :s works on one line by default, and only on the first match unless you add g.
+      - Copy then tweak is faster and safer than retyping an address.
+    answer: :s is sed inside vi. % selects the whole file and g every match per line.
+    hint: Look for the sentence about %.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Replace every staging with prod in ~/vi/env.yaml in one command.
+    options:
+      - J:wq<CR>
+      - :%s/staging/prod/g<CR>:wq<CR>
+      - j:s/old/new/<CR>:wq<CR>
+      - /server<CR>yyp/11<CR>lr2:wq<CR>
+    answer: :%s/staging/prod/g<CR>:wq<CR>
+    hint: "% means every line."
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Replace everywhere" taught you at work?
+    options:
+      - Wrapped pastes break systemd units and shell commands.
+      - A precise one-line replace leaves everything else untouched.
+      - Scaling out often starts with this exact edit.
+      - Global replace is the fastest big edit you can make.
+    answer: Global replace is the fastest big edit you can make.
+    hint: "It starts with: Global replace is the…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____<CR>:wq<CR>
+    answer:
+      - :%s/staging/prod/g
+    hint: "It starts with: :%s"
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Replace everywhere" taught. Any one of them counts.
+    answer:
+      - "%"
+    hint: One of them is %…

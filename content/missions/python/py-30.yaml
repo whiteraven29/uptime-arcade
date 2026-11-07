@@ -1,0 +1,133 @@
+id: py-30
+track: PY
+skill: python
+chapter: Quality
+order: 30
+title: "Capstone: the log analyser"
+from: CTO
+difficulty: expert
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Nothing new. Parse each line, count as you go, and work out the percentile at the end. For nearest-rank p95, sort the values and take rank -(-95 * n // 100), remembering that rank r is index r - 1.
+  example: |-
+    s = sorted(values)
+    rank = -(-95 * len(s) // 100)
+    s[rank - 1]
+brief: Each line is "path status ms". Return a dict with requests (how many lines), errors (status 500 or above), p95 (nearest-rank 95th percentile of ms), and top (the most requested path).
+goal: Write analyse(lines). Tests run when you press Run tests.
+hints:
+  - Unpack path, status, ms from split(), and convert with int().
+  - sorted(paths, key=paths.get, reverse=True)[0] finds the top path.
+debrief:
+  why: "Real tools are small pieces put together: parse, aggregate, sort, report. p95 shows what slow users feel, where an average hides them."
+  solution: |-
+    def analyse(lines):
+        errors = 0
+        times = []
+        paths = {}
+        for line in lines:
+            path, status, ms = line.split()
+            if int(status) >= 500:
+                errors += 1
+            times.append(int(ms))
+            paths[path] = paths.get(path, 0) + 1
+        s = sorted(times)
+        rank = -(-95 * len(s) // 100)
+        top = sorted(paths, key=paths.get, reverse=True)[0]
+        return {"requests": len(lines), "errors": errors, "p95": s[rank - 1], "top": top}
+  job: You have just written a small version of what monitoring tools do.
+teaches:
+  - capstone
+python:
+  starter: |
+    def analyse(lines):
+        # your code here
+        pass
+  tests:
+    - expr: analyse(["/a 200 10","/b 500 30","/a 200 20","/a 503 40"])
+      want: '{"requests": 4, "errors": 2, "p95": 40, "top": "/a"}'
+    - expr: analyse(["/x 200 7"])
+      want: '{"requests": 1, "errors": 0, "p95": 7, "top": "/x"}'
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: 'You just finished "Capstone: the log analyser". Which sentence best describes what it taught?'
+    options:
+      - Date maths is full of traps like month ends and leap years, so never do it by hand.
+      - Sorting first turns an all-pairs problem into one pass.
+      - An IP is a 32-bit number, and shifting off the host bits does what a subnet mask does.
+      - "Real tools are small pieces put together: parse, aggregate, sort, report. p95 shows what slow users feel, where an average hides them."
+    answer: "Real tools are small pieces put together: parse, aggregate, sort, report. p95 shows what slow users feel, where an average hides them."
+    hint: "The lesson said: Nothing new."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Each line is "path status ms". Return a dict with requests (how many lines), errors (status 500 or above), p95 (nearest-rank 95th percentile of ms), and top (the most requested path).
+    options:
+      - t = datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)
+      - return to_int(a) >> s == to_int(b) >> s
+      - out[-1][1] = max(out[-1][1], e)
+      - 'return {"requests": len(lines), "errors": errors, "p95": s[rank - 1], "top": top}'
+    answer: 'return {"requests": len(lines), "errors": errors, "p95": s[rank - 1], "top": top}'
+    hint: sorted(paths, key=paths.get, reverse=True)[0] finds the top path.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: 'Where would you use what "Capstone: the log analyser" taught you at work?'
+    options:
+      - Your computer makes this exact check before every packet.
+      - Schedules, expiry dates and SLAs all need this.
+      - Calendars, schedulers and IP ranges all use this.
+      - You have just written a small version of what monitoring tools do.
+    answer: You have just written a small version of what monitoring tools do.
+    hint: "It starts with: You have just written…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def analyse(lines):
+          errors = 0
+          times = []
+          paths = {}
+          for line in lines:
+              path, status, ms = line.split()
+              if ____(status) >= 500:
+                  errors += 1
+              times.append(int(ms))
+              paths[path] = paths.get(path, 0) + 1
+          s = sorted(times)
+          rank = -(-95 * len(s) // 100)
+          top = sorted(paths, key=paths.get, reverse=True)[0]
+          return {"requests": len(lines), "errors": errors, "p95": s[rank - 1], "top": top}
+    answer:
+      - int
+    hint: It starts with "i" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def analyse(lines):
+          errors = 0
+          times = []
+          paths = {}
+          for line in lines:
+              path, status, ms = line.split()
+              if int(status) >= 500:
+                  errors += 1
+              times.append(int(ms))
+              paths[path] = paths.get(path, 0) + 1
+          s = sorted(times)
+          rank = -(-95 * len(s) // 100)
+          top = sorted(paths, key=paths.get, reverse=True)[0]
+          ____
+    answer:
+      - 'return {"requests": len(lines), "errors": errors, "p95": s[rank - 1], "top": top}'
+    hint: 'It starts with: return {"requests": len(lin'

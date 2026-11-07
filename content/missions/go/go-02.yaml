@@ -1,0 +1,136 @@
+id: go-02
+track: GO
+skill: go
+chapter: Basics
+order: 2
+title: Zero values
+from: Platform
+difficulty: easy
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: 'var declares a variable, and := declares one and sets it. Go gives every variable a starting zero value: 0 for numbers, "" for strings, false for bools. Printf prints with slots: %d for numbers, %s for strings, %v for anything.'
+  example: |-
+    var count int
+    name := "web"
+    fmt.Printf("%s %d\n", name, count)   // web 0
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - Go has no uninitialised variables.
+  - Each type has a zero value, and the empty string prints as nothing.
+debrief:
+  why: Every variable starts at its type's zero value, so there's no undefined state.
+  solution: submit 0[]false
+  job: Good Go types are useful at their zero value.
+teaches:
+  - var
+  - int
+  - string
+  - bool
+  - :=
+  - Printf
+answer:
+  accept:
+    - 0[]false
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	var n int
+    	var s string
+    	var ok bool
+    	fmt.Printf("%d[%s]%v\n", n, s, ok)
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Zero values". Which sentence best describes what it taught?
+    options:
+      - package main and func main are where a Go program starts. Everything else is just the instructions inside.
+      - iota gives a list of named numbers without typing each value, so inserting one cannot leave a duplicate.
+      - Every variable starts at its type's zero value, so there's no undefined state.
+      - Arrays are values and slices are views. That one difference explains most slice surprises.
+    answer: Every variable starts at its type's zero value, so there's no undefined state.
+    hint: Look for the sentence about var and int.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 0 1 2
+      - 1 9
+      - Hello, Whiteraven
+      - 0[]false
+    answer: 0[]false
+    hint: Each type has a zero value, and the empty string prints as nothing.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	var n int
+      	var s string
+      	var ok bool
+      	fmt.Printf("%d[%s]%v\n", n, s, ok)
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - var s string
+      - fmt.Printf("%d[%s]%v\n", n, s, ok)
+      - var n int
+      - var ok bool
+    answer:
+      - var n int
+      - var s string
+      - var ok bool
+      - fmt.Printf("%d[%s]%v\n", n, s, ok)
+    hint: "The first one is: var n int"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      ____ n int
+      var s string
+      var ok bool
+      fmt.Printf("%d[%s]%v\n", n, s, ok)
+    answer:
+      - var
+    hint: It starts with "v" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	var n int
+      	var s string
+      	var ok bool
+      	fmt.Printf("%d[%s]%v\n", n, s, ok)
+      }
+    answer:
+      - 0[]false
+    hint: It starts with "0" and is 8 characters long.

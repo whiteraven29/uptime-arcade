@@ -1,0 +1,91 @@
+id: vi-01
+track: VI
+skill: vi
+chapter: Survival
+order: 1
+title: Get in and out
+from: Support
+difficulty: easy
+check: vi
+par:
+  kind: keys
+  value: 15
+lesson:
+  text: vi is a text editor found on every Linux server. It has modes. You start in normal mode, where keys are commands, not text. i enters insert mode so you can type. Esc goes back to normal. :wq saves and quits, and :q! quits without saving when you get stuck.
+  example: |-
+    vi notes.txt
+    i   type your text   <Esc>
+    :wq<Enter>
+brief: The welcome message in ~/vi/welcome.txt has lost its first word. Add "Welcome " to the start.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/welcome.txt"
+hints:
+  - Press i, type the word and a space, then press Esc.
+  - Type :wq and press Enter to save and leave.
+debrief:
+  why: vi has modes. Normal mode is for moving and commands, and insert mode is for typing. Most new users are stuck only because they are in the wrong mode.
+  solution: iWelcome <Esc>:wq<CR>
+  job: Every Linux server has vi, even when nothing else is installed.
+teaches:
+  - i
+  - :wq
+  - :q!
+file: ~/vi/welcome.txt
+expect:
+  - file_equals:
+      path: ~/vi/welcome.txt
+      content: |
+        Welcome to wr-dev01
+  - vi_saved: ~/vi/welcome.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Get in and out". Which sentence best describes what it taught?
+    options:
+      - Jumping directly to a line beats scrolling, and error messages always tell you the line.
+      - Choosing the right way into insert mode saves moving the cursor first.
+      - Undo means mistakes are cheap, so you can try an edit freely and step back and forward through it.
+      - vi has modes. Normal mode is for moving and commands, and insert mode is for typing. Most new users are stuck only because they are in the wrong mode.
+    answer: vi has modes. Normal mode is for moving and commands, and insert mode is for typing. Most new users are stuck only because they are in the wrong mode.
+    hint: Look for the sentence about i and :wq.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: The welcome message in ~/vi/welcome.txt has lost its first word. Add "Welcome " to the start.
+    options:
+      - iWelcome <Esc>:wq<CR>
+      - "oMaintenance: Sunday 02:00<Esc>:wq<CR>"
+      - jxxxuuu<C-r>:wq<CR>
+      - :3<CR>i# <Esc>Gi# <Esc>:wq<CR>
+    answer: iWelcome <Esc>:wq<CR>
+    hint: Type :wq and press Enter to save and leave.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Get in and out" taught you at work?
+    options:
+      - Undo is what keeps a live server edit calm.
+      - A message of the day warns everyone who logs in.
+      - Every Linux server has vi, even when nothing else is installed.
+      - A failing config usually reports its line number.
+    answer: Every Linux server has vi, even when nothing else is installed.
+    hint: "It starts with: Every Linux server has…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: iWelcome <Esc>____<CR>
+    answer:
+      - :wq
+    hint: It starts with ":" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Get in and out" taught. Any one of them counts.
+    answer:
+      - i
+      - :wq
+      - :q!
+    hint: One of them is i…

@@ -1,0 +1,88 @@
+id: vi-16
+track: VI
+skill: vi
+chapter: Copying
+order: 16
+title: Move a line
+from: SRE
+difficulty: medium
+check: vi
+par:
+  kind: keys
+  value: 10
+lesson:
+  text: dd keeps what it deleted, so it also works as cut. Move somewhere else and p pastes it there. That moves a line in a few keys.
+  example: dd  G  p
+brief: A catch-all deny sits near the top of ~/vi/acl.txt, so guests have no access. Move it to the end.
+goal: Move the line to the end
+hints:
+  - dd cuts the line.
+  - G goes to the last line and p pastes below.
+debrief:
+  why: dd is cut and p is paste. In an ACL the first match wins, so a catch-all belongs last.
+  solution: jddGp:wq<CR>
+  job: A wrongly ordered ACL can take a whole office offline.
+teaches:
+  - ddp
+file: ~/vi/acl.txt
+expect:
+  - file_equals:
+      path: ~/vi/acl.txt
+      content: |
+        # guest VLAN outbound, first match wins
+        permit udp 10.40.40.0/24 host 10.40.10.53 eq 53
+        deny ip 10.40.40.0/24 10.40.20.0/24
+        permit tcp 10.40.40.0/24 any eq 443
+        deny ip any any
+  - vi_saved: ~/vi/acl.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Move a line". Which sentence best describes what it taught?
+    options:
+      - "Counts work with almost every command: 3dd, 5j, 2w."
+      - "Search is the fastest way to move in a big file: jump to the word instead of counting lines."
+      - Undo means mistakes are cheap, so you can try an edit freely and step back and forward through it.
+      - dd is cut and p is paste. In an ACL the first match wins, so a catch-all belongs last.
+    answer: dd is cut and p is paste. In an ACL the first match wins, so a catch-all belongs last.
+    hint: Look for the sentence about ddp.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: A catch-all deny sits near the top of ~/vi/acl.txt, so guests have no access. Move it to the end.
+    options:
+      - /timeout:<CR>nwwr9:wq<CR>
+      - j3dd:wq<CR>
+      - jxxxuuu<C-r>:wq<CR>
+      - jddGp:wq<CR>
+    answer: jddGp:wq<CR>
+    hint: G goes to the last line and p pastes below.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Move a line" taught you at work?
+    options:
+      - Undo is what keeps a live server edit calm.
+      - Real config files run to thousands of lines, so nobody scrolls.
+      - A wrongly ordered ACL can take a whole office offline.
+      - Removing temporary jobs is a habit that prevents surprises.
+    answer: A wrongly ordered ACL can take a whole office offline.
+    hint: "It starts with: A wrongly ordered ACL…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: j____Gp:wq<CR>
+    answer:
+      - dd
+    hint: It starts with "d" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Move a line" taught. Any one of them counts.
+    answer:
+      - ddp
+    hint: One of them is d…

@@ -1,0 +1,128 @@
+id: bx-13
+track: BX
+skill: python
+chapter: Hard
+order: 13
+title: Deploy order
+from: Platform
+difficulty: hard
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: deps maps each service to what it needs first. Repeatedly pick a service whose needs are all done, taking the alphabetically first when there is a choice. This is called a topological sort.
+  example: |-
+    done = []
+    ready = [s for s in deps if s not in done]
+brief: Return a valid deploy order. Everything a service depends on comes before it, and ties go alphabetically.
+goal: Write deploy_order(deps). Tests run when you press Run tests.
+hints:
+  - Loop until every service is placed.
+  - Use sorted() so ties go alphabetically, then all(d in done for d in deps[s]).
+debrief:
+  why: Topological sort is how build tools, package managers and deploy systems decide what goes first.
+  solution: |-
+    def deploy_order(deps):
+        done = []
+        while len(done) < len(deps):
+            for s in sorted(deps):
+                if s not in done and all([d in done for d in deps[s]]):
+                    done.append(s)
+                    break
+        return done
+  job: Every orchestrator contains this algorithm.
+teaches:
+  - beyond
+python:
+  starter: |
+    def deploy_order(deps):
+        # your code here
+        pass
+  tests:
+    - expr: 'deploy_order({"web": ["api"], "api": ["db"], "db": []})'
+      want: '["db", "api", "web"]'
+    - expr: 'deploy_order({"b": [], "a": []})'
+      want: '["a", "b"]'
+    - expr: 'deploy_order({"c": ["a", "b"], "a": [], "b": ["a"]})'
+      want: '["a", "b", "c"]'
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Deploy order". Which sentence best describes what it taught?
+    options:
+      - The hardest part of a macro is where it ends, because the next run depends on it.
+      - Keeping the old value in a comment is a cheap rollback, and a macro does it for a whole file.
+      - Topological sort is how build tools, package managers and deploy systems decide what goes first.
+      - Filtering before grouping turns "how many errors" into "where are the errors", which is the question that matters.
+    answer: Topological sort is how build tools, package managers and deploy systems decide what goes first.
+    hint: "The lesson said: deps maps each service to what it needs first."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return a valid deploy order. Everything a service depends on comes before it, and ties go alphabetically.
+    options:
+      - qaf=a"<Esc>A"<Esc>j0q2@a:wq<CR>
+      - qayyPI# <Esc>jjq@a:wq<CR>
+      - awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log | sort -rn | head -1
+      - "if s not in done and all([d in done for d in deps[s]]):"
+    answer: "if s not in done and all([d in done for d in deps[s]]):"
+    hint: Use sorted() so ties go alphabetically, then all(d in done for d in deps[s]).
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "    while len(done) < len(deps):"
+      - "                done.append(s)"
+      - "    done = []"
+      - "            if s not in done and all([d in done for d in deps[s]]):"
+      - "    return done"
+      - "def deploy_order(deps):"
+      - "                break"
+      - "        for s in sorted(deps):"
+    answer:
+      - "def deploy_order(deps):"
+      - "    done = []"
+      - "    while len(done) < len(deps):"
+      - "        for s in sorted(deps):"
+      - "            if s not in done and all([d in done for d in deps[s]]):"
+      - "                done.append(s)"
+      - "                break"
+      - "    return done"
+    hint: "The first one is: def deploy_order(deps):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def deploy_order(deps):
+          done = []
+          while len(done) < len(deps):
+              for s in ____(deps):
+                  if s not in done and all([d in done for d in deps[s]]):
+                      done.append(s)
+                      break
+          return done
+    answer:
+      - sorted
+    hint: It starts with "s" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def deploy_order(deps):
+          done = []
+          while len(done) < len(deps):
+              for s in sorted(deps):
+                  ____
+                      done.append(s)
+                      break
+          return done
+    answer:
+      - "if s not in done and all([d in done for d in deps[s]]):"
+    hint: "It starts with: if s not in done an"

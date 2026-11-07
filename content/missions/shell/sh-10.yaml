@@ -1,0 +1,84 @@
+id: sh-10
+track: SH
+skill: shell
+chapter: Counting and finding
+order: 10
+title: Ignore the health checks
+from: SRE
+difficulty: easy
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: grep -c prints how many lines matched instead of the lines. grep -v flips it, keeping the lines that do NOT match. Flags can be joined, as in -vc.
+  example: |-
+    grep -c 'timeout' server.log
+    grep -v 'DEBUG' server.log
+brief: Load balancer checks are noise. How many requests in ~/logs/api-access.log are NOT for /health?
+goal: "Run: submit <count>"
+hints:
+  - grep -v inverts the match.
+  - Add -c to count.
+debrief:
+  why: Removing known noise first is how you make logs readable.
+  solution: grep -vc '/health' ~/logs/api-access.log
+  job: Filtering health checks is standard in every log query.
+teaches:
+  - -v
+  - -c
+answer:
+  accept:
+    - "1300"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Ignore the health checks". Which sentence best describes what it taught?
+    options:
+      - head and tail let you peek at a file without printing all of it, which matters when a log has a million lines.
+      - mkdir -p creates the whole chain and doesn't complain if a folder is already there, so it's safe to run twice.
+      - grep is the search box of the command line. -n tells you where to go and -i stops capitals hiding a match.
+      - Removing known noise first is how you make logs readable.
+    answer: Removing known noise first is how you make logs readable.
+    hint: Look for the sentence about -v and -c.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Load balancer checks are noise. How many requests in ~/logs/api-access.log are NOT for /health?
+    options:
+      - grep -vc '/health' ~/logs/api-access.log
+      - grep -in gzip ~/conf/nginx-comments.conf
+      - touch ~/work/today/notes.txt
+      - tail -1 ~/README
+    answer: grep -vc '/health' ~/logs/api-access.log
+    hint: Add -c to count.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Ignore the health checks" taught you at work?
+    options:
+      - You will run grep more than any other command.
+      - Filtering health checks is standard in every log query.
+      - Setup scripts use mkdir -p because it can be run again safely.
+      - tail is the first thing you run on any log file.
+    answer: Filtering health checks is standard in every log query.
+    hint: "It starts with: Filtering health checks is…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: grep ____ '/health' ~/logs/api-access.log
+    answer:
+      - -vc
+    hint: It starts with "-" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Load balancer checks are noise. How many requests in ~/logs/api-access.log are NOT for /health?
+    answer:
+      - "1300"
+    hint: It starts with "1" and is 4 characters long.

@@ -1,0 +1,125 @@
+id: go-14
+track: GO
+skill: go
+chapter: Maps and text
+order: 14
+title: Bytes and runes
+from: Backend
+difficulty: medium
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A Go string is a row of bytes in UTF-8, so len counts bytes. Characters outside plain English can take several bytes. Convert to []rune to count characters.
+  example: |-
+    len("é")            // 2
+    len([]rune("é"))    // 1
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - len counts bytes.
+  - ✓ takes 3 bytes in UTF-8.
+debrief:
+  why: Strings are bytes, so convert to runes when you need characters.
+  solution: submit 6 8 6
+  job: This matters for limits on any text that is not plain ASCII.
+teaches:
+  - rune
+  - "[]rune"
+answer:
+  accept:
+    - 6 8 6
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    )
+
+    func main() {
+    	s := "habari"
+    	t := "jambo✓"
+    	fmt.Println(len(s), len(t), len([]rune(t)))
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Bytes and runes". Which sentence best describes what it taught?
+    options:
+      - With no capacity left, append copies to a new array, so a and b no longer share memory.
+      - One loop keyword with a few shapes means less to remember. range is the one you use most.
+      - copy never grows the destination, so size it first. It gives you data that is truly separate.
+      - Strings are bytes, so convert to runes when you need characters.
+    answer: Strings are bytes, so convert to runes when you need characters.
+    hint: Look for the sentence about rune and []rune.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 1 9
+      - 2 [7 8]
+      - 6 8 6
+      - "36"
+    answer: 6 8 6
+    hint: ✓ takes 3 bytes in UTF-8.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	s := "habari"
+      	t := "jambo✓"
+      	fmt.Println(len(s), len(t), len([]rune(t)))
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - s := "habari"
+      - fmt.Println(len(s), len(t), len([]rune(t)))
+      - t := "jambo✓"
+    answer:
+      - s := "habari"
+      - t := "jambo✓"
+      - fmt.Println(len(s), len(t), len([]rune(t)))
+    hint: 'The first one is: s := "habari"'
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      s := "habari"
+      t := "jambo✓"
+      fmt.Println(____(s), len(t), len([]rune(t)))
+    answer:
+      - len
+    hint: It starts with "l" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      )
+
+      func main() {
+      	s := "habari"
+      	t := "jambo✓"
+      	fmt.Println(len(s), len(t), len([]rune(t)))
+      }
+    answer:
+      - 6 8 6
+    hint: It starts with "6" and is 5 characters long.

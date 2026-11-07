@@ -1,0 +1,97 @@
+id: py-06
+track: PY
+skill: python
+chapter: Strings
+order: 6
+title: Format a report line
+from: SRE
+difficulty: easy
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "An f-string puts values inside text: write f before the quote and put names in { }. {name:<8} pads to 8 wide on the left, and {n:>3} pads to 3 wide on the right, which is how you line up columns."
+  example: |-
+    name = "cat"
+    n = 3
+    f"{name:<6}{n:>3} left"   # "cat     3 left"
+brief: Return the host padded to 8 wide on the left, then cpu padded to 3 wide on the right, then a percent sign. report_line("web01", 42) gives "web01    42%".
+goal: Write report_line(host, cpu). Tests run when you press Run tests.
+hints:
+  - f"{host:<8}"
+  - f"{host:<8}{cpu:>3}%"
+debrief:
+  why: f-strings keep the text and the values together, and padding is what turns output into a readable table.
+  solution: |-
+    def report_line(host, cpu):
+        return f"{host:<8}{cpu:>3}%"
+  job: Status reports and CLI tools format lines like this.
+teaches:
+  - f-string
+python:
+  starter: |
+    def report_line(host, cpu):
+        # your code here
+        pass
+  tests:
+    - expr: report_line("web01", 42)
+      want: '"web01    42%"'
+    - expr: report_line("db", 7)
+      want: '"db        7%"'
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Format a report line". Which sentence best describes what it taught?
+    options:
+      - f-strings keep the text and the values together, and padding is what turns output into a readable table.
+      - Chaining string methods reads top to bottom like a pipeline.
+      - print is how a program talks to you. Quotes mark text, so Python does not try to run it.
+      - Conditions are checked from the top and the first true one wins, so the order matters.
+    answer: f-strings keep the text and the values together, and padding is what turns output into a readable table.
+    hint: "The lesson said: An f-string puts values inside text: write f before the quote and put names in { }."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return the host padded to 8 wide on the left, then cpu padded to 3 wide on the right, then a percent sign. report_line("web01", 42) gives "web01    42%".
+    options:
+      - return f"{host:<8}{cpu:>3}%"
+      - label = "client error"
+      - print("Hello, operator")
+      - return name.strip().lower().replace(" ", "-")
+    answer: return f"{host:<8}{cpu:>3}%"
+    hint: f"{host:<8}{cpu:>3}%"
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Format a report line" taught you at work?
+    options:
+      - Printing values is still how most people first debug a problem.
+      - Status reports and CLI tools format lines like this.
+      - Status logic like this sits behind every dashboard.
+      - Every product with URLs needs this.
+    answer: Status reports and CLI tools format lines like this.
+    hint: "It starts with: Status reports and CLI…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      ____ report_line(host, cpu):
+          return f"{host:<8}{cpu:>3}%"
+    answer:
+      - def
+    hint: It starts with "d" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def report_line(host, cpu):
+          ____
+    answer:
+      - return f"{host:<8}{cpu:>3}%"
+    hint: 'It starts with: return f"{'

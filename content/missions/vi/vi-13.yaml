@@ -1,0 +1,98 @@
+id: vi-13
+track: VI
+skill: vi
+chapter: Finding
+order: 13
+title: Search the file
+from: SRE
+difficulty: medium
+check: vi
+par:
+  kind: keys
+  value: 20
+lesson:
+  text: / searches forward and ? searches backward. Type the word and press Enter. n goes to the next match and N to the one before.
+  example: |-
+    /error<Enter>  find it
+    n              next
+    N              previous
+brief: In ~/vi/timeouts.yaml change db_timeout from 30 to 90.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/timeouts.yaml"
+hints:
+  - "/timeout: finds web_timeout first, and n moves on to db_timeout."
+  - w w gets to the 30, and r9 changes the 3.
+debrief:
+  why: "Search is the fastest way to move in a big file: jump to the word instead of counting lines."
+  solution: /timeout:<CR>nwwr9:wq<CR>
+  job: Real config files run to thousands of lines, so nobody scrolls.
+teaches:
+  - /
+  - "?"
+  - "n"
+  - "N"
+file: ~/vi/timeouts.yaml
+expect:
+  - file_equals:
+      path: ~/vi/timeouts.yaml
+      content: |
+        # timeouts
+        web_timeout: 30
+        db_timeout: 90
+        cache_timeout: 30
+  - vi_saved: ~/vi/timeouts.yaml
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Search the file". Which sentence best describes what it taught?
+    options:
+      - r and x fix a typo without ever leaving normal mode, so there is no Esc to forget.
+      - Undo means mistakes are cheap, so you can try an edit freely and step back and forward through it.
+      - ; repeats the last f search, so you can hop across delimited data.
+      - "Search is the fastest way to move in a big file: jump to the word instead of counting lines."
+    answer: "Search is the fastest way to move in a big file: jump to the word instead of counting lines."
+    hint: Look for the sentence about / and ?.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: In ~/vi/timeouts.yaml change db_timeout from 30 to 90.
+    options:
+      - f,;lcw9090<Esc>:wq<CR>
+      - /timeout:<CR>nwwr9:wq<CR>
+      - jxxxuuu<C-r>:wq<CR>
+      - ehxjhr8:wq<CR>
+    answer: /timeout:<CR>nwwr9:wq<CR>
+    hint: w w gets to the 30, and r9 changes the 3.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - nwwr9
+      - :wq<CR>
+      - /timeout:<CR>
+    answer:
+      - /timeout:<CR>
+      - nwwr9
+      - :wq<CR>
+    hint: "The first one is: /timeout:<CR>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: /timeout:<CR>nwwr9____<CR>
+    answer:
+      - :wq
+    hint: It starts with ":" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Search the file" taught. Any one of them counts.
+    answer:
+      - /
+      - "?"
+      - "n"
+      - "N"
+    hint: One of them is /…

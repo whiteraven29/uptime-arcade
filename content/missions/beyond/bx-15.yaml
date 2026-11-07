@@ -1,0 +1,86 @@
+id: bx-15
+track: BX
+skill: networking
+chapter: Hard
+order: 15
+title: Mismatched masks
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Each host decides on its own, using only its own mask. So two hosts on one wire can disagree about whether they are neighbours.
+  example: |-
+    A thinks B is local.
+    B thinks A is remote.
+brief: "On one switch: host A is 10.0.0.5/24 and host B is 10.0.0.200/25. Which host sends its replies through the gateway instead of directly?"
+goal: "Run: submit a  or  submit b"
+hints:
+  - Work out what each host thinks its own subnet is.
+  - B is in 10.0.0.128/25. Does that contain 10.0.0.5?
+debrief:
+  why: B thinks 10.0.0.5 is outside its /25, so it hands replies to the gateway, which gives odd one-way failures.
+  solution: submit b
+  job: A typo in one mask causes bugs that look impossible.
+teaches:
+  - beyond
+answer:
+  accept:
+    - b
+    - host b
+reasoned: true
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Mismatched masks". Which sentence best describes what it taught?
+    options:
+      - Compression is really about spotting runs. Forgetting the last run after the loop is the classic bug.
+      - Topological sort is how build tools, package managers and deploy systems decide what goes first.
+      - B thinks 10.0.0.5 is outside its /25, so it hands replies to the gateway, which gives odd one-way failures.
+      - Keeping the old value in a comment is a cheap rollback, and a macro does it for a whole file.
+    answer: B thinks 10.0.0.5 is outside its /25, so it hands replies to the gateway, which gives odd one-way failures.
+    hint: "The lesson said: Each host decides on its own, using only its own mask."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: "On one switch: host A is 10.0.0.5/24 and host B is 10.0.0.200/25. Which host sends its replies through the gateway instead of directly?"
+    options:
+      - out += prev + str(n)
+      - b
+      - "if s not in done and all([d in done for d in deps[s]]):"
+      - qayyPI# <Esc>jjq@a:wq<CR>
+    answer: b
+    hint: B is in 10.0.0.128/25. Does that contain 10.0.0.5?
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Mismatched masks" taught you at work?
+    options:
+      - Log compressors and image formats start from this.
+      - A typo in one mask causes bugs that look impossible.
+      - Every orchestrator contains this algorithm.
+      - Careful admins leave the old value right there during a risky change.
+    answer: A typo in one mask causes bugs that look impossible.
+    hint: "It starts with: A typo in one…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: B thinks 10.0.0.5 is outside its /25, so it hands replies to the ____, which gives odd one-way failures.
+    answer:
+      - gateway
+    hint: It starts with "g" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: "On one switch: host A is 10.0.0.5/24 and host B is 10.0.0.200/25. Which host sends its replies through the gateway instead of directly?"
+    answer:
+      - b
+      - host b
+    hint: It starts with "b" and is 1 characters long.

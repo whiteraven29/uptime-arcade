@@ -1,0 +1,98 @@
+id: sh-07
+track: SH
+skill: shell
+chapter: Files
+order: 7
+title: Delete with care
+from: SRE
+difficulty: easy
+check: fs
+par:
+  kind: commands
+  value: 2
+lesson:
+  text: rm deletes a file. rm -r deletes a folder and everything inside it. There's no undo and no recycle bin, so look with ls first.
+  example: |-
+    ls ~/old
+    rm ~/old/notes.txt
+    rm -r ~/old
+brief: Clear ~/desk/old.log and the whole ~/desk/tmp folder. keep.txt must survive. If you delete it by mistake, press Leave and reopen this mission to restore the files.
+goal: Remove old.log and tmp, and keep keep.txt.
+hints:
+  - rm on its own refuses folders.
+  - rm -r ~/desk/tmp
+debrief:
+  why: rm is permanent, so name exactly what you mean. Careless rm -r is how people lose production data.
+  solution: |-
+    rm ~/desk/old.log
+    rm -r ~/desk/tmp
+  job: Everyone gets one rm -r story. Make sure yours is small.
+teaches:
+  - rm
+  - -r
+expect:
+  - file_missing: ~/desk/old.log
+  - file_missing: ~/desk/tmp
+  - file_exists: ~/desk/keep.txt
+fixtures:
+  desk/old.log: |
+    stale
+  desk/tmp/a.txt: |
+    x
+  desk/tmp/b.txt: |
+    x
+  desk/keep.txt: |
+    Important. Leave this one.
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Delete with care". Which sentence best describes what it taught?
+    options:
+      - head and tail let you peek at a file without printing all of it, which matters when a log has a million lines.
+      - Absolute paths start at / and work anywhere. Relative paths start from your current folder and are shorter.
+      - rm is permanent, so name exactly what you mean. Careless rm -r is how people lose production data.
+      - The shell splits on spaces, and programs read a leading dash as an option. Quoting and a path prefix fix both. Dotfiles are only hidden from plain ls.
+    answer: rm is permanent, so name exactly what you mean. Careless rm -r is how people lose production data.
+    hint: Look for the sentence about rm and -r.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Clear ~/desk/old.log and the whole ~/desk/tmp folder. keep.txt must survive. If you delete it by mistake, press Leave and reopen this mission to restore the files.
+    options:
+      - cat ~/inbox/'week 44'/.rota
+      - rm ~/desk/old.log
+      - tail -1 ~/README
+      - cd /etc
+    answer: rm ~/desk/old.log
+    hint: rm -r ~/desk/tmp
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Delete with care" taught you at work?
+    options:
+      - Everyone gets one rm -r story. Make sure yours is small.
+      - tail is the first thing you run on any log file.
+      - You move around servers like this all day.
+      - Backups and uploads produce names like this all the time.
+    answer: Everyone gets one rm -r story. Make sure yours is small.
+    hint: "It starts with: Everyone gets one rm…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ ~/desk/old.log
+    answer:
+      - rm
+    hint: It starts with "r" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type one of the commands you used."
+    context: Clear ~/desk/old.log and the whole ~/desk/tmp folder. keep.txt must survive. If you delete it by mistake, press Leave and reopen this mission to restore the files.
+    answer:
+      - rm ~/desk/old.log
+      - rm -r ~/desk/tmp
+    hint: "It starts with: rm ~/d"

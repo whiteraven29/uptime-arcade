@@ -1,0 +1,107 @@
+id: sh-30
+track: SH
+skill: shell
+chapter: Scripting
+order: 30
+title: "Capstone: the report script"
+from: SRE
+difficulty: expert
+check: fs
+par:
+  kind: commands
+  value: 5
+lesson:
+  text: "A script is a file of commands. The first line, #!/bin/bash, says which program runs it. $1 is the first word you pass in. Make it runnable with chmod +x, then run it by its path."
+  example: |-
+    echo '#!/bin/bash' > hi.sh
+    echo 'echo "hello $1"' >> hi.sh
+    chmod +x hi.sh
+    ./hi.sh amina
+brief: Anything you type twice should be a script. Build ~/bin/report.sh, which counts the lines in ~/logs/app.log that contain whatever word you pass it.
+goal: "Create the script, make it executable, then run: ~/bin/report.sh ERROR"
+hints:
+  - mkdir -p ~/bin, then build the file with echo ... > and echo ... >>. Use single quotes so $1 stays literal.
+  - 'The command inside is: grep -c "$1" ~/logs/app.log'
+debrief:
+  why: A script is a saved pipeline with a parameter. Once it exists, anyone can run it and get the same answer.
+  solution: |-
+    mkdir -p ~/bin
+    echo '#!/bin/bash' > ~/bin/report.sh
+    echo 'grep -c "$1" ~/logs/app.log' >> ~/bin/report.sh
+    chmod +x ~/bin/report.sh
+    ~/bin/report.sh ERROR
+  job: Nearly all automation starts as a script somebody got tired of retyping.
+teaches:
+  - "#!"
+  - $1
+expect:
+  - file_exists: ~/bin/report.sh
+  - mode_has:
+      path: ~/bin/report.sh
+      bit: x
+  - file_contains:
+      path: ~/bin/report.sh
+      text: $1
+  - script_ran: ~/bin/report.sh
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: 'You just finished "Capstone: the report script". Which sentence best describes what it taught?'
+    options:
+      - while read handles a file one line at a time, and it's safer than for when lines contain spaces.
+      - ^ and $ anchor to the start and end of a line, so ^$ means an empty line.
+      - A script is a saved pipeline with a parameter. Once it exists, anyone can run it and get the same answer.
+      - sed applies a substitution to every line. Writing to a new file keeps the original for a safe rollback.
+    answer: A script is a saved pipeline with a parameter. Once it exists, anyone can run it and get the same answer.
+    hint: "Look for the sentence about #! and $1."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Anything you type twice should be a script. Build ~/bin/report.sh, which counts the lines in ~/logs/app.log that contain whatever word you pass it.
+    options:
+      - sed '/^#/d; /^$/d' ~/conf/nginx-comments.conf > ~/conf/nginx-clean.conf
+      - sed 's/old-host\.example/whiteraven.example/' ~/conf/endpoints.conf > ~/conf/endpoints-new.conf
+      - while read h; do echo "check $h"; done < ~/data/hosts.txt > ~/data/checks.txt
+      - echo 'grep -c "$1" ~/logs/app.log' >> ~/bin/report.sh
+    answer: echo 'grep -c "$1" ~/logs/app.log' >> ~/bin/report.sh
+    hint: 'The command inside is: grep -c "$1" ~/logs/app.log'
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the commands you ran, mixed up. Tap them from first to last.
+    scrambled:
+      - chmod +x ~/bin/report.sh
+      - ~/bin/report.sh ERROR
+      - echo 'grep -c "$1" ~/logs/app.log' >> ~/bin/report.sh
+      - mkdir -p ~/bin
+      - echo '#!/bin/bash' > ~/bin/report.sh
+    answer:
+      - mkdir -p ~/bin
+      - echo '#!/bin/bash' > ~/bin/report.sh
+      - echo 'grep -c "$1" ~/logs/app.log' >> ~/bin/report.sh
+      - chmod +x ~/bin/report.sh
+      - ~/bin/report.sh ERROR
+    hint: "The first one is: mkdir -p ~/bin"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: echo 'grep ____ "$1" ~/logs/app.log' >> ~/bin/report.sh
+    answer:
+      - -c
+    hint: It starts with "-" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type one of the commands you used."
+    context: Anything you type twice should be a script. Build ~/bin/report.sh, which counts the lines in ~/logs/app.log that contain whatever word you pass it.
+    answer:
+      - mkdir -p ~/bin
+      - echo '#!/bin/bash' > ~/bin/report.sh
+      - echo 'grep -c "$1" ~/logs/app.log' >> ~/bin/report.sh
+      - chmod +x ~/bin/report.sh
+      - ~/bin/report.sh ERROR
+    hint: "It starts with: echo 'grep -c \"$1\""

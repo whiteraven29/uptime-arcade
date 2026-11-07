@@ -1,0 +1,118 @@
+id: go-22
+track: GO
+skill: go
+chapter: Errors and packages
+order: 22
+title: Exported names
+from: Platform
+difficulty: hard
+check: go-fix
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: In Go a capital first letter means exported, so visible from other packages. A lowercase name is private to its package. That is why you call strings.ToUpper and never strings.toUpper.
+  example: |-
+    strings.ToLower("HI")   // works
+    strings.toLower("HI")   // will not compile
+brief: This should print WEB. Which function from the strings package goes in the blank? Mind the capitals.
+goal: "Run: submit <the code that replaces ____>"
+hints:
+  - It makes text upper case.
+  - Exported names start with a capital.
+debrief:
+  why: "Capitalisation is the whole visibility system in Go: no public or private keywords."
+  solution: submit ToUpper
+  job: A lowercase field also silently vanishes from JSON output, which catches everyone once.
+teaches:
+  - strings
+  - ToUpper
+answer:
+  accept:
+    - ToUpper
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    	"strings"
+    )
+
+    func main() {
+    	fmt.Println(strings.____("web"))
+    }
+  prints: WEB
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Exported names". Which sentence best describes what it taught?
+    options:
+      - Satisfaction is implicit, so you can define an interface where it is used and existing types just fit.
+      - "Capitalisation is the whole visibility system in Go: no public or private keywords."
+      - Strings are bytes, so convert to runes when you need characters.
+      - Deferred calls stack up and run in reverse order, so cleanup unwinds in the opposite order to setup.
+    answer: "Capitalisation is the whole visibility system in Go: no public or private keywords."
+    hint: Look for the sentence about strings and ToUpper.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: This should print WEB. Which function from the strings package goes in the blank? Mind the capitals.
+    options:
+      - done 2 1 0
+      - ToUpper
+      - web ok db ok done
+      - 6 8 6
+    answer: ToUpper
+    hint: Exported names start with a capital.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"strings"
+      )
+
+      func main() {
+      	fmt.Println(strings.ToUpper("web"))
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Exported names" taught you at work?
+    options:
+      - A lowercase field also silently vanishes from JSON output, which catches everyone once.
+      - This matters for limits on any text that is not plain ASCII.
+      - io.Reader and error are interfaces you will use every day.
+      - defer closes files and releases locks.
+    answer: A lowercase field also silently vanishes from JSON output, which catches everyone once.
+    hint: "It starts with: A lowercase field also…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: fmt.____(strings.____("web"))
+    answer:
+      - Println
+    hint: It starts with "P" and is 7 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what goes in the blank?"
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"strings"
+      )
+
+      func main() {
+      	fmt.Println(strings.____("web"))
+      }
+    answer:
+      - ToUpper
+    hint: It starts with "T" and is 7 characters long.

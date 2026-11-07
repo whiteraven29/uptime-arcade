@@ -1,0 +1,207 @@
+id: go-30
+track: GO
+skill: go
+chapter: Quality
+order: 30
+title: "Capstone: the worker pool"
+from: CTO
+difficulty: expert
+check: go-fix
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Nothing new. A worker pool is goroutines ranging over a jobs channel. They only leave that loop when the channel is closed, and wg.Wait() only returns when they leave.
+  example: |-
+    for j := range jobs {
+    	// stops when jobs is closed
+    }
+brief: Three workers double each job. As written the program hangs forever at wg.Wait(). What line belongs in the blank?
+goal: "Run: submit <the code that replaces ____>"
+hints:
+  - What ends a range over a channel?
+  - The sender is finished at that point.
+debrief:
+  why: range over a channel ends only on close. Whoever sends is responsible for closing, otherwise every worker waits forever.
+  solution: submit close(jobs)
+  job: You have just debugged the most common goroutine leak there is.
+teaches:
+  - capstone
+answer:
+  accept:
+    - close(jobs)
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    	"sync"
+    )
+
+    func main() {
+    	jobs := make(chan int, 5)
+    	results := make(chan int, 5)
+    	var wg sync.WaitGroup
+    	for w := 0; w < 3; w++ {
+    		wg.Add(1)
+    		go func() {
+    			defer wg.Done()
+    			for j := range jobs {
+    				results <- j * 2
+    			}
+    		}()
+    	}
+    	for i := 1; i <= 5; i++ {
+    		jobs <- i
+    	}
+    	____
+    	wg.Wait()
+    	close(results)
+    	sum := 0
+    	for r := range results {
+    		sum += r
+    	}
+    	fmt.Println(sum)
+    }
+  prints: "30"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: 'You just finished "Capstone: the worker pool". Which sentence best describes what it taught?'
+    options:
+      - range over a channel ends only on close. Whoever sends is responsible for closing, otherwise every worker waits forever.
+      - Closing doesn't throw away buffered values. Without close, this loop would deadlock.
+      - Channels are how goroutines talk safely, by handing over values instead of sharing memory.
+      - Goroutines are cheap to start, but main does not wait for them. That is the first concurrency trap.
+    answer: range over a channel ends only on close. Whoever sends is responsible for closing, otherwise every worker waits forever.
+    hint: "The lesson said: Nothing new."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Three workers double each job. As written the program hangs forever at wg.Wait(). What line belongs in the blank?
+    options:
+      - worker main
+      - close(jobs)
+      - 2 a b
+      - 14 0
+    answer: close(jobs)
+    hint: The sender is finished at that point.
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"sync"
+      )
+
+      func main() {
+      	jobs := make(chan int, 5)
+      	results := make(chan int, 5)
+      	var wg sync.WaitGroup
+      	for w := 0; w < 3; w++ {
+      		wg.Add(1)
+      		go func() {
+      			defer wg.Done()
+      			for j := range jobs {
+      				results <- j * 2
+      			}
+      		}()
+      	}
+      	for i := 1; i <= 5; i++ {
+      		jobs <- i
+      	}
+      	close(jobs)
+      	wg.Wait()
+      	close(results)
+      	sum := 0
+      	for r := range results {
+      		sum += r
+      	}
+      	fmt.Println(sum)
+      }
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: 'Where would you use what "Capstone: the worker pool" taught you at work?'
+    options:
+      - Worker pools use send, close and range.
+      - Servers run each request in its own goroutine.
+      - Pipelines and worker pools are built from channels.
+      - You have just debugged the most common goroutine leak there is.
+    answer: You have just debugged the most common goroutine leak there is.
+    hint: "It starts with: You have just debugged…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      jobs := make(chan int, 5)
+      results := make(chan int, 5)
+      var wg sync.WaitGroup
+      ____ w := 0; w < 3; w++ {
+      	wg.Add(1)
+      	go func() {
+      		defer wg.Done()
+      		for j := range jobs {
+      			results <- j * 2
+      		}
+      	}()
+      }
+      for i := 1; i <= 5; i++ {
+      	jobs <- i
+      }
+      ____
+      wg.Wait()
+      close(results)
+      sum := 0
+      for r := range results {
+      	sum += r
+      }
+      fmt.Println(sum)
+    answer:
+      - for
+    hint: It starts with "f" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what goes in the blank?"
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"sync"
+      )
+
+      func main() {
+      	jobs := make(chan int, 5)
+      	results := make(chan int, 5)
+      	var wg sync.WaitGroup
+      	for w := 0; w < 3; w++ {
+      		wg.Add(1)
+      		go func() {
+      			defer wg.Done()
+      			for j := range jobs {
+      				results <- j * 2
+      			}
+      		}()
+      	}
+      	for i := 1; i <= 5; i++ {
+      		jobs <- i
+      	}
+      	____
+      	wg.Wait()
+      	close(results)
+      	sum := 0
+      	for r := range results {
+      		sum += r
+      	}
+      	fmt.Println(sum)
+      }
+    answer:
+      - close(jobs)
+    hint: It starts with "c" and is 11 characters long.

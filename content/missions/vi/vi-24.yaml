@@ -1,0 +1,90 @@
+id: vi-24
+track: VI
+skill: vi
+chapter: Precision
+order: 24
+title: Column edits
+from: Platform
+difficulty: hard
+check: vi
+par:
+  kind: keys
+  value: 12
+lesson:
+  text: Ctrl-v selects a rectangle. Move to cover the rows, press I, type your text and press Esc. What you typed appears on every row.
+  example: "Ctrl-v  2j  I  # <Esc>"
+brief: Comment out all three lines of ~/vi/column.txt by adding "# " at the start of each, with one block insert.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/column.txt"
+hints:
+  - Ctrl-v, then 2j selects the first column of three rows.
+  - "I, type # and a space, then Esc."
+debrief:
+  why: Block mode edits a column on many lines at once, which no line-by-line command can match.
+  solution: <C-v>2jI# <Esc>:wq<CR>
+  job: Commenting out a block is the everyday use.
+teaches:
+  - C-v
+  - I
+file: ~/vi/column.txt
+expect:
+  - file_equals:
+      path: ~/vi/column.txt
+      content: |
+        # web1
+        # web2
+        # web3
+  - vi_saved: ~/vi/column.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Column edits". Which sentence best describes what it taught?
+    options:
+      - Block mode edits a column on many lines at once, which no line-by-line command can match.
+      - J handles the newline and the spacing in one key.
+      - Text objects describe what you mean, inside these quotes, so the cursor does not have to be anywhere exact.
+      - :s is sed inside vi. % selects the whole file and g every match per line.
+    answer: Block mode edits a column on many lines at once, which no line-by-line command can match.
+    hint: Look for the sentence about C-v and I.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: Comment out all three lines of ~/vi/column.txt by adding "# " at the start of each, with one block insert.
+    options:
+      - <C-v>2jI# <Esc>:wq<CR>
+      - ci"new<Esc>jdi(:wq<CR>
+      - :%s/staging/prod/g<CR>:wq<CR>
+      - J:wq<CR>
+    answer: <C-v>2jI# <Esc>:wq<CR>
+    hint: "I, type # and a space, then Esc."
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - :wq<CR>
+      - 2jI# <Esc>
+      - <C-v>
+    answer:
+      - <C-v>
+      - 2jI# <Esc>
+      - :wq<CR>
+    hint: "The first one is: <C-v>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: <C-v>2jI# <Esc>____<CR>
+    answer:
+      - :wq
+    hint: It starts with ":" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Column edits" taught. Any one of them counts.
+    answer:
+      - C-v
+      - I
+    hint: One of them is C…

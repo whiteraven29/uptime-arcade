@@ -1,0 +1,166 @@
+id: go-28
+track: GO
+skill: go
+chapter: Concurrency
+order: 28
+title: Cancel work
+from: Backend
+difficulty: hard
+check: go-out
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A context carries a deadline through your program. context.WithTimeout makes one that expires, and time.After is a channel that fires once after a delay. Its Done channel closes when time is up, and ctx.Err() says why. Always defer cancel().
+  example: |-
+    ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+    defer cancel()
+    <-ctx.Done()
+    fmt.Println(ctx.Err())
+brief: Read this Go program and predict exactly what it prints.
+goal: "Predict the output, then run: submit <the printed text>"
+hints:
+  - 10 milliseconds is much shorter than one second.
+  - The message for a timeout is "context deadline exceeded".
+debrief:
+  why: Context lets a caller stop work it no longer needs, so a slow database cannot pile up requests forever.
+  solution: submit context deadline exceeded
+  job: Every Go server passes a context through each request.
+teaches:
+  - context
+  - WithTimeout
+  - Background
+  - After
+  - Err
+answer:
+  accept:
+    - context deadline exceeded
+go:
+  program: |
+    package main
+
+    import (
+    	"fmt"
+    	"context"
+    	"time"
+    )
+
+    func main() {
+    	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+    	defer cancel()
+    	select {
+    	case <-ctx.Done():
+    		fmt.Println(ctx.Err())
+    	case <-time.After(time.Second):
+    		fmt.Println("finished")
+    	}
+    }
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Cancel work". Which sentence best describes what it taught?
+    options:
+      - default makes a channel operation non-blocking, and time.After is how you stop waiting forever.
+      - Wrapping adds context without losing the original, so use errors.Is rather than ==.
+      - Context lets a caller stop work it no longer needs, so a slow database cannot pile up requests forever.
+      - Channels are how goroutines talk safely, by handing over values instead of sharing memory.
+    answer: Context lets a caller stop work it no longer needs, so a slow database cannot pile up requests forever.
+    hint: Look for the sentence about context and WithTimeout.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What did this program print?
+    context: Read this Go program and predict exactly what it prints.
+    options:
+      - 2 a b
+      - "false true db: down"
+      - context deadline exceeded
+      - empty
+    answer: context deadline exceeded
+    hint: The message for a timeout is "context deadline exceeded".
+    code: true
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"context"
+      	"time"
+      )
+
+      func main() {
+      	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+      	defer cancel()
+      	select {
+      	case <-ctx.Done():
+      		fmt.Println(ctx.Err())
+      	case <-time.After(time.Second):
+      		fmt.Println("finished")
+      	}
+      }
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines inside main, mixed up. Tap them from the first line to the last.
+    scrambled:
+      - "case <-ctx.Done():"
+      - defer cancel()
+      - select {
+      - "\tfmt.Println(ctx.Err())"
+      - "case <-time.After(time.Second):"
+      - ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+      - "}"
+      - '	fmt.Println("finished")'
+    answer:
+      - ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+      - defer cancel()
+      - select {
+      - "case <-ctx.Done():"
+      - "\tfmt.Println(ctx.Err())"
+      - "case <-time.After(time.Second):"
+      - '	fmt.Println("finished")'
+      - "}"
+    hint: "The first one is: ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the code with one word missing. Type the missing word.
+    show: |-
+      ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+      defer cancel()
+      ____ {
+      case <-ctx.Done():
+      	fmt.Println(ctx.Err())
+      case <-time.After(time.Second):
+      	fmt.Println("finished")
+      }
+    answer:
+      - select
+    hint: It starts with "s" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what does this program print? Type it exactly."
+    show: |
+      package main
+
+      import (
+      	"fmt"
+      	"context"
+      	"time"
+      )
+
+      func main() {
+      	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+      	defer cancel()
+      	select {
+      	case <-ctx.Done():
+      		fmt.Println(ctx.Err())
+      	case <-time.After(time.Second):
+      		fmt.Println("finished")
+      	}
+      }
+    answer:
+      - context deadline exceeded
+    hint: It starts with "c" and is 25 characters long.

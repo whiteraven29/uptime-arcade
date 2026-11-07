@@ -1,0 +1,130 @@
+id: py-26
+track: PY
+skill: python
+chapter: Objects
+order: 26
+title: Objects that remember
+from: Backend
+difficulty: hard
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: An object keeps its state between calls. Anything stored on self is still there next time a method runs, which is what makes objects different from plain functions.
+  example: |-
+    class Tally:
+        def __init__(self):
+            self.n = 0
+        def add(self):
+            self.n += 1
+brief: hit(path) records a request. total holds how many so far. count(path) returns the hits for one path, 0 if none.
+goal: Write the Hits class. Tests run when you press Run tests.
+hints:
+  - Set self.total = 0 and self.paths = {} in __init__.
+  - self.paths.get(path, 0)
+debrief:
+  why: State that lives on self survives between calls, so the object remembers what happened to it.
+  solution: |-
+    class Hits:
+        def __init__(self):
+            self.total = 0
+            self.paths = {}
+        def hit(self, path):
+            self.total += 1
+            self.paths[path] = self.paths.get(path, 0) + 1
+        def count(self, path):
+            return self.paths.get(path, 0)
+  job: Metrics counters in real services look just like this.
+teaches:
+  - state
+python:
+  starter: |
+    class Hits:
+        # your code here
+        pass
+  tests:
+    - expr: c.total
+      want: "3"
+      label: total after three hits
+    - expr: c.count("/a")
+      want: "2"
+      label: count of /a
+    - expr: c.count("/z")
+      want: "0"
+      label: count of an unseen path
+  prelude: |
+    c = Hits()
+    c.hit("/a")
+    c.hit("/b")
+    c.hit("/a")
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Objects that remember". Which sentence best describes what it taught?
+    options:
+      - You wrote this loop by hand earlier. Now you know what the library saves you.
+      - Date maths is full of traps like month ends and leap years, so never do it by hand.
+      - with guarantees the file gets closed. Reading line by line means even a huge file fits in memory.
+      - State that lives on self survives between calls, so the object remembers what happened to it.
+    answer: State that lives on self survives between calls, so the object remembers what happened to it.
+    hint: "The lesson said: An object keeps its state between calls."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: hit(path) records a request. total holds how many so far. count(path) returns the hits for one path, 0 if none.
+    options:
+      - 'if line.startswith("ERROR"):'
+      - t = datetime(2026, 11, day, hour, 0) + timedelta(minutes=minutes)
+      - return Counter(paths).most_common(1)[0][0]
+      - self.paths[path] = self.paths.get(path, 0) + 1
+    answer: self.paths[path] = self.paths.get(path, 0) + 1
+    hint: self.paths.get(path, 0)
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Objects that remember" taught you at work?
+    options:
+      - Log processing starts with exactly this loop.
+      - Metrics counters in real services look just like this.
+      - Schedules, expiry dates and SLAs all need this.
+      - Knowing the standard library means writing less code.
+    answer: Metrics counters in real services look just like this.
+    hint: "It starts with: Metrics counters in real…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      class Hits:
+          def __init__(self):
+              self.total = 0
+              self.paths = {}
+          def hit(self, path):
+              self.total += 1
+              self.paths[path] = self.paths.____(path, 0) + 1
+          def count(self, path):
+              return self.paths.get(path, 0)
+    answer:
+      - get
+    hint: It starts with "g" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      class Hits:
+          def __init__(self):
+              self.total = 0
+              self.paths = {}
+          def hit(self, path):
+              self.total += 1
+              ____
+          def count(self, path):
+              return self.paths.get(path, 0)
+    answer:
+      - self.paths[path] = self.paths.get(path, 0) + 1
+    hint: "It starts with: self.paths[path]"

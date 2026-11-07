@@ -1,0 +1,99 @@
+id: vi-29
+track: VI
+skill: vi
+chapter: Power
+order: 29
+title: Several files
+from: Support
+difficulty: expert
+check: vi
+par:
+  kind: keys
+  value: 43
+lesson:
+  text: :r file reads another file in below the cursor. :w name saves a copy under a new name and stays where you are. :e file opens a different file.
+  example: |-
+    :r footer.txt
+    :w copy.txt
+    :e other.txt
+brief: In ~/vi/notes.txt read in ~/vi/footer.txt, save a copy as ~/vi/release.txt, then save and quit.
+goal: Read the footer in and write the copy
+hints:
+  - :r ~/vi/footer.txt
+  - :w ~/vi/release.txt, then :wq
+debrief:
+  why: :r and :w let you combine and copy files from inside the editor.
+  solution: :r ~/vi/footer.txt<CR>:w ~/vi/release.txt<CR>:wq<CR>
+  job: Pulling a template into a file is a common server task.
+teaches:
+  - :r
+  - :w
+  - :e
+file: ~/vi/notes.txt
+expect:
+  - file_equals:
+      path: ~/vi/notes.txt
+      content: |
+        Release notes
+        Thanks for reading.
+  - vi_saved: ~/vi/notes.txt
+  - file_equals:
+      path: ~/vi/release.txt
+      content: |
+        Release notes
+        Thanks for reading.
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Several files". Which sentence best describes what it taught?
+    options:
+      - Ranges let one command touch exactly the block you mean, with no cursor movement.
+      - Selecting first lets you see exactly what will change before you commit to it.
+      - Named registers hold several snippets at once, so one copy no longer wipes out the last.
+      - :r and :w let you combine and copy files from inside the editor.
+    answer: :r and :w let you combine and copy files from inside the editor.
+    hint: Look for the sentence about :r and :w.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: In ~/vi/notes.txt read in ~/vi/footer.txt, save a copy as ~/vi/release.txt, then save and quit.
+    options:
+      - :r ~/vi/footer.txt<CR>:w ~/vi/release.txt<CR>:wq<CR>
+      - jVjdwvwhd:wq<CR>
+      - :2,3d<CR>:.,$s/on/off/<CR>:wq<CR>
+      - '"ayyj"byyG"ap"bp:wq<CR>'
+    answer: :r ~/vi/footer.txt<CR>:w ~/vi/release.txt<CR>:wq<CR>
+    hint: :w ~/vi/release.txt, then :wq
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - :w ~/vi/release.txt<CR>
+      - :r ~/vi/footer.txt<CR>
+      - :wq<CR>
+    answer:
+      - :r ~/vi/footer.txt<CR>
+      - :w ~/vi/release.txt<CR>
+      - :wq<CR>
+    hint: "The first one is: :r ~/vi/footer.txt<CR>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____<CR>:w ~/vi/release.txt<CR>:wq<CR>
+    answer:
+      - :r ~/vi/footer.txt
+    hint: "It starts with: :r "
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Several files" taught. Any one of them counts.
+    answer:
+      - :r
+      - :w
+      - :e
+    hint: One of them is :…

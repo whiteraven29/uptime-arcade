@@ -1,0 +1,88 @@
+id: sh-18
+track: SH
+skill: shell
+chapter: System
+order: 18
+title: Find and act
+from: Platform
+difficulty: medium
+check: fs
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: find can run a command on each match. -exec cmd {} ; replaces {} with the file's path. Quote the pattern so find sees it, not the shell, and run without -exec first to preview.
+  example: |-
+    find ~/cache -name '*.bak'
+    find ~/cache -name '*.bak' -exec rm {} ;
+brief: Delete every .tmp file under ~/build, in all folders. Keep everything else.
+goal: Do it in one find command.
+hints:
+  - -name '*.tmp' with quotes.
+  - -exec rm {} ; runs rm on each one.
+debrief:
+  why: find picks the files and -exec acts on them, so a cleanup covers a whole tree in one line. Previewing first is what keeps it safe.
+  solution: find ~/build -name '*.tmp' -exec rm {} ;
+  job: Scoped cleanups stop disks filling up.
+teaches:
+  - -exec
+  - "{}"
+expect:
+  - file_missing: ~/build/a.tmp
+  - file_missing: ~/build/c.tmp
+  - file_missing: ~/build/sub/d.tmp
+  - file_exists: ~/build/b.o
+  - file_exists: ~/build/sub/e.o
+  - file_exists: ~/build/sub/keep.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Find and act". Which sentence best describes what it taught?
+    options:
+      - find picks the files and -exec acts on them, so a cleanup covers a whole tree in one line. Previewing first is what keeps it safe.
+      - Removing known noise first is how you make logs readable.
+      - "> starts the file again every time, while >> adds to it. Mixing them up is the classic way to lose a report."
+      - sort | uniq -c | sort -rn is the most useful shell idiom you'll learn. uniq only collapses neighbours, so sort first.
+    answer: find picks the files and -exec acts on them, so a cleanup covers a whole tree in one line. Previewing first is what keeps it safe.
+    hint: Look for the sentence about -exec and {}.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Delete every .tmp file under ~/build, in all folders. Keep everything else.
+    options:
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+      - grep -vc '/health' ~/logs/api-access.log
+      - grep -c FATAL ~/logs/app.log >> ~/incident.txt
+      - find ~/build -name '*.tmp' -exec rm {} ;
+    answer: find ~/build -name '*.tmp' -exec rm {} ;
+    hint: -exec rm {} ; runs rm on each one.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Find and act" taught you at work?
+    options:
+      - Scoped cleanups stop disks filling up.
+      - Evidence saved to a file survives after your terminal scrolls away.
+      - Filtering health checks is standard in every log query.
+      - You'll type this pipeline for the rest of your career.
+    answer: Scoped cleanups stop disks filling up.
+    hint: "It starts with: Scoped cleanups stop disks…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: find ~/build -name '*.tmp' ____ rm {} ;
+    answer:
+      - -exec
+    hint: It starts with "-" and is 5 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type the command you used."
+    context: Delete every .tmp file under ~/build, in all folders. Keep everything else.
+    answer:
+      - find ~/build -name '*.tmp' -exec rm {} ;
+    hint: "It starts with: find ~/build -"

@@ -1,0 +1,135 @@
+id: bx-08
+track: BX
+skill: python
+chapter: Medium
+order: 8
+title: Run-length encoding
+from: Data
+difficulty: medium
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: To compress repeats, walk the text keeping the current character and how many you have seen. When it changes, write out the pair.
+  example: |-
+    out = ""
+    prev = text[0]
+    count = 1
+brief: 'Return each run of characters as the character and its length: "aaabcc" gives "a3b1c2".'
+goal: Write rle(text). Tests run when you press Run tests.
+hints:
+  - Handle the empty string first.
+  - Remember to write out the final run after the loop.
+debrief:
+  why: Compression is really about spotting runs. Forgetting the last run after the loop is the classic bug.
+  solution: |-
+    def rle(text):
+        if not text:
+            return ""
+        out = ""
+        prev = text[0]
+        n = 0
+        for c in text:
+            if c == prev:
+                n += 1
+            else:
+                out += prev + str(n)
+                prev = c
+                n = 1
+        return out + prev + str(n)
+  job: Log compressors and image formats start from this.
+teaches:
+  - beyond
+python:
+  starter: |
+    def rle(text):
+        # your code here
+        pass
+  tests:
+    - expr: rle("aaabcc")
+      want: '"a3b1c2"'
+    - expr: rle("")
+      want: '""'
+    - expr: rle("z")
+      want: '"z1"'
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Run-length encoding". Which sentence best describes what it taught?
+    options:
+      - x keeps what it removed, so xp is a two-key typo fix.
+      - Filtering before grouping turns "how many errors" into "where are the errors", which is the question that matters.
+      - Compression is really about spotting runs. Forgetting the last run after the loop is the classic bug.
+      - Every extra bit doubles the number of subnets and halves their size.
+    answer: Compression is really about spotting runs. Forgetting the last run after the loop is the classic bug.
+    hint: "The lesson said: To compress repeats, walk the text keeping the current character and how many you have seen."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: 'Return each run of characters as the character and its length: "aaabcc" gives "a3b1c2".'
+    options:
+      - "4"
+      - out += prev + str(n)
+      - awk '$5==500{c[$4]++} END{for(k in c)print c[k],k}' ~/logs/api-access.log | sort -rn | head -1
+      - lxp:wq<CR>
+    answer: out += prev + str(n)
+    hint: Remember to write out the final run after the loop.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Run-length encoding" taught you at work?
+    options:
+      - This is the second query of every incident.
+      - The quick sum behind every address plan.
+      - Log compressors and image formats start from this.
+      - You will use xp for the rest of your life.
+    answer: Log compressors and image formats start from this.
+    hint: "It starts with: Log compressors and image…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      ____ rle(text):
+          if not text:
+              return ""
+          out = ""
+          prev = text[0]
+          n = 0
+          for c in text:
+              if c == prev:
+                  n += 1
+              else:
+                  out += prev + str(n)
+                  prev = c
+                  n = 1
+          return out + prev + str(n)
+    answer:
+      - def
+    hint: It starts with "d" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def rle(text):
+          if not text:
+              return ""
+          out = ""
+          prev = text[0]
+          n = 0
+          for c in text:
+              if c == prev:
+                  n += 1
+              else:
+                  ____
+                  prev = c
+                  n = 1
+          return out + prev + str(n)
+    answer:
+      - out += prev + str(n)
+    hint: "It starts with: out += "

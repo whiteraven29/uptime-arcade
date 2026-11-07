@@ -5,7 +5,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
-import { TK } from '../content/legacy/index.mjs';
+import { TK } from '../content/index.mjs';
 
 const require = createRequire(resolve('frontend/package.json'));
 const { chromium } = require('playwright-core');
@@ -28,7 +28,7 @@ for (const [width, height] of [[1400, 880], [400, 860]]) {
     if (m.type() === 'error') problems.push(`${width}: console: ${m.text()}`);
   });
   await page.addInitScript((s) => {
-    if (!localStorage.getItem('uptime-arcade-v4')) localStorage.setItem('uptime-arcade-v4', JSON.stringify({ ...s, day: new Date().toDateString() }));
+    if (!localStorage.getItem('uptime-arcade-v5')) localStorage.setItem('uptime-arcade-v5', JSON.stringify({ ...s, day: new Date().toDateString() }));
   }, SAVE);
 
   const shot = async (name, after) => {
@@ -40,10 +40,10 @@ for (const [width, height] of [[1400, 880], [400, 860]]) {
   };
   const open = (path) => page.goto(base + path, { waitUntil: 'load' });
   const sessionOpen = () => page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('uptime-arcade-v4'));
+    const s = JSON.parse(localStorage.getItem('uptime-arcade-v5'));
     s.bank = 0;
     s.sessionEndsAt = Date.now() + 36e5;
-    localStorage.setItem('uptime-arcade-v4', JSON.stringify(s));
+    localStorage.setItem('uptime-arcade-v5', JSON.stringify(s));
   });
 
   // The first mission of every track is open on a new save.
@@ -96,15 +96,15 @@ for (const [width, height] of [[1400, 880], [400, 860]]) {
   await page.press('#cmd', 'Enter');
   await page.waitForSelector('.over', { timeout: 3000 }).catch(() => problems.push(`${width}: solving a mission showed no debrief`));
   await shot('debrief');
-  await page.click('text=Start rewind');
+  await page.click('text=Start the questions');
   await shot('rewind');
 
   // Timer running.
   await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('uptime-arcade-v4'));
+    const s = JSON.parse(localStorage.getItem('uptime-arcade-v5'));
     s.sessionEndsAt = null;
     s.focus = { goal: 'Fix the login endpoint bug', len: 25, startedAt: Date.now() - 9 * 60000, endsAt: Date.now() + 16 * 60000, drifts: 0 };
-    localStorage.setItem('uptime-arcade-v4', JSON.stringify(s));
+    localStorage.setItem('uptime-arcade-v5', JSON.stringify(s));
   });
   await open('/focus');
   await shot('focus-running');

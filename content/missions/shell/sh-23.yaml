@@ -1,0 +1,89 @@
+id: sh-23
+track: SH
+skill: shell
+chapter: sed
+order: 23
+title: Delete and print lines
+from: SRE
+difficulty: hard
+check: fs
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: sed /pattern/d deletes matching lines. ^ means line start and $ means line end, so ^$ is a blank line. Separate commands with ; and use sed -n '5p' to print only line 5.
+  example: |-
+    sed '/^;/d; /^$/d' settings.ini
+    sed -n '5p' notes.txt
+brief: Reviewers only want live settings from ~/conf/nginx-comments.conf.
+goal: Write it to ~/conf/nginx-clean.conf without comment lines or blank lines.
+hints:
+  - /^#/d deletes comment lines.
+  - /^$/d deletes blank lines. Separate with ;
+debrief:
+  why: ^ and $ anchor to the start and end of a line, so ^$ means an empty line.
+  solution: sed '/^#/d; /^$/d' ~/conf/nginx-comments.conf > ~/conf/nginx-clean.conf
+  job: Comparing real settings between servers starts here.
+teaches:
+  - /d
+  - ^
+  - $
+expect:
+  - file_equals:
+      path: ~/conf/nginx-clean.conf
+      content: |
+        worker_processes 4;
+        keepalive_timeout 65;
+        gzip on;
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Delete and print lines". Which sentence best describes what it taught?
+    options:
+      - sort | uniq -c | sort -rn is the most useful shell idiom you'll learn. uniq only collapses neighbours, so sort first.
+      - ^ and $ anchor to the start and end of a line, so ^$ means an empty line.
+      - find walks a whole tree, and -name matches the base name exactly unless you use a glob.
+      - Pattern plus action lets awk filter and aggregate in the same step, with no grep needed.
+    answer: ^ and $ anchor to the start and end of a line, so ^$ means an empty line.
+    hint: Look for the sentence about /d and ^.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: Reviewers only want live settings from ~/conf/nginx-comments.conf.
+    options:
+      - sed '/^#/d; /^$/d' ~/conf/nginx-comments.conf > ~/conf/nginx-clean.conf
+      - awk '$4=="/v1/orders"{s+=$6;n++} END{printf "%.0f\n", s/n}' ~/logs/api-access.log
+      - cut -d' ' -f4 ~/logs/api-access.log | sort | uniq -c | sort -rn | head -1
+      - find ~/archive -name app.log | wc -l
+    answer: sed '/^#/d; /^$/d' ~/conf/nginx-comments.conf > ~/conf/nginx-clean.conf
+    hint: /^$/d deletes blank lines. Separate with ;
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Delete and print lines" taught you at work?
+    options:
+      - Latency per endpoint is the basis of every SLO.
+      - Comparing real settings between servers starts here.
+      - You'll type this pipeline for the rest of your career.
+      - Finding files across a tree is daily sysadmin work.
+    answer: Comparing real settings between servers starts here.
+    hint: "It starts with: Comparing real settings between…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ '/^#/d; /^$/d' ~/conf/nginx-comments.conf > ~/conf/nginx-clean.conf
+    answer:
+      - sed
+    hint: It starts with "s" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: type the command you used."
+    context: Reviewers only want live settings from ~/conf/nginx-comments.conf.
+    answer:
+      - sed '/^#/d; /^$/d' ~/conf/nginx-comments.conf > ~/conf/nginx-clean.conf
+    hint: "It starts with: sed '/^#/d; /^$/d' ~/con"

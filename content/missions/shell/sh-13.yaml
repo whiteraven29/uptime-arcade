@@ -1,0 +1,83 @@
+id: sh-13
+track: SH
+skill: shell
+chapter: Columns
+order: 13
+title: The last request
+from: Support
+difficulty: medium
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: cut pulls out one column. -d sets the separator and -f picks which field.
+  example: tail -3 sales.txt | cut -d' ' -f2
+brief: "Which path was requested last in ~/logs/api-access.log? Columns are: time ip method path status ms bytes."
+goal: "Run: submit <path>"
+hints:
+  - tail -1 gets the last line.
+  - cut -d' ' -f4 keeps the path column.
+debrief:
+  why: tail and cut together pull a single value out of a structured line.
+  solution: tail -1 ~/logs/api-access.log | cut -d' ' -f4
+  job: Seeing the latest entry confirms whether a service is still logging.
+teaches:
+  - cut
+  - -d
+  - -f
+answer:
+  accept:
+    - /v1/search
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "The last request". Which sentence best describes what it taught?
+    options:
+      - tail and cut together pull a single value out of a structured line.
+      - Each command does one small job, and the pipe joins them. grep picks the lines, head keeps the first.
+      - One line per request means counting lines counts requests.
+      - rm is permanent, so name exactly what you mean. Careless rm -r is how people lose production data.
+    answer: tail and cut together pull a single value out of a structured line.
+    hint: Look for the sentence about cut and -d.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: "Which path was requested last in ~/logs/api-access.log? Columns are: time ip method path status ms bytes."
+    options:
+      - tail -1 ~/logs/api-access.log | cut -d' ' -f4
+      - grep FATAL ~/logs/app.log | head -1
+      - rm ~/desk/old.log
+      - wc -l ~/logs/api-access.log
+    answer: tail -1 ~/logs/api-access.log | cut -d' ' -f4
+    hint: cut -d' ' -f4 keeps the path column.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "The last request" taught you at work?
+    options:
+      - Seeing the latest entry confirms whether a service is still logging.
+      - Almost every useful one-liner has a pipe in it.
+      - Quick size checks tell you what you're dealing with before deeper work.
+      - Everyone gets one rm -r story. Make sure yours is small.
+    answer: Seeing the latest entry confirms whether a service is still logging.
+    hint: "It starts with: Seeing the latest entry…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ -1 ~/logs/api-access.log | cut -d' ' -f4
+    answer:
+      - tail
+    hint: It starts with "t" and is 4 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: "Which path was requested last in ~/logs/api-access.log? Columns are: time ip method path status ms bytes."
+    answer:
+      - /v1/search
+    hint: It starts with "/" and is 10 characters long.

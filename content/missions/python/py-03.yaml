@@ -1,0 +1,132 @@
+id: py-03
+track: PY
+skill: python
+chapter: Basics
+order: 3
+title: Make a decision
+from: SRE
+difficulty: easy
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: if runs the indented lines below it only when its condition is true. elif checks another condition, and else catches whatever is left. Comparisons like <, >= and == give True or False. Indentation is how Python knows what belongs to the if.
+  example: |-
+    if temp > 30:
+        state = "hot"
+    elif temp > 15:
+        state = "mild"
+    else:
+        state = "cold"
+brief: The variable status holds an HTTP code. Set label to "ok" below 400, "client error" below 500, and "server error" for anything else.
+goal: Set label using if, elif and else. Tests run when you press Run tests.
+hints:
+  - Check the smallest range first, then elif status < 500.
+  - else catches everything from 500 up.
+debrief:
+  why: Conditions are checked from the top and the first true one wins, so the order matters.
+  solution: |-
+    if status < 400:
+        label = "ok"
+    elif status < 500:
+        label = "client error"
+    else:
+        label = "server error"
+  job: Status logic like this sits behind every dashboard.
+teaches:
+  - if
+  - elif
+  - else
+  - <
+  - ">="
+python:
+  starter: |
+    # status is already set for you. Set label here.
+    if status < 400:
+        label = "ok"
+  tests:
+    - expr: __case(200)
+      want: '"ok"'
+      label: status 200
+    - expr: __case(404)
+      want: '"client error"'
+      label: status 404
+    - expr: __case(503)
+      want: '"server error"'
+      label: status 503
+  wrap:
+    args: status
+    ret: label
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Make a decision". Which sentence best describes what it taught?
+    options:
+      - print is how a program talks to you. Quotes mark text, so Python does not try to run it.
+      - Conditions are checked from the top and the first true one wins, so the order matters.
+      - Names make programs readable, and the type decides what you can do with a value.
+      - Chaining string methods reads top to bottom like a pipeline.
+    answer: Conditions are checked from the top and the first true one wins, so the order matters.
+    hint: Look for the sentence about if and elif.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: The variable status holds an HTTP code. Set label to "ok" below 400, "client error" below 500, and "server error" for anything else.
+    options:
+      - host = "web01"
+      - return name.strip().lower().replace(" ", "-")
+      - label = "client error"
+      - print("Hello, operator")
+    answer: label = "client error"
+    hint: else catches everything from 500 up.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - '    label = "client error"'
+      - '    label = "ok"'
+      - '    label = "server error"'
+      - "else:"
+      - "elif status < 500:"
+      - "if status < 400:"
+    answer:
+      - "if status < 400:"
+      - '    label = "ok"'
+      - "elif status < 500:"
+      - '    label = "client error"'
+      - "else:"
+      - '    label = "server error"'
+    hint: "The first one is: if status < 400:"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      ____ status < 400:
+          label = "ok"
+      elif status < 500:
+          label = "client error"
+      else:
+          label = "server error"
+    answer:
+      - if
+    hint: It starts with "i" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      if status < 400:
+          label = "ok"
+      elif status < 500:
+          ____
+      else:
+          label = "server error"
+    answer:
+      - label = "client error"
+    hint: "It starts with: label = "

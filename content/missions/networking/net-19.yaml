@@ -1,0 +1,86 @@
+id: net-19
+track: NET
+skill: networking
+chapter: Routing
+order: 19
+title: Read a routing table
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: When several routes match, the router picks the longest prefix, meaning the most specific one. The default route only wins when nothing else matches.
+  example: |-
+    to 10.0.0.9:
+    10.0.0.0/8 and 10.0.0.0/24 match
+    /24 wins
+brief: ~/net/routes.txt is a router's table. A packet is going to 10.40.30.140.
+goal: "Run: submit <next hop IP>"
+hints:
+  - The longest matching prefix wins.
+  - 10.40.30.192/26 starts at .192.
+debrief:
+  why: .140 is in 10.40.30.128/25 but not in .192/26, so longest match gives 10.40.0.4.
+  solution: |-
+    cat ~/net/routes.txt
+    submit 10.40.0.4
+  job: Explains why traffic took an unexpected path.
+teaches:
+  - longest prefix
+answer:
+  accept:
+    - 10.40.0.4
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Read a routing table". Which sentence best describes what it taught?
+    options:
+      - .140 is in 10.40.30.128/25 but not in .192/26, so longest match gives 10.40.0.4.
+      - A timeout means no server answered, and NXDOMAIN means it answered that the name doesn't exist. They're different faults.
+      - IP plus port identifies one service on one machine.
+      - DNS uses UDP for speed and falls back to TCP for large answers.
+    answer: .140 is in 10.40.30.128/25 but not in .192/26, so longest match gives 10.40.0.4.
+    hint: Look for the sentence about longest prefix.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: ~/net/routes.txt is a router's table. A packet is going to 10.40.30.140.
+    options:
+      - sed -i 's/10.40.10.99/10.40.10.53/' /etc/resolv.conf
+      - "8080"
+      - 10.40.0.4
+      - udp
+    answer: 10.40.0.4
+    hint: 10.40.30.192/26 starts at .192.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Read a routing table" taught you at work?
+    options:
+      - Every connection you debug is described this way.
+      - "'The internet is down' is often only DNS."
+      - Explains why traffic took an unexpected path.
+      - Firewall rules for DNS need both.
+    answer: Explains why traffic took an unexpected path.
+    hint: "It starts with: Explains why traffic took…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ ~/net/routes.txt
+    answer:
+      - cat
+    hint: It starts with "c" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: ~/net/routes.txt is a router's table. A packet is going to 10.40.30.140.
+    answer:
+      - 10.40.0.4
+    hint: It starts with "1" and is 9 characters long.

@@ -1,0 +1,81 @@
+id: net-25
+track: NET
+skill: networking
+chapter: Edge
+order: 25
+title: Read the NAT table
+from: Network
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: NAT shares one public IP. It maps each inside address and port to an outside port, and the table shows the mapping.
+  example: 10.0.0.5:4000 -> 1.2.3.4:50001
+brief: In ~/net/nat-table.txt, which outside port does guest device 10.40.40.17 appear from?
+goal: "Run: submit <answer>"
+hints:
+  - grep the inside address.
+  - The outside column is after the colon.
+debrief:
+  why: NAT shares one public IP by mapping inside address and port pairs to outside ports.
+  solution: grep 10.40.40.17 ~/net/nat-table.txt
+  job: Essential when tracing who made a connection.
+teaches:
+  - NAT
+answer:
+  accept:
+    - "40002"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Read the NAT table". Which sentence best describes what it taught?
+    options:
+      - A jump that carries on to later hops marks a real long link or congestion.
+      - NAT shares one public IP by mapping inside address and port pairs to outside ports.
+      - A service bound to 127.0.0.1 cannot be reached from outside, which is the usual cause of "connection refused".
+      - A timeout means no server answered, and NXDOMAIN means it answered that the name doesn't exist. They're different faults.
+    answer: NAT shares one public IP by mapping inside address and port pairs to outside ports.
+    hint: Look for the sentence about NAT.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: In ~/net/nat-table.txt, which outside port does guest device 10.40.40.17 appear from?
+    options:
+      - sed -i 's/10.40.10.99/10.40.10.53/' /etc/resolv.conf
+      - "40002"
+      - "5"
+      - postgres
+    answer: "40002"
+    hint: The outside column is after the colon.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Read the NAT table" taught you at work?
+    options:
+      - The first check when a service cannot be reached.
+      - Essential when tracing who made a connection.
+      - Lets you show your ISP exactly where the problem is.
+      - "'The internet is down' is often only DNS."
+    answer: Essential when tracing who made a connection.
+    hint: "It starts with: Essential when tracing who…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one command name missing. Type what goes in the gap.
+    show: ____ 10.40.40.17 ~/net/nat-table.txt
+    answer:
+      - grep
+    hint: It starts with "g" and is 4 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: In ~/net/nat-table.txt, which outside port does guest device 10.40.40.17 appear from?
+    answer:
+      - "40002"
+    hint: It starts with "4" and is 5 characters long.

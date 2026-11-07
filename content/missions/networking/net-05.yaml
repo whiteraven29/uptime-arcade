@@ -1,0 +1,87 @@
+id: net-05
+track: NET
+skill: networking
+chapter: Subnets
+order: 5
+title: Network and broadcast
+from: Network
+difficulty: easy
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "Block size is 256 minus the mask octet. The network address is the biggest multiple of the block size at or below your host. Broadcast is the last address in the block: network plus block size minus 1."
+  example: |-
+    10.0.0.77/28: block 16
+    network 10.0.0.64
+    broadcast 10.0.0.79
+brief: What are the network address and the broadcast address of 10.4.7.201/27? Give both, with a space between.
+goal: "Run: submit <network> <broadcast>"
+hints:
+  - /27 blocks go up in 32s. Largest multiple of 32 under 201.
+  - Network plus 32, minus 1.
+debrief:
+  why: The block size is 256 minus the mask octet, and networks start at its multiples. Broadcast is network plus block minus one.
+  solution: submit 10.4.7.192 10.4.7.223
+  job: Helps you spot a host set to an invalid address.
+teaches:
+  - block
+  - network
+  - broadcast
+answer:
+  accept:
+    - 10.4.7.192 10.4.7.223
+verify: str(ipaddress.ip_interface('10.4.7.201/27').network.network_address)+' '+str(ipaddress.ip_interface('10.4.7.201/27').network.broadcast_address)
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Network and broadcast". Which sentence best describes what it taught?
+    options:
+      - The block size is 256 minus the mask octet, and networks start at its multiples. Broadcast is network plus block minus one.
+      - Eight place values are all you need, and they come straight back when you read subnet masks.
+      - Two addresses are reserved in each normal subnet.
+      - The mask is the prefix written as four octets.
+    answer: The block size is 256 minus the mask octet, and networks start at its multiples. Broadcast is network plus block minus one.
+    hint: Look for the sentence about network and broadcast.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: What are the network address and the broadcast address of 10.4.7.201/27? Give both, with a space between.
+    options:
+      - "192"
+      - 255.255.255.192
+      - "254"
+      - 10.4.7.192 10.4.7.223
+    answer: 10.4.7.192 10.4.7.223
+    hint: Network plus 32, minus 1.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Network and broadcast" taught you at work?
+    options:
+      - Masks like 255.255.255.192 make sense once you can see the bits.
+      - The first number you memorise.
+      - Helps you spot a host set to an invalid address.
+      - Older gear and many forms ask for masks.
+    answer: Helps you spot a host set to an invalid address.
+    hint: "It starts with: Helps you spot a…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: The ____ size is 256 minus the mask octet, and networks start at its multiples. Broadcast is network plus block minus one.
+    answer:
+      - block
+    hint: It starts with "b" and is 5 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: What are the network address and the broadcast address of 10.4.7.201/27? Give both, with a space between.
+    answer:
+      - 10.4.7.192 10.4.7.223
+    hint: It starts with "1" and is 21 characters long.

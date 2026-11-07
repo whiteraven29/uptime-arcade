@@ -1,0 +1,86 @@
+id: net-23
+track: NET
+skill: networking
+chapter: Tools
+order: 23
+title: Who is listening?
+from: SRE
+difficulty: hard
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "ss -tulpn lists everything waiting for connections: -t TCP, -u UDP, -l listening, -p with the process, -n with numbers. An address of 127.0.0.1 means only this machine can reach it."
+  example: ss -tulpn
+brief: Which program on this server is only reachable from the machine itself, on port 5432?
+goal: "Run: submit <program name>"
+hints:
+  - Run ss -tulpn.
+  - Look for 127.0.0.1:5432.
+debrief:
+  why: A service bound to 127.0.0.1 cannot be reached from outside, which is the usual cause of "connection refused".
+  solution: ss -tulpn
+  job: The first check when a service cannot be reached.
+teaches:
+  - ss
+  - -t
+  - -u
+  - -l
+  - -p
+  - -n
+answer:
+  accept:
+    - postgres
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Who is listening?". Which sentence best describes what it taught?
+    options:
+      - .140 is in 10.40.30.128/25 but not in .192/26, so longest match gives 10.40.0.4.
+      - A gateway must be on your own subnet. Editing a file changes nothing until it's applied.
+      - A service bound to 127.0.0.1 cannot be reached from outside, which is the usual cause of "connection refused".
+      - Well-known ports are conventions that firewalls and clients assume.
+    answer: A service bound to 127.0.0.1 cannot be reached from outside, which is the usual cause of "connection refused".
+    hint: Look for the sentence about ss and -t.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: Which program on this server is only reachable from the machine itself, on port 5432?
+    options:
+      - 10.40.0.4
+      - postgres
+      - "443"
+      - sed -i 's/10.40.3.1/10.40.30.1/' /etc/netplan/01-office.yaml
+    answer: postgres
+    hint: Look for 127.0.0.1:5432.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Who is listening?" taught you at work?
+    options:
+      - Explains why traffic took an unexpected path.
+      - Check address, then route, then DNS.
+      - You'll read port numbers all day.
+      - The first check when a service cannot be reached.
+    answer: The first check when a service cannot be reached.
+    hint: "It starts with: The first check when…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: ss ____
+    answer:
+      - -tulpn
+    hint: It starts with "-" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: Which program on this server is only reachable from the machine itself, on port 5432?
+    answer:
+      - postgres
+    hint: It starts with "p" and is 8 characters long.

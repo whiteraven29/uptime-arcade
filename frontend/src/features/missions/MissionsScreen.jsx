@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { HudPanel } from '../../ui/HudPanel.jsx';
 import { MissionNode } from '../../ui/MissionNode.jsx';
-import { CHAPTERS, S, TK, TRACKS, missionPath, oncallUnlocked, stateOf, toast, ui } from '../../api/localGame.js';
+import { BEYOND, CHAPTERS, DIFFICULTIES, S, TK, TRACKS, beyondOpen, difficultyLabel, missionPath, oncallUnlocked, stateOf, toast, ui } from '../../api/localGame.js';
 
 function TrackColumn({ code, name, sub, selected }) {
   const navigate = useNavigate();
@@ -34,8 +34,10 @@ function TrackColumn({ code, name, sub, selected }) {
                 state={st}
                 title={m.title}
                 flash={ui.flash === m.id}
-                sub={st === 'rewind' ? `Rewind ${(S.rew[m.id] || { ok: 0 }).ok}/5` : null}
-                onClick={() => (st === 'locked' ? toast('Clear the mission before this one first') : navigate(missionPath(m)))}
+                difficulty={m.difficulty}
+                difficultyLabel={difficultyLabel(m.difficulty)}
+                sub={st === 'rewind' ? `Questions ${(S.rew[m.id] || { ok: 0 }).ok}/${m.rewind.length}` : null}
+                onClick={() => (st === 'locked' ? toast(code === BEYOND[0] && !beyondOpen() ? 'Reach Archmage to open these' : 'Clear the mission before this one first') : navigate(missionPath(m)))}
               />
             </div>
           );
@@ -55,17 +57,14 @@ export function MissionsScreen() {
           <Link className="btn go" to="/oncall">Start shift</Link>
         </HudPanel>
       )}
+      <div className="diff-legend" aria-label="Difficulty levels">
+        {DIFFICULTIES.map((d) => <span key={d.code}><i className={`diff-dot diff-${d.code}`} />{d.label}</span>)}
+      </div>
       <div className="track-tabs" role="group" aria-label="Choose a track">
-        {TRACKS.map(([k, l]) => <button key={k} type="button" className="btn" aria-pressed={picked === k} onClick={() => setPicked(k)}>{l}</button>)}
+        {[...TRACKS, BEYOND].map(([k, l]) => <button key={k} type="button" className="btn" aria-pressed={picked === k} onClick={() => setPicked(k)}>{l}</button>)}
       </div>
       <div className="tracks">
-        {TRACKS.map(([k, l, sub]) => <TrackColumn key={k} code={k} name={l} sub={sub} selected={picked === k} />)}
-        <HudPanel className="tcol planned" label="Coming next">
-          <h3 className="metal">NetLab</h3>
-          <div className="small">Simulated routers and switches arrive in M6.</div>
-          <h3 className="metal" style={{ marginTop: 18 }}>Operations</h3>
-          <div className="small">Multi-skill incidents arrive in M7.</div>
-        </HudPanel>
+        {[...TRACKS, BEYOND].map(([k, l, sub]) => <TrackColumn key={k} code={k} name={l} sub={sub} selected={picked === k} />)}
       </div>
     </section>
   );

@@ -1,0 +1,92 @@
+id: vi-26
+track: VI
+skill: vi
+chapter: Power
+order: 26
+title: Marks
+from: SRE
+difficulty: hard
+check: vi
+par:
+  kind: keys
+  value: 13
+lesson:
+  text: ma drops a mark called a at the current spot. 'a jumps back to that line from anywhere, and d'a deletes from here to the mark.
+  example: |-
+    ma   set mark a
+    'a   jump to mark a
+brief: In ~/vi/marks.txt set a mark on line 2, copy the last line, jump back to the mark and paste below it.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/marks.txt"
+hints:
+  - j, then ma.
+  - G, yy, 'a, p.
+debrief:
+  why: Marks are bookmarks inside a file, so you can look elsewhere and come straight back.
+  solution: jmaGyy'ap:wq<CR>
+  job: Useful when you need to read one part of a file while editing another.
+teaches:
+  - m
+  - "'"
+file: ~/vi/marks.txt
+expect:
+  - file_equals:
+      path: ~/vi/marks.txt
+      content: |
+        top
+        insert after this
+        move me
+        middle
+        move me
+  - vi_saved: ~/vi/marks.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Marks". Which sentence best describes what it taught?
+    options:
+      - :s works on one line by default, and only on the first match unless you add g.
+      - Marks are bookmarks inside a file, so you can look elsewhere and come straight back.
+      - Named registers hold several snippets at once, so one copy no longer wipes out the last.
+      - :s is sed inside vi. % selects the whole file and g every match per line.
+    answer: Marks are bookmarks inside a file, so you can look elsewhere and come straight back.
+    hint: Look for the sentence about m and '.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: In ~/vi/marks.txt set a mark on line 2, copy the last line, jump back to the mark and paste below it.
+    options:
+      - j:s/old/new/<CR>:wq<CR>
+      - '"ayyj"byyG"ap"bp:wq<CR>'
+      - jmaGyy'ap:wq<CR>
+      - :%s/staging/prod/g<CR>:wq<CR>
+    answer: jmaGyy'ap:wq<CR>
+    hint: G, yy, 'a, p.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Marks" taught you at work?
+    options:
+      - A precise one-line replace leaves everything else untouched.
+      - Handy when you are moving several pieces around a large file.
+      - Global replace is the fastest big edit you can make.
+      - Useful when you need to read one part of a file while editing another.
+    answer: Useful when you need to read one part of a file while editing another.
+    hint: "It starts with: Useful when you need…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: jmaG____'ap:wq<CR>
+    answer:
+      - yy
+    hint: It starts with "y" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Marks" taught. Any one of them counts.
+    answer:
+      - m
+      - "'"
+    hint: One of them is m…

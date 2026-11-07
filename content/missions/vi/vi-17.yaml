@@ -1,0 +1,84 @@
+id: vi-17
+track: VI
+skill: vi
+chapter: Copying
+order: 17
+title: Join wrapped lines
+from: Platform
+difficulty: medium
+check: vi
+par:
+  kind: keys
+  value: 5
+lesson:
+  text: J pulls the next line up onto this one and adds a space.
+  example: J
+brief: The command in ~/vi/unit.txt got split onto two lines. Join them.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/unit.txt"
+hints:
+  - J joins the next line to this one.
+  - It adds a space for you.
+debrief:
+  why: J handles the newline and the spacing in one key.
+  solution: J:wq<CR>
+  job: Wrapped pastes break systemd units and shell commands.
+teaches:
+  - J
+file: ~/vi/unit.txt
+expect:
+  - file_equals:
+      path: ~/vi/unit.txt
+      content: |
+        ExecStart=/usr/bin/api --port 8080
+  - vi_saved: ~/vi/unit.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Join wrapped lines". Which sentence best describes what it taught?
+    options:
+      - dd is cut and p is paste. In an ACL the first match wins, so a catch-all belongs last.
+      - . repeats your last change, so search, change, n, . is a loop you can run by hand.
+      - "Search is the fastest way to move in a big file: jump to the word instead of counting lines."
+      - J handles the newline and the spacing in one key.
+    answer: J handles the newline and the spacing in one key.
+    hint: Look for the sentence about J.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: The command in ~/vi/unit.txt got split onto two lines. Join them.
+    options:
+      - /timeout:<CR>nwwr9:wq<CR>
+      - jddGp:wq<CR>
+      - J:wq<CR>
+      - /http:<CR>cwhttps<Esc>n.n.:wq<CR>
+    answer: J:wq<CR>
+    hint: It adds a space for you.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Join wrapped lines" taught you at work?
+    options:
+      - Repeating precise edits is what makes vi users fast.
+      - Real config files run to thousands of lines, so nobody scrolls.
+      - A wrongly ordered ACL can take a whole office offline.
+      - Wrapped pastes break systemd units and shell commands.
+    answer: Wrapped pastes break systemd units and shell commands.
+    hint: "It starts with: Wrapped pastes break systemd…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: J____<CR>
+    answer:
+      - :wq
+    hint: It starts with ":" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Join wrapped lines" taught. Any one of them counts.
+    answer:
+      - J
+    hint: One of them is J…

@@ -1,0 +1,120 @@
+id: py-11
+track: PY
+skill: python
+chapter: Dicts
+order: 11
+title: Count anything
+from: SRE
+difficulty: medium
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: d.get(k, 0) gives 0 when the key is missing, which makes counting simple. line.split() breaks text into a list of words.
+  example: |-
+    c = {}
+    for w in words:
+        c[w] = c.get(w, 0) + 1
+
+    "a b c".split()[1]   # "b"
+brief: Each line is space separated and the 5th field is the status. Return a dict of status string to count.
+goal: Write count_status(lines). Tests run when you press Run tests.
+hints:
+  - line.split()[4]
+  - counts.get(s, 0) + 1
+debrief:
+  why: This is uniq -c as a dict. It's the same group-and-count idea in another language.
+  solution: |-
+    def count_status(lines):
+        counts = {}
+        for line in lines:
+            s = line.split()[4]
+            counts[s] = counts.get(s, 0) + 1
+        return counts
+  job: Log summaries in services start like this.
+teaches:
+  - get
+  - split
+python:
+  starter: |
+    def count_status(lines):
+        # your code here
+        pass
+  tests:
+    - expr: count_status(["t i GET /a 200 5","t i GET /b 500 9","t i GET /a 200 1"])
+      want: '{"200":2,"500":1}'
+    - expr: count_status([])
+      want: "{}"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Count anything". Which sentence best describes what it taught?
+    options:
+      - Indexing from 0 feels odd for a day and then becomes natural. -1 means count from the end.
+      - Conditions are checked from the top and the first true one wins, so the order matters.
+      - A dict finds a value by name instantly, with no looping through a list.
+      - This is uniq -c as a dict. It's the same group-and-count idea in another language.
+    answer: This is uniq -c as a dict. It's the same group-and-count idea in another language.
+    hint: Look for the sentence about get and split.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Each line is space separated and the 5th field is the status. Return a dict of status string to count.
+    options:
+      - 'PORTS = {"ssh": 22, "dns": 53, "https": 443}'
+      - return [items[0], items[-1]]
+      - label = "client error"
+      - counts[s] = counts.get(s, 0) + 1
+    answer: counts[s] = counts.get(s, 0) + 1
+    hint: counts.get(s, 0) + 1
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "        counts[s] = counts.get(s, 0) + 1"
+      - "    for line in lines:"
+      - "    return counts"
+      - "    counts = {}"
+      - "        s = line.split()[4]"
+      - "def count_status(lines):"
+    answer:
+      - "def count_status(lines):"
+      - "    counts = {}"
+      - "    for line in lines:"
+      - "        s = line.split()[4]"
+      - "        counts[s] = counts.get(s, 0) + 1"
+      - "    return counts"
+    hint: "The first one is: def count_status(lines):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def count_status(lines):
+          counts = {}
+          ____ line in lines:
+              s = line.split()[4]
+              counts[s] = counts.get(s, 0) + 1
+          return counts
+    answer:
+      - for
+    hint: It starts with "f" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def count_status(lines):
+          counts = {}
+          for line in lines:
+              s = line.split()[4]
+              ____
+          return counts
+    answer:
+      - counts[s] = counts.get(s, 0) + 1
+    hint: "It starts with: counts[s] ="

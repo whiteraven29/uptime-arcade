@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { HudPanel } from '../../ui/HudPanel.jsx';
-import { S, afterRewindStep, answerRewind, byId, mmss, openSession, pickOrder, sessionOn, startRewind, stateOf, ui, unpickOrder } from '../../api/localGame.js';
+import { DifficultyTag } from '../../ui/DifficultyTag.jsx';
+import { S, afterRewindStep, answerRewind, byId, mmss, openSession, pickOrder, rewindHelp, sessionOn, startRewind, stateOf, ui, unpickOrder } from '../../api/localGame.js';
 
 function FreeAnswer({ task }) {
   const [value, setValue] = useState('');
@@ -24,33 +25,47 @@ function FreeAnswer({ task }) {
   );
 }
 
+function Help({ id }) {
+  const { hint, answer } = rewindHelp(id);
+  if (!hint && !answer) return null;
+  return (
+    <div className="rw-help">
+      {hint && <p><b>Hint:</b> {hint}</p>}
+      {answer && (
+        <>
+          <p><b>The answer is:</b></p>
+          <pre>{answer}</pre>
+          <p className="small">Now you've seen it, answer it to move on.</p>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Task({ m, t }) {
   const pick = ui.rw.pick;
   return (
     <>
-      <p className="label">{t.kicker}</p>
-      {t.brief && <p className="small">{t.brief}</p>}
+      <div className="rw-head">
+        <p className="label">{t.label}</p>
+        <DifficultyTag code={t.level} />
+      </div>
+      {t.context && <p className="small">The mission was: {t.context}</p>}
       <h2 className="title" style={{ fontSize: 24, textTransform: 'none', letterSpacing: 0 }}>{t.q}</h2>
       {t.show && <pre>{t.show}</pre>}
-      {t.type === 'mc' && t.options.map((o) => {
-        const code = m.track !== 'NET' && t.kicker === 'Which one fits?';
-        return <button key={o} type="button" className={`opt${code ? ' code' : ''}`} onClick={() => answerRewind(o)}>{o}</button>;
-      })}
+      <Help id={m.id} />
+      {t.type === 'mc' && t.options.map((o) => (
+        <button key={o} type="button" className={`opt${t.code ? ' code' : ''}`} onClick={() => answerRewind(o)}>{o}</button>
+      ))}
       {t.type === 'order' && (
         <>
-          <p className="small">Click the lines in the right order.</p>
           <div>
             {pick.map((o, i) => <button key={o} type="button" className="tok good" onClick={() => unpickOrder(i)}>{i + 1}. {o}</button>)}
           </div>
           {t.scrambled.filter((o) => !pick.includes(o)).map((o) => <button key={o} type="button" className="tok" onClick={() => pickOrder(o)}>{o}</button>)}
         </>
       )}
-      {(t.type === 'fill' || t.type === 'memory') && (
-        <>
-          {t.type === 'memory' && <p className="small">Starts with: {t.start}</p>}
-          <FreeAnswer task={t} />
-        </>
-      )}
+      {t.type === 'text' && <FreeAnswer task={t} />}
     </>
   );
 }
@@ -69,7 +84,7 @@ export function RewindScreen() {
         <div className="narrow">
           <HudPanel label={`Rewind: ${m.title}`}>
             <div className="pips">{[0, 1, 2, 3, 4].map((i) => <i key={i} className="on" />)}</div>
-            <h2 className="title good" style={{ fontSize: 26 }}>Rewind cleared</h2>
+            <h2 className="title good" style={{ fontSize: 26 }}>All done</h2>
           </HudPanel>
         </div>
       </section>
@@ -83,25 +98,20 @@ export function RewindScreen() {
   return (
     <section className="screen" aria-label="Rewind">
       <div className="narrow">
-        <HudPanel label={`Rewind: ${m.title}`}>
+        <HudPanel label={`Questions on: ${m.title}`}>
+          <p className="small">{S.done[m.id]?.paid ? 'Answer all five to unlock the next mission.' : `Answer all five to earn ${S.done[m.id]?.worth ?? m.xp} XP and unlock the next mission. A wrong answer costs nothing and comes back later.`}</p>
           <div className="pips" role="img" aria-label={`${state.ok} of 5 correct`}>
             {[0, 1, 2, 3, 4].map((i) => <i key={i} className={i < state.ok ? 'on' : ''} />)}
           </div>
           {fb ? (
             <>
-              <h2 className={`title ${fb.ok ? 'good' : 'bad'}`} style={{ fontSize: 26 }}>{fb.ok ? `Correct. +${fb.x} XP` : 'Not quite'}</h2>
-              {!fb.ok && (
-                <>
-                  <p>The answer was:</p>
-                  <pre>{fb.answer}</pre>
-                  <p className="small">This task comes back at the end, so you can get it right.</p>
-                </>
-              )}
-              <button className="btn go" type="button" id="rwNext" autoFocus onClick={afterRewindStep}>{state.q.length ? 'Next task' : 'Finish rewind'}</button>
+              <h2 className={`title ${fb.ok ? 'good' : 'bad'}`} style={{ fontSize: 26 }}>{fb.ok ? 'Correct' : 'Not quite'}</h2>
+              {!fb.ok && <p className="small">{state.q.every((j) => state.miss[j] > 0) ? 'Try again. You get a hint this time.' : "No problem. This one comes back after the others, with a hint if you still need it."}</p>}
+              <button className="btn go" type="button" id="rwNext" autoFocus onClick={afterRewindStep}>{state.q.length ? 'Next question' : 'Finish'}</button>
             </>
           ) : !sessionOn() ? (
             <>
-              <p>Rewind needs an open session.</p>
+              <p>These questions need an open session.</p>
               <div className="row">
                 {canOpen && <button className="btn go" type="button" onClick={openSession}>Open session ({mmss(S.bank)})</button>}
                 <Link className="btn" to="/focus">Go to Focus</Link>

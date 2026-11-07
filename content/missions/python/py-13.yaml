@@ -1,0 +1,132 @@
+id: py-13
+track: PY
+skill: python
+chapter: Collections
+order: 13
+title: Sets for "seen"
+from: Data
+difficulty: medium
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A set holds unique values and answers "have I seen this?" quickly. Use it beside a list when order matters, and add to the list with append.
+  example: |-
+    seen = set()
+    out = []
+    if x not in seen:
+        seen.add(x)
+        out.append(x)
+brief: Return items without repeats, keeping first-seen order.
+goal: Write dedupe(items). Tests run when you press Run tests.
+hints:
+  - A set remembers what you've seen.
+  - Append to a list only when it's new.
+debrief:
+  why: A set gives fast membership checks and a list keeps the order, so you use both.
+  solution: |-
+    def dedupe(items):
+        seen = set()
+        out = []
+        for x in items:
+            if x not in seen:
+                seen.add(x)
+                out.append(x)
+        return out
+  job: Deduping events is a daily data task.
+teaches:
+  - set
+  - add
+  - not
+  - append
+python:
+  starter: |
+    def dedupe(items):
+        # your code here
+        pass
+  tests:
+    - expr: dedupe([3,1,3,2,1])
+      want: "[3,1,2]"
+    - expr: dedupe([])
+      want: "[]"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Sets for "seen"". Which sentence best describes what it taught?
+    options:
+      - Unpacking names each part as it comes out, so the rest of the code reads clearly.
+      - Chaining string methods reads top to bottom like a pipeline.
+      - for is for a known list, and while is for "until this becomes true". Make sure something changes, or it runs forever.
+      - A set gives fast membership checks and a list keeps the order, so you use both.
+    answer: A set gives fast membership checks and a list keeps the order, so you use both.
+    hint: Look for the sentence about set and add.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return items without repeats, keeping first-seen order.
+    options:
+      - "if x not in seen:"
+      - "while start < limit:"
+      - return user[0] + "***@" + domain
+      - return name.strip().lower().replace(" ", "-")
+    answer: "if x not in seen:"
+    hint: Append to a list only when it's new.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "            out.append(x)"
+      - "    seen = set()"
+      - "    for x in items:"
+      - "    return out"
+      - "            seen.add(x)"
+      - "    out = []"
+      - "def dedupe(items):"
+      - "        if x not in seen:"
+    answer:
+      - "def dedupe(items):"
+      - "    seen = set()"
+      - "    out = []"
+      - "    for x in items:"
+      - "        if x not in seen:"
+      - "            seen.add(x)"
+      - "            out.append(x)"
+      - "    return out"
+    hint: "The first one is: def dedupe(items):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def dedupe(items):
+          seen = set()
+          out = []
+          for x in items:
+              if x not in seen:
+                  seen.add(x)
+                  out.____(x)
+          return out
+    answer:
+      - append
+    hint: It starts with "a" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def dedupe(items):
+          seen = set()
+          out = []
+          for x in items:
+              ____
+                  seen.add(x)
+                  out.append(x)
+          return out
+    answer:
+      - "if x not in seen:"
+    hint: "It starts with: if x n"

@@ -1,5 +1,6 @@
 """Settings shared by every environment. See docs/DESIGN.md sections 11 and 17."""
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -19,6 +20,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "apps.core",
     "apps.accounts",
     "apps.content",
@@ -68,10 +70,67 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Section 17. Argon2 first, and the fallback only lets old hashes upgrade on next login.
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+]
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 10}},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+
+# The biggest legitimate body is a shell mission's changed files. This stops anything far larger.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 1_000_000
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 200
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+
 # Section 16: endpoints need login unless a view marks itself public.
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_PARSER_CLASSES": ["apps.core.parsers.LimitedJSONParser"],
+    "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/min",
+        "user": "300/min",
+        "auth": "10/min",  # section 17
+        "login_email": "10/min",
+        "submit": "30/min",  # section 17
+    },
+    # 0 means "use the real connection address". Left unset, DRF trusts X-Forwarded-For from anyone,
+    # and a client could dodge every rate limit by changing that header. Prod sets its proxy count.
+    "NUM_PROXIES": 0,
 }
+
+# Short-lived access tokens stay in memory in the browser. The long-lived refresh token only ever
+# travels in an HttpOnly cookie, so a script on the page can't read it.
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+}
+REFRESH_COOKIE = {
+    "key": "ua_refresh",
+    "httponly": True,
+    "samesite": "Strict",
+    "secure": False,
+    "path": "/api/v1/auth/",
+    "max_age": 14 * 24 * 3600,
+}
+
+CONTENT_DIR = BASE_DIR.parent / "content"

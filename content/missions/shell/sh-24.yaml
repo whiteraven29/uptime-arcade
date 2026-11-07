@@ -1,0 +1,83 @@
+id: sh-24
+track: SH
+skill: shell
+chapter: Patterns
+order: 24
+title: Regex basics
+from: SRE
+difficulty: hard
+check: answer
+par:
+  kind: commands
+  value: 1
+lesson:
+  text: "grep -E turns on extended patterns: a|b means a or b, + means one or more, ? means optional, [0-9] means any digit, and parentheses group choices."
+  example: |-
+    grep -E 'cat|dog' pets.txt
+    grep -E '^[0-9]+$' numbers.txt
+brief: How many lines in ~/logs/app.log are ERROR or FATAL?
+goal: "Run: submit <count>"
+hints:
+  - grep -E allows a|b.
+  - Add -c.
+debrief:
+  why: Extended regex gives you alternation without backslashes.
+  solution: grep -Ec ' (ERROR|FATAL) ' ~/logs/app.log
+  job: Severity filters are the first cut on any app log.
+teaches:
+  - -E
+answer:
+  accept:
+    - "156"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Regex basics". Which sentence best describes what it taught?
+    options:
+      - Associative arrays group by any key, which is a GROUP BY in one line.
+      - sed applies a substitution to every line. Writing to a new file keeps the original for a safe rollback.
+      - Extended regex gives you alternation without backslashes.
+      - ^ and $ anchor to the start and end of a line, so ^$ means an empty line.
+    answer: Extended regex gives you alternation without backslashes.
+    hint: Look for the sentence about -E.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which command solved it?
+    context: How many lines in ~/logs/app.log are ERROR or FATAL?
+    options:
+      - awk -F, 'NR>1{s[$3]+=$5} END{for(k in s)print s[k],k}' ~/data/customers.csv | sort -rn | head -1
+      - grep -Ec ' (ERROR|FATAL) ' ~/logs/app.log
+      - sed '/^#/d; /^$/d' ~/conf/nginx-comments.conf > ~/conf/nginx-clean.conf
+      - sed 's/old-host\.example/whiteraven.example/' ~/conf/endpoints.conf > ~/conf/endpoints-new.conf
+    answer: grep -Ec ' (ERROR|FATAL) ' ~/logs/app.log
+    hint: Add -c.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Regex basics" taught you at work?
+    options:
+      - Severity filters are the first cut on any app log.
+      - Migrations are full of edits like this.
+      - Quick revenue cuts save waiting for a dashboard.
+      - Comparing real settings between servers starts here.
+    answer: Severity filters are the first cut on any app log.
+    hint: "It starts with: Severity filters are the…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the command that solved it, with one option (the part starting with a dash) missing. Type what goes in the gap.
+    show: grep ____ ' (ERROR|FATAL) ' ~/logs/app.log
+    answer:
+      - -Ec
+    hint: It starts with "-" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: How many lines in ~/logs/app.log are ERROR or FATAL?
+    answer:
+      - "156"
+    hint: It starts with "1" and is 3 characters long.

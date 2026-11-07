@@ -1,0 +1,86 @@
+id: net-18
+track: NET
+skill: networking
+chapter: Services
+order: 18
+title: How DHCP hands out addresses
+from: Network
+difficulty: medium
+check: answer
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: "DHCP gives a device its IP, gateway and DNS servers automatically, in four steps known as DORA: Discover, Offer, Request, Acknowledge."
+  example: |-
+    Discover  anyone there?
+    Offer     have this address
+    Request   yes please
+    Ack       it is yours
+brief: A laptop joins Wi-Fi. The order is Discover, Offer, ____, Acknowledge. What is the missing step?
+goal: "Run: submit <the missing step>"
+hints:
+  - DORA.
+  - The client now asks for the offered address.
+debrief:
+  why: Two broadcasts and two replies, so a laptop with no address at all can still get one.
+  solution: submit request
+  job: A 169.254 address means this conversation failed.
+teaches:
+  - DHCP
+  - DORA
+answer:
+  accept:
+    - request
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "How DHCP hands out addresses". Which sentence best describes what it taught?
+    options:
+      - A host compares network bits, then uses ARP for local targets or the gateway for the rest.
+      - The handshake proves both sides can hear each other. A SYN with no reply usually means a firewall.
+      - A timeout means no server answered, and NXDOMAIN means it answered that the name doesn't exist. They're different faults.
+      - Two broadcasts and two replies, so a laptop with no address at all can still get one.
+    answer: Two broadcasts and two replies, so a laptop with no address at all can still get one.
+    hint: Look for the sentence about DHCP and DORA.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: What was the right answer?
+    context: A laptop joins Wi-Fi. The order is Discover, Offer, ____, Acknowledge. What is the missing step?
+    options:
+      - request
+      - syn-ack
+      - gateway
+      - sed -i 's/10.40.10.99/10.40.10.53/' /etc/resolv.conf
+    answer: request
+    hint: The client now asks for the offered address.
+    code: false
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "How DHCP hands out addresses" taught you at work?
+    options:
+      - Connection timeouts are diagnosed by which step of this fails.
+      - "'The internet is down' is often only DNS."
+      - Explains most 'can't reach it' tickets.
+      - A 169.254 address means this conversation failed.
+    answer: A 169.254 address means this conversation failed.
+    hint: "It starts with: A 169.254 address means…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the key idea with one word missing. Type the missing word.
+    show: Two ____ and two replies, so a laptop with no address at all can still get one.
+    answer:
+      - broadcasts
+    hint: It starts with "b" and is 10 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: "Without looking back: what was the answer to this mission?"
+    context: A laptop joins Wi-Fi. The order is Discover, Offer, ____, Acknowledge. What is the missing step?
+    answer:
+      - request
+    hint: It starts with "r" and is 7 characters long.

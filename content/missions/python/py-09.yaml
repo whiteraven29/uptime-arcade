@@ -1,0 +1,122 @@
+id: py-09
+track: PY
+skill: python
+chapter: Lists
+order: 9
+title: Loop until done
+from: SRE
+difficulty: easy
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: while repeats as long as its condition stays true. Use it when you do not know how many rounds you need. break leaves a loop early.
+  example: |-
+    n = 1
+    while n < 100:
+        n *= 2
+    # n is now 128
+brief: Starting from start, count how many doublings it takes to reach at least limit.
+goal: Write doublings(start, limit). Tests run when you press Run tests.
+hints:
+  - Loop while start < limit.
+  - start *= 2 and add 1 to a counter each round.
+debrief:
+  why: for is for a known list, and while is for "until this becomes true". Make sure something changes, or it runs forever.
+  solution: |-
+    def doublings(start, limit):
+        n = 0
+        while start < limit:
+            start *= 2
+            n += 1
+        return n
+  job: Retry loops and polling are written this way.
+teaches:
+  - while
+  - break
+  - "*="
+python:
+  starter: |
+    def doublings(start, limit):
+        # your code here
+        pass
+  tests:
+    - expr: doublings(1, 8)
+      want: "3"
+    - expr: doublings(5, 5)
+      want: "0"
+    - expr: doublings(1, 9)
+      want: "4"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Loop until done". Which sentence best describes what it taught?
+    options:
+      - Indexing from 0 feels odd for a day and then becomes natural. -1 means count from the end.
+      - Loop, test, count is the shape of a huge amount of real code.
+      - print is how a program talks to you. Quotes mark text, so Python does not try to run it.
+      - for is for a known list, and while is for "until this becomes true". Make sure something changes, or it runs forever.
+    answer: for is for a known list, and while is for "until this becomes true". Make sure something changes, or it runs forever.
+    hint: Look for the sentence about while and break.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Starting from start, count how many doublings it takes to reach at least limit.
+    options:
+      - return [items[0], items[-1]]
+      - print("Hello, operator")
+      - "if code >= 500:"
+      - "while start < limit:"
+    answer: "while start < limit:"
+    hint: start *= 2 and add 1 to a counter each round.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - "    return n"
+      - "def doublings(start, limit):"
+      - "    n = 0"
+      - "        n += 1"
+      - "        start *= 2"
+      - "    while start < limit:"
+    answer:
+      - "def doublings(start, limit):"
+      - "    n = 0"
+      - "    while start < limit:"
+      - "        start *= 2"
+      - "        n += 1"
+      - "    return n"
+    hint: "The first one is: def doublings(start, limit):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def doublings(start, limit):
+          n = 0
+          while start < limit:
+              start *= 2
+              n += 1
+          ____ n
+    answer:
+      - return
+    hint: It starts with "r" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def doublings(start, limit):
+          n = 0
+          ____
+              start *= 2
+              n += 1
+          return n
+    answer:
+      - "while start < limit:"
+    hint: "It starts with: while s"

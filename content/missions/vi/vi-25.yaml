@@ -1,0 +1,90 @@
+id: vi-25
+track: VI
+skill: vi
+chapter: Power
+order: 25
+title: Named registers
+from: Backend
+difficulty: hard
+check: vi
+par:
+  kind: keys
+  value: 20
+lesson:
+  text: A register is a named clipboard. "a before a yank stores into register a, and "ap pastes from it. Normal yank and delete keep overwriting the default, but named ones stay put.
+  example: |-
+    "ayy  copy to a
+    "ap   paste a
+brief: In ~/vi/registers.txt copy line 1 to register a and line 2 to register b, then paste a then b after the last line.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/registers.txt"
+hints:
+  - '"ayy, then j, then "byy.'
+  - G, then "ap, then "bp.
+debrief:
+  why: Named registers hold several snippets at once, so one copy no longer wipes out the last.
+  solution: '"ayyj"byyG"ap"bp:wq<CR>'
+  job: Handy when you are moving several pieces around a large file.
+teaches:
+  - '"a'
+file: ~/vi/registers.txt
+expect:
+  - file_equals:
+      path: ~/vi/registers.txt
+      content: |
+        alpha
+        bravo
+        end
+        alpha
+        bravo
+  - vi_saved: ~/vi/registers.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Named registers". Which sentence best describes what it taught?
+    options:
+      - Block mode edits a column on many lines at once, which no line-by-line command can match.
+      - Ranges let one command touch exactly the block you mean, with no cursor movement.
+      - :s works on one line by default, and only on the first match unless you add g.
+      - Named registers hold several snippets at once, so one copy no longer wipes out the last.
+    answer: Named registers hold several snippets at once, so one copy no longer wipes out the last.
+    hint: Look for the sentence about "a.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: In ~/vi/registers.txt copy line 1 to register a and line 2 to register b, then paste a then b after the last line.
+    options:
+      - <C-v>2jI# <Esc>:wq<CR>
+      - '"ayyj"byyG"ap"bp:wq<CR>'
+      - :2,3d<CR>:.,$s/on/off/<CR>:wq<CR>
+      - j:s/old/new/<CR>:wq<CR>
+    answer: '"ayyj"byyG"ap"bp:wq<CR>'
+    hint: G, then "ap, then "bp.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Named registers" taught you at work?
+    options:
+      - Handy when you are moving several pieces around a large file.
+      - A precise one-line replace leaves everything else untouched.
+      - Ranges are how you edit a block without touching the rest of the file.
+      - Commenting out a block is the everyday use.
+    answer: Handy when you are moving several pieces around a large file.
+    hint: "It starts with: Handy when you are…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____yyj"byyG"ap"bp:wq<CR>
+    answer:
+      - '"a'
+    hint: It starts with """ and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Named registers" taught. Any one of them counts.
+    answer:
+      - '"a'
+    hint: One of them is "…

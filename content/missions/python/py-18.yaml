@@ -1,0 +1,116 @@
+id: py-18
+track: PY
+skill: python
+chapter: Parsing
+order: 18
+title: Split log lines
+from: Finance
+difficulty: medium
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: Unpack each split row into names, convert text to numbers with int(), and add into a dict.
+  example: |-
+    a, b = "cat,3".split(",")
+    t[a] = t.get(a, 0) + int(b)
+brief: Rows are "date,customer,mb". Return a dict of customer to total mb as ints.
+goal: Write totals(rows). Tests run when you press Run tests.
+hints:
+  - Unpack the three parts from split(',').
+  - dict.get with a default.
+debrief:
+  why: Group-and-sum is awk's s[$2]+=$3 written as a dict.
+  solution: |-
+    def totals(rows):
+        out = {}
+        for row in rows:
+            d, c, mb = row.split(",")
+            out[c] = out.get(c, 0) + int(mb)
+        return out
+  job: Usage billing is built on this.
+teaches:
+  - split
+python:
+  starter: |
+    def totals(rows):
+        # your code here
+        pass
+  tests:
+    - expr: totals(["d,a,5","d,b,2","d,a,3"])
+      want: '{"a":8,"b":2}'
+    - expr: totals([])
+      want: "{}"
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Split log lines". Which sentence best describes what it taught?
+    options:
+      - A set gives fast membership checks and a list keeps the order, so you use both.
+      - This is uniq -c as a dict. It's the same group-and-count idea in another language.
+      - key= tells sorted what to compare. Slicing past the end is safe in Python.
+      - Group-and-sum is awk's s[$2]+=$3 written as a dict.
+    answer: Group-and-sum is awk's s[$2]+=$3 written as a dict.
+    hint: Look for the sentence about split.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Rows are "date,customer,mb". Return a dict of customer to total mb as ints.
+    options:
+      - return sorted(counts, key=counts.get, reverse=True)[:n]
+      - "if x not in seen:"
+      - out[c] = out.get(c, 0) + int(mb)
+      - counts[s] = counts.get(s, 0) + 1
+    answer: out[c] = out.get(c, 0) + int(mb)
+    hint: dict.get with a default.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the lines of the solution, mixed up. Tap them from the top line to the bottom line.
+    scrambled:
+      - '        d, c, mb = row.split(",")'
+      - "def totals(rows):"
+      - "    for row in rows:"
+      - "    out = {}"
+      - "    return out"
+      - "        out[c] = out.get(c, 0) + int(mb)"
+    answer:
+      - "def totals(rows):"
+      - "    out = {}"
+      - "    for row in rows:"
+      - '        d, c, mb = row.split(",")'
+      - "        out[c] = out.get(c, 0) + int(mb)"
+      - "    return out"
+    hint: "The first one is: def totals(rows):"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def totals(rows):
+          out = {}
+          for row in rows:
+              d, c, mb = row.split(",")
+              out[c] = out.get(c, 0) + int(mb)
+          ____ out
+    answer:
+      - return
+    hint: It starts with "r" and is 6 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def totals(rows):
+          out = {}
+          for row in rows:
+              d, c, mb = row.split(",")
+              ____
+          return out
+    answer:
+      - out[c] = out.get(c, 0) + int(mb)
+    hint: "It starts with: out[c] = ou"

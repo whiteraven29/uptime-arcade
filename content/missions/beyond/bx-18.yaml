@@ -1,0 +1,146 @@
+id: bx-18
+track: BX
+skill: python
+chapter: Expert
+order: 18
+title: Longest prefix wins
+from: Network
+difficulty: expert
+check: py
+par:
+  kind: first-try
+  value: 1
+lesson:
+  text: A router keeps every route that matches and picks the one with the longest prefix. Dividing by 2 ** (32 - prefix) drops the host bits, so only the network bits get compared, and a /0 matches everything.
+  example: |-
+    net, bits = "10.0.0.0/8".split("/")
+    size = 2 ** (32 - int(bits))
+    to_int(ip) // size == to_int(net) // size
+brief: Return the next hop of the longest matching route, or None if nothing matches.
+goal: Write next_hop(table, ip). Tests run when you press Run tests.
+hints:
+  - Turn each IP into one number first.
+  - Track the best prefix seen so far, and replace it when a longer one matches.
+debrief:
+  why: This is the decision every router makes for every packet, written out in full.
+  solution: |-
+    def to_int(ip):
+        n = 0
+        for o in ip.split("."):
+            n = n * 256 + int(o)
+        return n
+
+    def next_hop(table, ip):
+        best = None
+        best_bits = -1
+        for route, hop in table:
+            net, bits = route.split("/")
+            bits = int(bits)
+            size = 2 ** (32 - bits)
+            if to_int(ip) // size == to_int(net) // size and bits > best_bits:
+                best = hop
+                best_bits = bits
+        return best
+  job: Routers do this in hardware, but the logic is exactly this.
+teaches:
+  - beyond
+python:
+  starter: |
+    def next_hop(table, ip):
+        # table is a list of ("10.0.0.0/8", "hop-a") pairs
+        pass
+  tests:
+    - expr: next_hop([("10.0.0.0/8", "a"), ("10.1.0.0/16", "b")], "10.1.2.3")
+      want: '"b"'
+    - expr: next_hop([("10.0.0.0/8", "a"), ("10.1.0.0/16", "b")], "10.2.2.3")
+      want: '"a"'
+    - expr: next_hop([("0.0.0.0/0", "default"), ("10.0.0.0/8", "a")], "8.8.8.8")
+      want: '"default"'
+    - expr: next_hop([("10.0.0.0/8", "a")], "8.8.8.8")
+      want: None
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Longest prefix wins". Which sentence best describes what it taught?
+    options:
+      - "Order is everything: n goes 3, then 6, then -1, because the recovering defer was registered first and so runs last."
+      - 0 and 3 differ in two bits, so the shared prefix is 22 bits, and the route also covers 10.0.1.0 and 10.0.2.0.
+      - This is the decision every router makes for every packet, written out in full.
+      - Totals favour whoever is biggest. Averages show who is actually worth more, which is often a different answer.
+    answer: This is the decision every router makes for every packet, written out in full.
+    hint: "The lesson said: A router keeps every route that matches and picks the one with the longest prefix."
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which line comes from the solution?
+    context: Return the next hop of the longest matching route, or None if nothing matches.
+    options:
+      - awk -F, 'NR>1{s[$4]+=$5;n[$4]++} END{for(k in s)print s[k]/n[k],k}' ~/data/customers.csv | sort -rn | head -1
+      - "if to_int(ip) // size == to_int(net) // size and bits > best_bits:"
+      - "-1"
+      - 10.0.0.0/22
+    answer: "if to_int(ip) // size == to_int(net) // size and bits > best_bits:"
+    hint: Track the best prefix seen so far, and replace it when a longer one matches.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Longest prefix wins" taught you at work?
+    options:
+      - Servers rely on this to turn a panic into a clean error response.
+      - Routers do this in hardware, but the logic is exactly this.
+      - Summaries often cover more than you meant, which can swallow traffic.
+      - Analysis that changes decisions is usually a ratio.
+    answer: Routers do this in hardware, but the logic is exactly this.
+    hint: "It starts with: Routers do this in…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here is the solution with one word missing. Type the missing word.
+    show: |-
+      def to_int(ip):
+          n = 0
+          for o in ip.split("."):
+              n = n * 256 + int(o)
+          return n
+
+      def next_hop(table, ip):
+          best = None
+          best_bits = -1
+          for route, hop in table:
+              net, bits = route.split("/")
+              bits = int(bits)
+              size = 2 ** (32 - bits)
+              ____ to_int(ip) // size == to_int(net) // size and bits > best_bits:
+                  best = hop
+                  best_bits = bits
+          return best
+    answer:
+      - if
+    hint: It starts with "i" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Here is the solution with one whole line missing. Type that line.
+    show: |-
+      def to_int(ip):
+          n = 0
+          for o in ip.split("."):
+              n = n * 256 + int(o)
+          return n
+
+      def next_hop(table, ip):
+          best = None
+          best_bits = -1
+          for route, hop in table:
+              net, bits = route.split("/")
+              bits = int(bits)
+              size = 2 ** (32 - bits)
+              ____
+                  best = hop
+                  best_bits = bits
+          return best
+    answer:
+      - "if to_int(ip) // size == to_int(net) // size and bits > best_bits:"
+    hint: "It starts with: if to_int(ip) // size "

@@ -1,0 +1,89 @@
+id: vi-23
+track: VI
+skill: vi
+chapter: Precision
+order: 23
+title: Visual selection
+from: SRE
+difficulty: hard
+check: vi
+par:
+  kind: keys
+  value: 14
+lesson:
+  text: v starts selecting by character and V selects whole lines. Move to grow the selection, then press an operator like d, y, c or >. Esc cancels.
+  example: |-
+    V j d   delete two lines
+    v e y   copy to end of word
+brief: In ~/vi/visual.txt delete the two drop lines with V, then delete the word old and its space with v.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/visual.txt"
+hints:
+  - j, V, j, d takes out both lines.
+  - w moves to old. v, w, h selects it and its space. d deletes it.
+debrief:
+  why: Selecting first lets you see exactly what will change before you commit to it.
+  solution: jVjdwvwhd:wq<CR>
+  job: When a motion is hard to count, select it instead.
+teaches:
+  - v
+  - V
+file: ~/vi/visual.txt
+expect:
+  - file_equals:
+      path: ~/vi/visual.txt
+      content: |
+        keep
+        server web01
+  - vi_saved: ~/vi/visual.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Visual selection". Which sentence best describes what it taught?
+    options:
+      - Text objects describe what you mean, inside these quotes, so the cursor does not have to be anywhere exact.
+      - ">> shifts a line right and << shifts it left. In YAML, indentation changes the meaning."
+      - dd is cut and p is paste. In an ACL the first match wins, so a catch-all belongs last.
+      - Selecting first lets you see exactly what will change before you commit to it.
+    answer: Selecting first lets you see exactly what will change before you commit to it.
+    hint: Look for the sentence about v and V.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: In ~/vi/visual.txt delete the two drop lines with V, then delete the word old and its space with v.
+    options:
+      - /image<CR>>>j>>:wq<CR>
+      - ci"new<Esc>jdi(:wq<CR>
+      - jddGp:wq<CR>
+      - jVjdwvwhd:wq<CR>
+    answer: jVjdwvwhd:wq<CR>
+    hint: w moves to old. v, w, h selects it and its space. d deletes it.
+    code: true
+  - type: mc
+    level: medium
+    label: Why it matters
+    q: Where would you use what "Visual selection" taught you at work?
+    options:
+      - When a motion is hard to count, select it instead.
+      - This is the moment vi starts to feel faster than a mouse.
+      - Bad indentation is the most common YAML failure.
+      - A wrongly ordered ACL can take a whole office offline.
+    answer: When a motion is hard to count, select it instead.
+    hint: "It starts with: When a motion is…"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: jVjdwvwhd____<CR>
+    answer:
+      - :wq
+    hint: It starts with ":" and is 3 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Visual selection" taught. Any one of them counts.
+    answer:
+      - v
+      - V
+    hint: One of them is v…

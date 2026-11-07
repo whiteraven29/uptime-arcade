@@ -1,0 +1,99 @@
+id: vi-05
+track: VI
+skill: vi
+chapter: Survival
+order: 5
+title: Top, bottom, line N
+from: Platform
+difficulty: easy
+check: vi
+par:
+  kind: keys
+  value: 17
+lesson:
+  text: gg goes to the top of the file and G to the bottom. :12 then Enter jumps to line 12, which is exactly what you need when an error message names a line.
+  example: |-
+    gg     first line
+    G      last line
+    :12    line 12
+brief: In ~/vi/hosts.txt comment out line 3 and the last line by adding "# " at the start of each.
+goal: "Make the change, then save with :wq. You must use vi: vi ~/vi/hosts.txt"
+hints:
+  - :3 and Enter takes you to line 3.
+  - G takes you to the last line. Use i to insert.
+debrief:
+  why: Jumping directly to a line beats scrolling, and error messages always tell you the line.
+  solution: :3<CR>i# <Esc>Gi# <Esc>:wq<CR>
+  job: A failing config usually reports its line number.
+teaches:
+  - gg
+  - G
+  - :N
+file: ~/vi/hosts.txt
+expect:
+  - file_equals:
+      path: ~/vi/hosts.txt
+      content: |
+        web-a
+        web-b
+        # web-c
+        web-d
+        # web-e
+  - vi_saved: ~/vi/hosts.txt
+rewind:
+  - type: mc
+    level: easy
+    label: The main idea
+    q: You just finished "Top, bottom, line N". Which sentence best describes what it taught?
+    options:
+      - "^ is the one you want on indented code: it lands on the text, not on the spaces."
+      - Jumping directly to a line beats scrolling, and error messages always tell you the line.
+      - vi has modes. Normal mode is for moving and commands, and insert mode is for typing. Most new users are stuck only because they are in the wrong mode.
+      - Everything in vi starts from where the cursor is, and hjkl put you there without leaving the home row.
+    answer: Jumping directly to a line beats scrolling, and error messages always tell you the line.
+    hint: Look for the sentence about gg and G.
+  - type: mc
+    level: easy
+    label: Spot the solution
+    q: Which keys made this edit?
+    context: In ~/vi/hosts.txt comment out line 3 and the last line by adding "# " at the start of each.
+    options:
+      - :3<CR>i# <Esc>Gi# <Esc>:wq<CR>
+      - iWelcome <Esc>:wq<CR>
+      - ^i#<Esc>:wq<CR>
+      - jlio<Esc>jio<Esc>:wq<CR>
+    answer: :3<CR>i# <Esc>Gi# <Esc>:wq<CR>
+    hint: G takes you to the last line. Use i to insert.
+    code: true
+  - type: order
+    level: medium
+    label: Put it in order
+    q: These are the keys you pressed, split into steps. Tap them from first to last.
+    scrambled:
+      - Gi# <Esc>
+      - :wq<CR>
+      - :3<CR>
+      - i# <Esc>
+    answer:
+      - :3<CR>
+      - i# <Esc>
+      - Gi# <Esc>
+      - :wq<CR>
+    hint: "The first one is: :3<CR>"
+  - type: text
+    level: medium
+    label: Fill the gap
+    q: Here are the keys that solved it, with one part missing. Type the missing part.
+    show: ____<CR>i# <Esc>Gi# <Esc>:wq<CR>
+    answer:
+      - :3
+    hint: It starts with ":" and is 2 characters long.
+  - type: text
+    level: hard
+    label: From memory
+    q: Name one vi key or command that "Top, bottom, line N" taught. Any one of them counts.
+    answer:
+      - gg
+      - G
+      - :N
+    hint: One of them is g…
