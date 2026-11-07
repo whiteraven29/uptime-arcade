@@ -1,6 +1,6 @@
 PY := $(CURDIR)/.venv/bin/python
 
-.PHONY: setup check e2e content validate-content test-backend test-engines test-frontend verify-content build dev-backend dev-frontend screenshots
+.PHONY: sandbox-images sandbox-test setup check e2e content validate-content test-backend test-engines test-frontend verify-content build dev-backend dev-frontend screenshots
 
 setup:
 	test -d .venv || python3 -m venv .venv
@@ -55,3 +55,11 @@ dev-frontend:
 # Starts its own server on a throwaway database. Writes to frontend/screenshots/.
 screenshots: build
 	node tools/screenshots.mjs frontend/screenshots
+
+# The real containers, attacked from inside. Needs Docker. CI runs this too.
+sandbox-images:
+	docker build -q -t uptime-arcade/sandbox-python:1 -f runner/sandbox/python.Dockerfile runner/sandbox
+	docker build -q -t uptime-arcade/sandbox-go:1 -f runner/sandbox/go.Dockerfile runner/sandbox
+
+sandbox-test: sandbox-images
+	cd backend && $(PY) -m pytest -q -m docker_sandbox --override-ini addopts=

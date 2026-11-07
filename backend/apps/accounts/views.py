@@ -12,8 +12,10 @@ from zoneinfo import available_timezones
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from django.http import Http404, HttpResponse
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view, authentication_classes, parser_classes, permission_classes, throttle_classes
@@ -25,17 +27,20 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from apps.core import clock
+from apps.core import background, clock
 from apps.core.exceptions import GameError
 from apps.focus import plan as study_plan
 from apps.game import rules
 from apps.game.models import AvatarImage
 from apps.game.services import avatar_summary, locked_player
 
+from . import email_codes
 from .avatars import MAX_BYTES, NotAnImage, reencode
-from .throttles import AuthThrottle, AvatarThrottle, LoginAccountThrottle, UsernameCheckThrottle
+from .models import EmailCode
+from .throttles import AuthThrottle, AvatarThrottle, CodeAccountThrottle, LoginAccountThrottle, RegisterThrottle, UsernameCheckThrottle
 
 User = get_user_model()
+MAX_DELETE_TRIES = 5
 
 
 def _with_tokens(response, refresh):
@@ -73,12 +78,45 @@ def _valid_zone(value):
     return value
 
 
+def _passwords_match(attrs):
+    if attrs["password"] != attrs["confirm_password"]:
+        raise serializers.ValidationError({"confirm_password": ["The two passwords don't match."]})
+    return attrs
+
+
 class Register(serializers.Serializer):
     username = serializers.CharField(max_length=20)
     email = serializers.EmailField(max_length=150)
     password = serializers.CharField(max_length=128, trim_whitespace=False)
+    confirm_password = serializers.CharField(max_length=128, trim_whitespace=False)
     display_name = serializers.CharField(max_length=40, required=False, allow_blank=True)
     time_zone = serializers.CharField(max_length=64, required=False, validators=[_valid_zone])
+
+    def validate(self, attrs):
+        return _passwords_match(attrs)
+
+
+class VerifyEmail(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    code = serializers.RegexField(r"^[0-9]{6}$")
+
+
+class Resend(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+
+
+class Forgot(serializers.Serializer):
+    identifier = serializers.CharField(max_length=150)
+
+
+class ResetPassword(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    code = serializers.RegexField(r"^[0-9]{6}$")
+    password = serializers.CharField(max_length=128, trim_whitespace=False)
+    confirm_password = serializers.CharField(max_length=128, trim_whitespace=False)
+
+    def validate(self, attrs):
+        return _passwords_match(attrs)
 
 
 class Login(serializers.Serializer):
@@ -115,7 +153,7 @@ def username_available(request):
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])
-@throttle_classes([AuthThrottle])
+@throttle_classes([AuthThrottle, RegisterThrottle])
 def register(request):
     body = Register(data=request.data)
     body.is_valid(raise_exception=True)
@@ -140,7 +178,105 @@ def register(request):
             player.save(update_fields=["display_name", "time_zone"])
     except IntegrityError as e:
         raise GameError("username_taken", "That username is taken.", status.HTTP_400_BAD_REQUEST) from e
-    return _with_tokens(Response({"account": _account(user)}, status=status.HTTP_201_CREATED), RefreshToken.for_user(user))
+    # No tokens yet: an account can't be used until its email is confirmed.
+    background.run(email_codes.send_verify, user)
+    return Response({"pending": True, "username": user.username}, status=status.HTTP_201_CREATED)
+
+
+BAD_CODE = "That code is wrong or has expired. Ask for a new one."
+
+
+def _active_user(username):
+    return User.objects.select_related("player").filter(username=username.strip().lower(), is_active=True).first()
+
+
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([AuthThrottle, CodeAccountThrottle])
+def verify_email(request):
+    body = VerifyEmail(data=request.data)
+    body.is_valid(raise_exception=True)
+    user = _active_user(body.validated_data["username"])
+    waiting = user if user and not user.player.email_verified_at else None
+    if not email_codes.redeem(waiting, EmailCode.Purpose.VERIFY, body.validated_data["code"]):
+        raise GameError("bad_code", BAD_CODE, status.HTTP_400_BAD_REQUEST)
+    user.player.email_verified_at = clock.now()
+    user.player.save(update_fields=["email_verified_at"])
+    return _with_tokens(Response({"account": _account(user)}), RefreshToken.for_user(user))
+
+
+def _resend_verify(username):
+    user = _active_user(username)
+    if user and not user.player.email_verified_at:
+        email_codes.send_verify(user)
+
+
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([AuthThrottle, CodeAccountThrottle])
+def resend_verify(request):
+    body = Resend(data=request.data)
+    body.is_valid(raise_exception=True)
+    background.run(_resend_verify, body.validated_data["username"])
+    return Response({"ok": True})
+
+
+MAX_ACCOUNTS_PER_EMAIL = 5
+
+
+def _send_resets(identifier):
+    """An email isn't unique, so it can match several accounts. Each message names its username, which also rescues
+    someone who forgot that. Only confirmed addresses get one, since nothing proves who owns the others."""
+    value = identifier.strip().lower()
+    field = {"email": value} if "@" in value else {"username": value}
+    users = User.objects.select_related("player").filter(is_active=True, player__email_verified_at__isnull=False, **field)
+    for user in users[:MAX_ACCOUNTS_PER_EMAIL]:
+        email_codes.send_reset(user)
+
+
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([AuthThrottle, CodeAccountThrottle])
+def forgot_password(request):
+    """The same answer in the same time whether or not anything matched, so it can't be used to test an address."""
+    body = Forgot(data=request.data)
+    body.is_valid(raise_exception=True)
+    background.run(_send_resets, body.validated_data["identifier"])
+    return Response({"ok": True})
+
+
+def _sign_out_everywhere(user):
+    for token in OutstandingToken.objects.filter(user=user):
+        BlacklistedToken.objects.get_or_create(token=token)
+
+
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([AuthThrottle, CodeAccountThrottle])
+def reset_password(request):
+    body = ResetPassword(data=request.data)
+    body.is_valid(raise_exception=True)
+    data = body.validated_data
+    username = data["username"].strip().lower()
+    # Checked before the code, against the username only, so this answer can't say anything about the account.
+    try:
+        validate_password(data["password"], user=User(username=username))
+    except DjangoValidationError as e:
+        raise serializers.ValidationError({"password": e.messages}) from e
+    user = _active_user(username)
+    allowed = user if user and user.player.email_verified_at else None
+    if not email_codes.redeem(allowed, EmailCode.Purpose.RESET, data["code"]):
+        raise GameError("bad_code", BAD_CODE, status.HTTP_400_BAD_REQUEST)
+    with transaction.atomic():
+        user.set_password(data["password"])
+        user.save(update_fields=["password"])
+        _sign_out_everywhere(user)
+    background.run(email_codes.send_password_changed, user)
+    return Response({"ok": True})
 
 
 @api_view(["POST"])
@@ -155,6 +291,9 @@ def login(request):
     if user is None:
         # One message whether the username exists or not, and Django runs the hasher either way.
         raise GameError("bad_credentials", "Wrong username or password.", status.HTTP_401_UNAUTHORIZED)
+    # Only said after the right password, so it tells a stranger nothing.
+    if not user.player.email_verified_at:
+        raise GameError("email_not_verified", "Confirm your email first. We can send you a new code.", status.HTTP_403_FORBIDDEN)
     return _with_tokens(Response({"account": _account(user)}), RefreshToken.for_user(user))
 
 
@@ -222,7 +361,13 @@ def me(request):
         # token from destroying the account.
         body = DeleteAccount(data=request.data)
         body.is_valid(raise_exception=True)
+        # A stolen access token shouldn't be a way to guess the password, so wrong tries are counted per account.
+        wrong = f"delete-wrong:{user.pk}"
+        if cache.get(wrong, 0) >= MAX_DELETE_TRIES:
+            raise GameError("too_many_tries", "Too many tries. Wait a while and try again.", status.HTTP_429_TOO_MANY_REQUESTS)
         if not user.check_password(body.validated_data["password"]):
+            cache.add(wrong, 0, timeout=3600)
+            cache.incr(wrong)
             raise GameError("bad_credentials", "Wrong password.", status.HTTP_403_FORBIDDEN)
         user.delete()
         return _clear_cookie(Response(status=status.HTTP_204_NO_CONTENT))

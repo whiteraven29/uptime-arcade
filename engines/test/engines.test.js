@@ -111,7 +111,7 @@ describe('every mission', () => {
   const LEVELS = ['easy', 'medium', 'hard'];
   it('has a lesson and five clear rewind tasks, easiest first', () => {
     expect(TICKETS).toHaveLength(213);
-    expect(ALL_MISSIONS).toHaveLength(263);
+    expect(ALL_MISSIONS).toHaveLength(283);
     for (const t of ALL_MISSIONS) {
       expect(t.learn[0], t.id).toBeTruthy();
       expect(t.rewind, t.id).toHaveLength(5);
@@ -141,7 +141,8 @@ describe('every mission', () => {
   });
   it('gets harder as a track goes on', () => {
     const rank = ['easy', 'medium', 'hard', 'expert', 'brainfuck'];
-    for (const list of Object.values(TK)) {
+    for (const [code, list] of Object.entries(TK)) {
+      if (code === 'OPS') continue; // played in any order, so no order to get harder in
       const levels = list.map((m) => rank.indexOf(m.difficulty));
       expect([...levels].sort((a, b) => a - b)).toEqual(levels);
     }

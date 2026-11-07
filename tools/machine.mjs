@@ -4,6 +4,7 @@ import { S, host, replaceState } from '../engines/host.js';
 import { fs, HOME } from '../engines/fs/index.js';
 import { sh, runLine } from '../engines/shell/index.js';
 import { VI, viKey } from '../engines/vi/index.js';
+import { placeFixtures } from '../engines/replay.js';
 
 let errors = [];
 host.err = (t) => errors.push(t);
@@ -17,16 +18,7 @@ export function resetMachine() {
 
 export function startMission(t) {
   S.cwd = HOME;
-  for (const [rel, content] of Object.entries(t.fixtures || {})) {
-    const p = `${HOME}/${rel}`;
-    if (fs.get(p)) continue;
-    const parts = p.split('/');
-    for (let i = 2; i < parts.length; i++) {
-      const dir = parts.slice(0, i).join('/');
-      if (!fs.get(dir)) fs.put(dir, { t: 'd', m: 0o755, mt: 'Nov  6 09:00' });
-    }
-    fs.put(p, { t: 'f', c: content, m: 0o644, mt: 'Nov  6 09:00' });
-  }
+  placeFixtures(t.fixtures);
 }
 
 export function run(line) {
@@ -43,12 +35,12 @@ export function run(line) {
   return { out: buf.join(''), errors };
 }
 
+/** The keys a solution presses, as the log entries the browser would send. */
+export const keyLog = (keys) => keys.match(/<CR>|<Esc>|<C-.>|[\s\S]/g).map((k) => (k.startsWith('<C-') ? `c${k[3]}` : `k${k === '<CR>' ? 'Enter' : k === '<Esc>' ? 'Escape' : k}`));
+
 export function pressKeys(file, keys) {
   run(`vi ${file}`);
-  for (const k of keys.match(/<CR>|<Esc>|<C-.>|[\s\S]/g)) {
-    if (k.startsWith('<C-')) viKey(k[3], true);
-    else viKey(k === '<CR>' ? 'Enter' : k === '<Esc>' ? 'Escape' : k, false);
-  }
+  for (const entry of keyLog(keys)) viKey(entry.slice(1), entry[0] === 'c');
   return !VI.on;
 }
 

@@ -7,7 +7,7 @@ import { ALL_MISSIONS } from '../content/index.mjs';
 import { chromePath, chromium, startStack } from './stack.mjs';
 
 const shots = process.argv[2];
-const { base: BASE, manage, stop: stopServers } = await startStack();
+const { base: BASE, manage, stop: stopServers, latestCode } = await startStack();
 const byId = (id) => ALL_MISSIONS.find((m) => m.id === id);
 
 const failures = [];
@@ -27,6 +27,10 @@ const ctx = await browser.newContext({ viewport: { width: 1400, height: 880 } })
 const page = await ctx.newPage();
 const pageErrors = [];
 page.on('pageerror', (e) => pageErrors.push(e.message));
+const cspBlocks = [];
+page.on('console', (m) => {
+  if (/Content Security Policy/i.test(m.text())) cspBlocks.push(m.text());
+});
 const external = [];
 page.on('request', (r) => {
   if (!r.url().startsWith(BASE) && !/^(data|blob):/.test(r.url())) external.push(r.url());
@@ -41,6 +45,15 @@ page.on('response', async (r) => {
 });
 const shot = async (name) => {
   if (shots) await page.screenshot({ path: join(shots, `${name}.png`) });
+};
+/* Finishing a mission stops the clock, so the next one asks for a session, the way a player sees it. */
+const playReady = async (selector) => {
+  await page.waitForSelector(`${selector}, #openSession`);
+  if (await page.locator('#openSession').count()) await page.click('#openSession');
+  await page.waitForSelector(selector);
+};
+const shot2 = async (p, name) => {
+  if (shots) await p.screenshot({ path: join(shots, `${name}.png`) });
 };
 const xp = async () => Number((await page.locator('.chips').innerText()).match(/XP\s*(\d+)/)[1]);
 const typeCmd = async (c) => {
@@ -90,14 +103,33 @@ try {
   ok('a free username shows Available', await page.locator('#usernameNote.good').count() === 1);
   await shot('register');
   await page.fill('#email', 'shared@example.test');
+  ok('a password starts hidden', await page.getAttribute('#password', 'type') === 'password');
   await page.fill('#password', 'password123');
+  await page.click('#passwordToggle');
+  ok('the eye shows the password', await page.getAttribute('#password', 'type') === 'text' && await page.getAttribute('#passwordToggle', 'aria-pressed') === 'true');
+  ok('showing one field leaves the other hidden', await page.getAttribute('#confirmPassword', 'type') === 'password');
+  await page.click('#passwordToggle');
+  ok('and it hides it again', await page.getAttribute('#password', 'type') === 'password');
+  await page.fill('#confirmPassword', 'something different');
+  ok("passwords that differ can't be submitted", await page.locator('#registerBtn').isDisabled() && (await page.locator('#confirmNote').innerText()).includes("don't match"));
+  await page.fill('#confirmPassword', 'password123');
   await page.click('#registerBtn');
   await page.waitForSelector('[role=alert]');
   ok('a weak password is refused', (await page.locator('[role=alert]').innerText()).length > 0);
   await page.fill('#password', PASSWORD);
+  await page.fill('#confirmPassword', PASSWORD);
   await page.click('#registerBtn');
+  await page.waitForSelector('#verifyBtn');
+  ok('registering asks for the emailed code, and no token comes yet', (await ctx.cookies()).every((c) => c.name !== 'ua_refresh'));
+  await shot('verify');
+  await page.fill('#code', latestCode(USER) === '000000' ? '111111' : '000000');
+  await page.click('#verifyBtn');
+  await page.waitForSelector('[role=alert]');
+  ok('a wrong code is refused', (await page.locator('[role=alert]').innerText()).includes('wrong or has expired'));
+  await page.fill('#code', latestCode(USER));
+  await page.click('#verifyBtn');
   await page.waitForSelector('.deck');
-  ok('registering goes straight into the game', true);
+  ok('the emailed code opens the game', true);
   ok('a new player starts with 5:00', (await page.locator('.chip-time').innerText()).includes('05:00'));
 
   const stored = await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage }));
@@ -118,9 +150,53 @@ try {
   await p2.waitForFunction(() => document.querySelector('#usernameNote').textContent === 'Available');
   await p2.fill('#email', 'shared@example.test');
   await p2.fill('#password', PASSWORD);
+  await p2.fill('#confirmPassword', PASSWORD);
   await p2.click('#registerBtn');
-  await p2.waitForSelector('.deck');
+  await p2.waitForSelector('#verifyBtn');
   ok("an email already in use is accepted, so it's never revealed", true);
+
+  // Logging in before confirming leads back to the code, then a forgotten password, all the way through.
+  await p2.goto(`${BASE}/login`);
+  await p2.fill('#username', 'e2e_joel');
+  await p2.fill('#password', PASSWORD);
+  await p2.click('#loginBtn');
+  await p2.waitForSelector('#verifyBtn');
+  ok('logging in unconfirmed asks for the code instead', true);
+  await p2.fill('#code', latestCode('e2e_joel'));
+  await p2.click('#verifyBtn');
+  await p2.waitForSelector('.deck');
+  const stolen = await other.cookies();
+  await p2.context().clearCookies();
+  await p2.goto(`${BASE}/login`);
+  await p2.click('#forgotLink');
+  await p2.fill('#identifier', 'nobody_here');
+  await p2.click('#forgotBtn');
+  await p2.waitForSelector('#resetBtn');
+  const unknownAnswer = await p2.locator('#resetNote').innerText();
+  await p2.goto(`${BASE}/forgot`);
+  await p2.fill('#identifier', 'e2e_joel');
+  await p2.click('#forgotBtn');
+  await p2.waitForSelector('#resetBtn');
+  ok('a forgotten password says the same thing for anyone', unknownAnswer === await p2.locator('#resetNote').innerText());
+  await shot2(p2, 'reset');
+  const NEW_PASSWORD = 'a brand new long password';
+  await p2.fill('#code', latestCode('e2e_joel'));
+  await p2.fill('#password', NEW_PASSWORD);
+  await p2.fill('#confirmPassword', NEW_PASSWORD);
+  await p2.click('#resetBtn');
+  await p2.waitForSelector('#loginNotice');
+  await p2.context().addCookies(stolen);
+  const oldRefresh = await p2.request.post(`${BASE}/api/v1/auth/refresh/`);
+  ok('a reset logs every other device out', oldRefresh.status() === 401);
+  await p2.fill('#username', 'e2e_joel');
+  await p2.fill('#password', PASSWORD);
+  await p2.click('#loginBtn');
+  await p2.waitForSelector('[role=alert]');
+  ok('the old password has stopped working', true);
+  await p2.fill('#password', NEW_PASSWORD);
+  await p2.click('#loginBtn');
+  await p2.waitForSelector('.deck');
+  ok('the new password logs in', true);
   await other.close();
 
   // ---------- the focus economy ----------
@@ -213,6 +289,11 @@ try {
   await page.waitForSelector('#openSession');
   await page.click('#openSession');
   await page.waitForSelector('#cmd');
+  await page.click('#stopSession');
+  await page.waitForFunction(() => /play time/i.test(document.querySelector('.chip-time').textContent));
+  ok('the Stop button stops a session and banks the time', await page.locator('#stopSession').count() === 0 && await page.locator('#openSession').count() === 1);
+  await page.click('#openSession');
+  await page.waitForSelector('#cmd');
   ok('opening a session moves the whole bank', (await page.locator('.chip-time').innerText()).toLowerCase().includes('session'));
   await typeCmd('pwd');
   ok('the engine runs in the browser', (await page.locator('.term-out').innerText()).includes('/home/ops'));
@@ -236,10 +317,14 @@ try {
   ok('the last answer pays the whole mission', await xp() > before, `${before} to ${await xp()}`);
   ok('its category stays open', await page.locator('.tcard.open[data-track="SH"]').count() === 1);
   ok('the next mission unlocks', await page.locator('.node[data-id="sh-02"].open').count() === 1);
+  ok('finishing a mission stops the clock', (await page.locator('.chip-time').innerText()).toLowerCase().includes('play time') && await page.locator('#stopSession').count() === 0);
+  const bankAfterClear = (await page.locator('.chip-time b').innerText());
+  await page.waitForTimeout(2200);
+  ok('and the clock stays stopped', bankAfterClear === await page.locator('.chip-time b').innerText());
 
   // ---------- the terminal says what happened ----------
   await page.goto(`${BASE}/missions/sh-02/play`);
-  await page.waitForSelector('#cmd');
+  await playReady('#cmd');
   await typeCmd('cat nope.txt');
   await page.waitForSelector('.t-out.e');
   ok('an error is shown as an error', (await page.locator('.t-out.e').last().innerText()).includes('No such file'));
@@ -264,7 +349,7 @@ try {
 
   // ---------- a goal the browser can't see ----------
   await page.goto(`${BASE}/missions/sh-02/play`);
-  await page.waitForSelector('#cmd');
+  await playReady('#cmd');
   await typeCmd('cd /etc');
   await page.waitForTimeout(250);
   ok('the goal is not met yet', await page.locator('.over').count() === 0);
@@ -274,7 +359,7 @@ try {
 
   // ---------- each kind of workspace ----------
   await page.goto(`${BASE}/missions/vi-01/play`);
-  await page.waitForSelector('#cmd');
+  await playReady('#cmd');
   await typeCmd('vi ~/vi/welcome.txt');
   await page.waitForSelector('.vi');
   await page.keyboard.press('i');
@@ -409,9 +494,7 @@ try {
   ok('a lab stays shut until the mission it needs is cleared', labLocked.status === 403 || (await call('/tracks/')).data.tracks.find((t) => t.code === 'LAB').missions[0].state !== 'locked');
   clearFor('net-05');
   await page.goto(`${BASE}/missions/lab-01/play`);
-  await page.waitForSelector('#openSession, .lab-map');
-  if (await page.locator('#openSession').count()) await page.click('#openSession');
-  await page.waitForSelector('.lab-map');
+  await playReady('.lab-map');
   await shot('netlab');
   ok('the lab draws its devices', await page.locator('.lab-device').count() === 2);
   const labPlay = seen.filter((r) => /missions\/lab-01\/play/.test(r.url)).map((r) => r.text).join('');
@@ -457,7 +540,7 @@ try {
   ok('a failed ping says what went wrong', (await page.locator('.term-out').innerText()).includes('Why:'));
   await page.waitForTimeout(1500); // the lab saves itself shortly after a change
   await page.reload();
-  await page.waitForSelector('.lab-map');
+  await playReady('.lab-map');
   ok('the lab is still as you left it after a reload', await page.locator('.lab-cable.up').count() === 1);
   await page.locator('.lab-device[data-device="PC-2"]').click();
   await typeCmd('ip addr add 10.40.1.2/24 dev eth0');
@@ -488,7 +571,7 @@ try {
   clearFor('net-31');
   ok('clearing that mission opens it', (await call('/tracks/')).data.tracks.find((t) => t.code === 'LAB').missions[1].state === 'open');
   await page.goto(`${BASE}/missions/lab-02/play`);
-  await page.waitForSelector('.lab-map');
+  await playReady('.lab-map');
   await page.locator('.lab-device[data-device="SW1"]').click();
   await page.waitForSelector('.lab-tabs .on');
   ok('a device console opens from the map', (await page.locator('.lab-tabs .on').innerText()) === 'SW1');
@@ -503,7 +586,7 @@ try {
   // ---------- replaying is free ----------
   const xpBeforeReplay = (await call('/player/')).data.xp;
   await page.goto(`${BASE}/missions/lab-01/play`);
-  await page.waitForSelector('.lab-map');
+  await playReady('.lab-map');
   // Any running session has gone back to the bank by now, so this is everything the player has.
   const bankBefore = (await call('/player/')).data.bank_seconds;
   ok('replaying a cleared lab needs no session', await page.locator('#openSession').count() === 0 && (await call('/player/')).data.session === null);
@@ -560,9 +643,7 @@ try {
   // ---------- Wi-Fi and IPv6, with their real solutions through the real grader ----------
   const playSolution = async (id) => {
     await page.goto(`${BASE}/missions/${id}/play`);
-    await page.waitForSelector('#openSession, .lab-map');
-    if (await page.locator('#openSession').count()) await page.click('#openSession');
-    await page.waitForSelector('.lab-map');
+    await playReady('.lab-map');
     for (const line of byId(id).sol.split('\n')) {
       const dev = /^\[(\S+)\]$/.exec(line);
       const cable = /^\[cable\] (\S+) (\S+) (\S+) (\S+)$/.exec(line);
@@ -583,8 +664,58 @@ try {
   ok('a laptop on Wi-Fi shows on the map', await page.locator('.lab-cable.wifi').count() === 1);
   await shot('netlab-wifi');
 
+  // ---------- the server decides what passed (M9) ----------
+  clearFor('sh-05', 'sh-06', 'py-01', 'py-02', 'py-03', 'py-04', 'go-01', 'go-02', 'go-03', 'go-04', 'go-05', 'go-06', 'go-07');
+  const openIfClosed = async () => {
+    if ((await call('/player/')).data.session === null && (await call('/player/')).data.bank_seconds > 0) await call('/sessions/open/', 'POST', {});
+  };
+  await openIfClosed();
+  const forgedPy = await call('/missions/py-05/submit/', 'POST', { code: 'def slugify(name):\n    pass\n', passed: true });
+  const forgedPyResult = (await call(`/missions/jobs/${forgedPy.data.job}/`)).data;
+  ok('a Python pass claimed by the browser is not believed', forgedPy.data.result === 'grading' && forgedPyResult.result.result === 'fail');
+  const forgedFiles = await call('/missions/sh-07/check/', 'POST', { state: { files: { '/home/ops/nothing': null } }, log: ['lpwd'] });
+  ok('files claimed by the browser are not believed', forgedFiles.data.result === 'fail');
+
+  await page.goto(`${BASE}/missions/go-08/play`);
+  await playReady('.code-pane textarea');
+  ok('a Go mission opens a real code editor', await page.locator('.code-pane textarea[aria-label="Go code"]').count() === 1);
+  await page.click('.code-pane .btn.go');
+  await page.waitForFunction(() => /FAIL|bad number/.test(document.querySelector('.code-out').textContent));
+  ok('the starter really fails under go test', !(await page.locator('.over').count()));
+  await shot('play-go-code');
+  await page.fill('.code-pane textarea', byId('go-08').sol);
+  await page.click('.code-pane .btn.go');
+  await page.waitForSelector('.over', { timeout: 60000 });
+  ok('real Go code that passes solves the mission', (await page.locator('.over').innerText()).toLowerCase().includes('errors are values'));
+
+  // ---------- an Operation, stage by stage (M7) ----------
+  clearFor('sh-21', 'lab-24');
+  await page.goto(`${BASE}/missions/ops-01/play`);
+  await playReady('#cmd');
+  ok('an Operation shows its stages, and starts at the first', await page.locator('#opsRail li').count() === 2 && await page.locator('#opsRail li.now').innerText().then((x) => x.includes('Find the noisy machine')));
+  await shot('play-ops');
+  const ops1 = byId('ops-01');
+  await typeCmd(ops1.stages[0].sol.split('\n')[0]);
+  await typeCmd('submit aa:aa:aa:aa:aa:aa');
+  await page.waitForFunction(() => /Not that one/.test(document.querySelector('#termOut, .term, .terminal')?.textContent || document.body.textContent));
+  ok('a wrong answer stays on the same stage', await page.locator('#opsRail li.now').innerText().then((x) => x.includes('Find the noisy machine')));
+  await typeCmd(ops1.stages[0].sol.split('\n')[1]);
+  await page.waitForSelector('.lab-map');
+  ok('a right answer moves on to the lab stage', await page.locator('#opsRail li.done').count() === 1 && await page.locator('.lab-device').count() === ops1.stages[1].lab.devices.length);
+  let opsDevice = null;
+  for (const line of ops1.stages[1].sol.split('\n')) {
+    const dev = /^\[(\S+)\]$/.exec(line);
+    if (dev) {
+      opsDevice = dev[1];
+      await page.locator(`.lab-device[data-device="${opsDevice}"]`).click();
+    } else if (line) await typeCmd(line);
+  }
+  await page.click('#labCheck');
+  await page.waitForSelector('.over', { timeout: 30000 });
+  ok('finishing the last stage solves the Operation', (await page.locator('.over').innerText()).toLowerCase().includes('wi-fi'));
+
   // ---------- a new lab opening, for real ----------
-  await page.click('text=Start the questions');
+  await page.goto(`${BASE}/missions/lab-35/rewind`);
   await page.waitForSelector('.rw-head');
   const lab35 = byId('lab-35');
   for (let i = 0; i < 5; i++) await answerTask(lab35);
@@ -640,7 +771,7 @@ try {
   await page.waitForSelector('#revisit');
   const xpBefore = await xp();
   await page.click('#revisit');
-  await page.waitForSelector('#cmd');
+  await playReady('#cmd');
   ok('a cleared mission can be played again', await page.locator('.revisit-note').count() === 1);
   ok('it needs no session, and any session is paused', (await page.locator('.chip-time').innerText()).toLowerCase().includes('play time'));
   await typeCmd('submit /nowhere');
@@ -677,7 +808,7 @@ try {
   ok('the picture is still there after a reload', true);
   await page.goto(`${BASE}/rewards`);
   await page.waitForSelector('.badge');
-  ok('rewards come from the server', (await page.locator('.badge').count()) === 31);
+  ok('rewards come from the server', (await page.locator('.badge').count()) === 32);
 
   await page.goto(`${BASE}/system`);
   await page.waitForSelector('#logoutBtn');
@@ -715,6 +846,9 @@ try {
 
   ok('the page made no outside requests', external.length === 0, external.slice(0, 2).join(' '));
   ok('no page errors', pageErrors.length === 0, pageErrors.slice(0, 3).join(' | '));
+  ok('the production security policy blocks nothing the game needs', cspBlocks.length === 0, cspBlocks.slice(0, 2).join(' | '));
+  const cspHeader = (await page.request.get(`${BASE}/`)).headers()['content-security-policy'] || '';
+  ok('and it really is in force here', cspHeader.includes("default-src 'none'") && cspHeader.includes("frame-ancestors 'none'"));
 } catch (e) {
   console.log('STOPPED:', e.message.split('\n').slice(0, 4).join(' '));
   if (shots) await page.screenshot({ path: join(shots, 'stopped.png') }).catch(() => {});

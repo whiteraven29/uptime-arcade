@@ -28,7 +28,7 @@ function Tile({ label, children, to, hot }) {
   return <div className="tile-wrap">{to ? <Link className="tile link" to={to}>{body}</Link> : <div className="tile">{body}</div>}</div>;
 }
 
-const EMBLEM = { SH: 'tSH', VI: 'tVI', PY: 'tPY', GO: 'tGO', NET: 'tNET', LAB: 'tLAB', BX: 'bx5' };
+const EMBLEM = { SH: 'tSH', VI: 'tVI', PY: 'tPY', GO: 'tGO', NET: 'tNET', LAB: 'tLAB', OPS: 'tOPS', BX: 'bx5' };
 
 function PathRow({ code, name, sub, locked }) {
   const total = TK[code].length;

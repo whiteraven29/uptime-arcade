@@ -18,6 +18,7 @@ class Player(models.Model):
     time_zone = models.CharField(max_length=64, default=settings.TIME_ZONE)
     time_zone_changed_at = models.DateTimeField(null=True, blank=True)
     sound_on = models.BooleanField(default=True)
+    email_verified_at = models.DateTimeField(null=True, blank=True)  # no login until this is set
     avatar_index = models.PositiveSmallIntegerField(default=0)  # which system avatar, while no picture is set
     oncall_resolved = models.PositiveIntegerField(default=0)
 

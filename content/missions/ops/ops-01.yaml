@@ -1,0 +1,204 @@
+id: ops-01
+track: OPS
+skill: shell
+chapter: First shifts
+order: 1
+title: Who broke the Wi-Fi?
+from: Support
+difficulty: medium
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- sh-21
+- lab-24
+lesson:
+  text: A real incident rarely stays in one tool. Evidence comes from the logs, and the fix happens on the network. A device asking for addresses over and over usually means something is wrong, so counting requests per MAC finds it fast.
+  example: awk '{print $2}' visits.log | sort | uniq -c | sort -rn | head -1
+brief: Floor 2 keeps losing the Wi-Fi. Someone plugged in something they should not have. Find it in the logs, then stop it at the switch.
+goal: Find the noisy machine, then lock the port it came through.
+hints:
+- Count the MAC column in ~/ops/dhcp.log.
+- Port security on the switch port limits a port to one machine.
+debrief:
+  why: Logs tell you who, and the switch lets you act on it. Neither one alone would have ended this.
+  solution: |-
+    # Find the noisy machine
+    awk '{print $5}' ops/dhcp.log | sort | uniq -c | sort -rn | head -1
+    submit de:ad:be:ef:00:07
+
+    # Lock the port
+    [SW1]
+    enable
+    configure terminal
+    interface Gi0/3
+    switchport mode access
+    switchport port-security
+    switchport port-security maximum 1
+    end
+    show port-security
+  job: First find the evidence, then make the smallest change that fixes it.
+teaches:
+- MAC
+stages:
+- title: Find the noisy machine
+  check: answer
+  brief: Each line of ~/ops/dhcp.log is one request for an address, and the MAC is its fifth column.
+  goal: 'Run: submit <the MAC with the most requests>'
+  answer:
+    accept:
+    - de:ad:be:ef:00:07
+  solution: |-
+    awk '{print $5}' ops/dhcp.log | sort | uniq -c | sort -rn | head -1
+    submit de:ad:be:ef:00:07
+- title: Lock the port
+  check: net
+  brief: That MAC is a mini switch on the meeting room port. Someone plugged a cheap mini switch into the meeting room's port on Gi0/3, and two laptops are sharing it. Policy is one machine per wall port. Meanwhile, the desk on Gi0/1 must keep working.
+  goal: The meeting room port shuts itself down, and the desk keeps working.
+  lab:
+    devices:
+    - name: DESK-1
+      kind: pc
+      x: 12
+      y: 20
+      config: ip addr add 10.40.25.1/24 dev eth0
+    - name: SRV-1
+      kind: server
+      x: 12
+      y: 80
+      config: ip addr add 10.40.25.9/24 dev eth0
+    - name: SW1
+      kind: switch
+      x: 45
+      y: 50
+      ports: 8
+      config: ''
+    - name: MINI
+      kind: switch
+      x: 75
+      y: 50
+      ports: 4
+      config: ''
+    - name: LAPTOP-A
+      kind: pc
+      x: 95
+      y: 20
+      config: ip addr add 10.40.25.2/24 dev eth0
+    - name: LAPTOP-B
+      kind: pc
+      x: 95
+      y: 80
+      config: ip addr add 10.40.25.3/24 dev eth0
+    cables:
+    - - DESK-1
+      - eth0
+      - SW1
+      - Gi0/1
+    - - SRV-1
+      - eth0
+      - SW1
+      - Gi0/8
+    - - SW1
+      - Gi0/3
+      - MINI
+      - Gi0/1
+    - - LAPTOP-A
+      - eth0
+      - MINI
+      - Gi0/2
+    - - LAPTOP-B
+      - eth0
+      - MINI
+      - Gi0/3
+  expect:
+  - label: The meeting room port has shut itself
+    err_disabled:
+      device: SW1
+      interface: Gi0/3
+  - label: Nothing on the mini switch gets through
+    reach:
+      from: LAPTOP-A
+      to: SRV-1
+      expect: blocked
+  - label: The desk still works
+    reach:
+      from: DESK-1
+      to: SRV-1
+  solution: |-
+    [SW1]
+    enable
+    configure terminal
+    interface Gi0/3
+    switchport mode access
+    switchport port-security
+    switchport port-security maximum 1
+    end
+    show port-security
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why start with the logs and not the switch?
+  options:
+  - Switches have no commands for this.
+  - Logs make the network faster.
+  - The rules say logs always come first.
+  - The logs show which machine is causing it, so you change the right port.
+  answer: The logs show which machine is causing it, so you change the right port.
+  hint: What do you need to know before changing anything?
+- type: mc
+  level: easy
+  label: Read the log
+  q: In a pipeline, what does sort | uniq -c do?
+  options:
+  - It deletes the file.
+  - It sorts by date.
+  - It removes every repeated word.
+  - It counts how many times each line appears.
+  answer: It counts how many times each line appears.
+  hint: -c stands for count.
+- type: mc
+  level: medium
+  label: The fix
+  q: What does port security with a maximum of 1 do?
+  options:
+  - It encrypts the port.
+  - It slows the port down.
+  - It gives the port a password.
+  - It lets only one machine use that port.
+  answer: It lets only one machine use that port.
+  hint: 'Think about the policy: one machine per wall port.'
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Lock the port
+  - Find the noisy machine
+  answer:
+  - Find the noisy machine
+  - Lock the port
+  hint: 'It started with: Find the noisy machine.'
+- type: mc
+  level: hard
+  label: On the job
+  q: The noisy MAC turns out to be a printer with a fault. What should you do first?
+  options:
+  - Block every printer in the building.
+  - Reboot the core router.
+  - Delete the DHCP log.
+  - Fix or unplug the printer, since blocking a port only hides a broken device.
+  answer: Fix or unplug the printer, since blocking a port only hides a broken device.
+  hint: Fix the cause, not just the symptom.
+fixtures:
+  ops/dhcp.log: |
+    Nov 6 09:00 DISCOVER aa:11:22:33:44:01 floor-2
+    Nov 6 09:01 DISCOVER de:ad:be:ef:00:07 floor-2
+    Nov 6 09:02 DISCOVER aa:11:22:33:44:02 floor-2
+    Nov 6 09:03 DISCOVER de:ad:be:ef:00:07 floor-2
+    Nov 6 09:04 DISCOVER de:ad:be:ef:00:07 floor-2
+    Nov 6 09:05 DISCOVER aa:11:22:33:44:03 floor-2
+    Nov 6 09:06 DISCOVER de:ad:be:ef:00:07 floor-2
+    Nov 6 09:07 DISCOVER aa:11:22:33:44:01 floor-2
+    Nov 6 09:08 DISCOVER de:ad:be:ef:00:07 floor-2

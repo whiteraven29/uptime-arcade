@@ -1,0 +1,149 @@
+id: ops-07
+track: OPS
+skill: shell
+chapter: First shifts
+order: 7
+title: Inventory sync
+from: Infrastructure
+difficulty: medium
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- sh-15
+- py-19
+lesson:
+  text: Inventories go stale because people forget to update them. A list of real hosts is easy to get with cut and sort. Comparing it with a saved JSON inventory is easier in Python, since json.loads turns the text into real lists.
+  example: |-
+    import json
+    names = json.loads('["a", "b"]')
+    print(names[0])  # a
+brief: Nobody trusts the host inventory any more. Count what is really out there, then write the check that finds what the inventory has missed.
+goal: Count the real hosts, then compare with JSON in Python.
+hints:
+- cut the first column, then sort and uniq before counting.
+- Loop over the live hosts and keep those not in the inventory.
+debrief:
+  why: The shell is quickest for pulling a list out of a file, and Python is better once you are comparing structures.
+  solution: |
+    # Count the real hosts
+    cut -d' ' -f1 ops/hosts.txt | sort | uniq | wc -l
+    submit 4
+
+    # Find what is missing
+    import json
+
+    def missing(live, inventory_json):
+        known = json.loads(inventory_json)
+        found = []
+        for host in live:
+            if host not in known:
+                found.append(host)
+        return found
+  job: Inventory checks like this catch forgotten machines, which are usually the ones nobody patches.
+teaches:
+- inventory
+stages:
+- title: Count the real hosts
+  check: answer
+  brief: ~/ops/hosts.txt was collected from every box, with duplicates.
+  goal: 'Run: submit <how many different hosts there are>'
+  answer:
+    accept:
+    - '4'
+  solution: |-
+    cut -d' ' -f1 ops/hosts.txt | sort | uniq | wc -l
+    submit 4
+- title: Find what is missing
+  check: py
+  brief: missing(live, inventory_json) takes a list of live hosts and a JSON list of known hosts, and returns the live hosts not in the inventory, in their original order.
+  goal: Write missing(live, inventory_json). Tests run when you press Run tests.
+  python:
+    starter: |
+      import json
+
+      def missing(live, inventory_json):
+          # your code here
+          pass
+    tests:
+    - expr: missing(["web-1", "db-1"], '["web-1"]')
+      want: '["db-1"]'
+    - expr: missing(["a"], '["a"]')
+      want: '[]'
+    - expr: missing(["x", "y"], '[]')
+      want: '["x", "y"]'
+  solution: |
+    import json
+
+    def missing(live, inventory_json):
+        known = json.loads(inventory_json)
+        found = []
+        for host in live:
+            if host not in known:
+                found.append(host)
+        return found
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why compare the inventory with real hosts?
+  options:
+  - To make the inventory longer.
+  - Because JSON expires.
+  - Inventories go stale, and forgotten machines do not get patched.
+  - To slow down attackers.
+  answer: Inventories go stale, and forgotten machines do not get patched.
+  hint: What happens to a machine nobody knows about?
+- type: mc
+  level: easy
+  label: The pipeline
+  q: Why sort before uniq?
+  options:
+  - uniq needs numbers.
+  - uniq only removes repeats that sit next to each other.
+  - sort deletes duplicates by itself.
+  - It looks tidier.
+  answer: uniq only removes repeats that sit next to each other.
+  hint: uniq only looks at neighbours.
+- type: mc
+  level: medium
+  label: The code
+  q: What does json.loads do?
+  options:
+  - It turns JSON text into Python values.
+  - It saves a file.
+  - It downloads JSON.
+  - It prints JSON.
+  answer: It turns JSON text into Python values.
+  hint: The s stands for string.
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Find what is missing
+  - Count the real hosts
+  answer:
+  - Count the real hosts
+  - Find what is missing
+  hint: 'It started with: Count the real hosts.'
+- type: mc
+  level: hard
+  label: On the job
+  q: A host is in the inventory, but not live. What should you do?
+  options:
+  - Delete it without checking.
+  - Find out if it was retired or is down, then update the inventory.
+  - Ignore it.
+  - Reinstall every host.
+  answer: Find out if it was retired or is down, then update the inventory.
+  hint: It could be an outage or old data.
+fixtures:
+  ops/hosts.txt: |
+    web-1 10.0.0.1
+    web-2 10.0.0.2
+    db-1 10.0.0.3
+    web-1 10.0.0.1
+    cache-1 10.0.0.4
+    db-1 10.0.0.3

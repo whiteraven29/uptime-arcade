@@ -1,0 +1,114 @@
+id: ops-09
+track: OPS
+skill: go
+chapter: On the rota
+order: 9
+title: The racing health checker
+from: Backend
+difficulty: hard
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- sh-13
+- go-27
+- net-23
+lesson:
+  text: 'Goroutines run at the same time, so shared data needs a Mutex. Starting them is not the same as finishing them: without wg.Wait() the function can return before any have run. Most concurrency bugs are one of these two.'
+  example: |-
+    wg.Add(1)
+    go func() { defer wg.Done() }()
+    wg.Wait()
+brief: The health checker sometimes says zero ports were checked. Read its report to see what really failed, then fix the bug in the checker.
+goal: Read which port failed, then fix the checker.
+hints:
+- Look for DOWN in ~/ops/health.txt.
+- The function returns before its goroutines finish. Which call waits for them?
+debrief:
+  why: A monitor that lies is worse than none, because everyone stops looking.
+  solution: "# Read the report\ngrep DOWN ops/health.txt | cut -d' ' -f2\nsubmit 443\n\n# Fix the checker\npackage main\n\nimport (\n\t\"fmt\"\n\t\"sync\"\n\t\"time\"\n)\n\nfunc checkAll(ports []int) int {\n\tvar mu sync.Mutex\n\tvar wg sync.WaitGroup\n\tchecked := 0\n\tfor range ports {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\ttime.Sleep(time.Millisecond)\n\t\t\tmu.Lock()\n\t\t\tchecked++\n\t\t\tmu.Unlock()\n\t\t}()\n\t}\n\twg.Wait()\n\treturn checked\n}\n\nfunc main() {\n\tfmt.Println(checkAll([]int{22, 80, 443}))\n}\n"
+  job: Health checkers run constantly, so small concurrency bugs in them cause false alarms every day.
+teaches:
+- health check
+stages:
+- title: Read the report
+  check: answer
+  brief: ~/ops/health.txt has one line per port.
+  goal: 'Run: submit <the port that is DOWN>'
+  answer:
+    accept:
+    - '443'
+  solution: |-
+    grep DOWN ops/health.txt | cut -d' ' -f2
+    submit 443
+- title: Fix the checker
+  check: go-code
+  brief: checkAll starts one goroutine per port and counts them under a lock, but returns before they finish.
+  goal: Add the missing line. Run tests compiles and runs your code with go test.
+  go:
+    starter: "package main\n\nimport (\n\t\"fmt\"\n\t\"sync\"\n\t\"time\"\n)\n\nfunc checkAll(ports []int) int {\n\tvar mu sync.Mutex\n\tvar wg sync.WaitGroup\n\tchecked := 0\n\tfor range ports {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\ttime.Sleep(time.Millisecond)\n\t\t\tmu.Lock()\n\t\t\tchecked++\n\t\t\tmu.Unlock()\n\t\t}()\n\t}\n\t// One line is missing here.\n\treturn checked\n}\n\nfunc main() {\n\tfmt.Println(checkAll([]int{22, 80, 443}))\n}\n"
+    test: "package main\n\nimport \"testing\"\n\nfunc TestCheckAll(t *testing.T) {\n\tif got := checkAll([]int{22, 80, 443}); got != 3 {\n\t\tt.Errorf(\"checkAll checked %d ports, wanted 3\", got)\n\t}\n}\n"
+  solution: "package main\n\nimport (\n\t\"fmt\"\n\t\"sync\"\n\t\"time\"\n)\n\nfunc checkAll(ports []int) int {\n\tvar mu sync.Mutex\n\tvar wg sync.WaitGroup\n\tchecked := 0\n\tfor range ports {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\ttime.Sleep(time.Millisecond)\n\t\t\tmu.Lock()\n\t\t\tchecked++\n\t\t\tmu.Unlock()\n\t\t}()\n\t}\n\twg.Wait()\n\treturn checked\n}\n\nfunc main() {\n\tfmt.Println(checkAll([]int{22, 80, 443}))\n}\n"
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why could the checker say zero ports were checked?
+  options:
+  - Ports cannot be counted.
+  - Go has no loops.
+  - It returned before its goroutines had finished.
+  - The network was down.
+  answer: It returned before its goroutines had finished.
+  hint: Starting is not finishing.
+- type: mc
+  level: easy
+  label: The tool
+  q: What does wg.Wait() do?
+  options:
+  - It sleeps for a second.
+  - It starts a goroutine.
+  - It unlocks a mutex.
+  - It blocks until every goroutine has called Done.
+  answer: It blocks until every goroutine has called Done.
+  hint: It waits for the group.
+- type: mc
+  level: medium
+  label: The lock
+  q: Why is checked++ inside mu.Lock()?
+  options:
+  - It makes the code shorter.
+  - Go requires a lock on every line.
+  - Several goroutines change it at once, which could lose counts.
+  - It makes the count bigger.
+  answer: Several goroutines change it at once, which could lose counts.
+  hint: What is shared here?
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Fix the checker
+  - Read the report
+  answer:
+  - Read the report
+  - Fix the checker
+  hint: 'It started with: Read the report.'
+- type: mc
+  level: hard
+  label: On the job
+  q: How would you catch this kind of bug early?
+  options:
+  - Add more goroutines.
+  - Remove the tests.
+  - Only run it in production.
+  - Write a test that checks the result, and run tests with the race detector.
+  answer: Write a test that checks the result, and run tests with the race detector.
+  hint: go test has a -race flag.
+fixtures:
+  ops/health.txt: |
+    port 22 UP
+    port 80 UP
+    port 443 DOWN
+    port 8080 UP

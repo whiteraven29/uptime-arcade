@@ -4,7 +4,7 @@
    key its solution uses must be listed by this mission or an earlier one in the same track. */
 import { execFileSync } from 'node:child_process';
 import { S } from '../engines/host.js';
-import { TK, TRACKS } from '../content/index.mjs';
+import { ALL_MISSIONS, TK, TRACKS } from '../content/index.mjs';
 import { pressKeys, resetMachine, startMission } from './machine.mjs';
 
 const problems = [];
@@ -127,6 +127,7 @@ const tokensFor = {
 const SAME = { VI: { dd: 'd', yy: 'y', cc: 'c', cw: 'c', dw: 'd', '3dd': 'd', ddp: 'd', ':%s': ':s', ':N': 'N', gg: 'g', 'i"': 'i', 'i(': 'i', 'a(': 'a', iw: 'i', '"a': '"', "'": "'", '>': '>', '<': '<', ':d': ':d', '.,$': ':s' } };
 
 for (const [k] of TRACKS) {
+  if (k === 'OPS') continue; // checked below, against everything its prerequisites open
   const taught = new Set();
   // Lab commands that come with no lesson of their own: leaving a mode, and passwords the brief hands you.
   if (k === 'LAB') for (const x of ['exit', 'trustno1']) taught.add(x);
@@ -140,6 +141,38 @@ for (const [k] of TRACKS) {
       if (!claims && k !== 'VI' && !lesson.includes(x.replace(/^\[i\]$/, '[0]').replace(/^\[\]$/, '['))) problems.push(`${t.id}: claims to teach ${x}, but the lesson never mentions it`);
     }
     for (const tok of tokensFor[k](t)) if (!taught.has(tok) && !(k === 'LAB' && labTaught(taught, tok))) problems.push(`${t.id} "${t.title}": uses ${tok} before any lesson teaches it`);
+  }
+}
+
+/* An Operation may use what its own lesson teaches, plus everything taught up to the missions that open it. */
+const STAGE_TRACKS = { answer: ['SH', 'NET'], fs: ['SH', 'NET'], vi: ['VI'], py: ['PY'], 'go-out': ['GO'], 'go-code': ['GO'], net: ['LAB', 'NET'] };
+const STAGE_TOKENS = { answer: tokensFor.SH, fs: tokensFor.SH, vi: viTokens, py: tokensFor.PY, 'go-out': tokensFor.GO, 'go-code': tokensFor.GO, net: tokensFor.LAB };
+const ALWAYS_THERE = new Set(['exit', 'trustno1']);
+for (const op of TK.OPS || []) {
+  const reach = {};
+  for (const code of op.requiresAll) {
+    const needed = ALL_MISSIONS.find((m) => m.id === code);
+    if (!needed) { problems.push(`${op.id}: requires ${code}, which doesn't exist`); continue; }
+    reach[needed.track] = Math.max(reach[needed.track] ?? -1, needed.pos);
+  }
+  const taughtIn = (track) => {
+    const out = new Set(track === 'LAB' ? ALWAYS_THERE : []);
+    for (const m of TK[track]) {
+      if (m.pos > (reach[track] ?? -1)) continue;
+      for (const x of m.teaches) { out.add(x); if (SAME[track]?.[x]) out.add(SAME[track][x]); }
+    }
+    for (const x of op.teaches) out.add(x);
+    return out;
+  };
+  resetMachine();
+  startMission(op);
+  for (const stage of op.stages) {
+    const tracks = STAGE_TRACKS[stage.check];
+    const taught = new Set(tracks.flatMap((k) => [...taughtIn(k)]));
+    if (!tracks.some((k) => reach[k] !== undefined)) problems.push(`${op.id}: "${stage.title}" uses ${tracks.join('/')} but no prerequisite covers it`);
+    for (const tok of STAGE_TOKENS[stage.check]({ ...stage, fixtures: op.fixtures })) {
+      if (!taught.has(tok) && !(stage.check === 'net' && labTaught(taught, tok))) problems.push(`${op.id} stage "${stage.title}": uses ${tok} before its prerequisites teach it`);
+    }
   }
 }
 

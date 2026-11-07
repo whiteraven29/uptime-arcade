@@ -20,4 +20,5 @@ jobs:
           go-version: stable
       - run: make setup
       - run: make check
+      - run: make sandbox-test
       - run: make e2e

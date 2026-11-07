@@ -45,8 +45,9 @@ def clean_state(raw, lab):
 
 def _run(script, payload):
     # Found on this server's PATH first, so Node installed under nvm or a version manager works too.
-    command = [shutil.which(settings.NODE_BINARY) or settings.NODE_BINARY, "--max-old-space-size=128", str(script)]
+    command = [shutil.which(settings.NODE_BINARY) or settings.NODE_BINARY, "--max-old-space-size=128", "--disallow-code-generation-from-strings", str(script)]
     try:
+        # An empty environment, so if a crafted input ever got far inside an engine, no secret from this server is there.
         done = subprocess.run(command, input=json.dumps(payload), capture_output=True, text=True, timeout=settings.LAB_GRADER_TIMEOUT, check=True, env={})
         return json.loads(done.stdout)
     except (OSError, ValueError, subprocess.SubprocessError) as e:

@@ -5,8 +5,21 @@ from apps.content.loader import ContentError, load, worth
 from apps.content.models import Chapter, ContentRelease, FixtureFile, Mission, MissionPrereq, Track
 
 
+def _answer_spec(m):
+    return {"go_test": m["go"]["test"]} if m["check"] == "go-code" else m.get("answer", {})
+
+
+def _stages(m):
+    """What a player sees of each stage comes first, and the rest stays on the server with the answers."""
+    public = [{"title": s["title"], "check": s["check"], "brief": s["brief"], "goal": s["goal"], "workspace": _play(s)} for s in m["stages"]]
+    private = [{"answer_spec": _answer_spec(s), "expect": s.get("expect", []), "solution": s["solution"]} for s in m["stages"]]
+    return public, private
+
+
 def _play(m):
     """What a player's workspace needs. Goals and solutions stay out."""
+    if m["check"] == "ops":
+        return {"fixtures": m.get("fixtures", {}), "stages": _stages(m)[0]}
     play = {}
     if "file" in m:
         play["file"] = m["file"]
@@ -15,7 +28,8 @@ def _play(m):
     if "python" in m:
         play["python"] = m["python"]
     if "go" in m:
-        play["go"] = {"program": m["go"]["program"]}  # "prints" would give a go-fix answer away
+        # Named one by one: "prints" and a go-code mission's test stay on the server.
+        play["go"] = {"starter": m["go"]["starter"]} if m["check"] == "go-code" else {"program": m["go"]["program"]}
     if "lab" in m:
         # What each goal says is public, and how it's tested isn't.
         play["lab"] = m["lab"]
@@ -34,7 +48,7 @@ def run_import(content):
     for order, t in enumerate(config["tracks"], start=1):
         tracks[t["code"]], _ = Track.objects.update_or_create(
             code=t["code"],
-            defaults={"name": t["name"], "subtitle": t["subtitle"], "order": order, "after_archmage": t.get("after_archmage", False), "season": t.get("season", 1), "requires": t.get("requires", "")},
+            defaults={"name": t["name"], "subtitle": t["subtitle"], "order": order, "after_archmage": t.get("after_archmage", False), "side": t.get("side", False), "season": t.get("season", 1), "requires": t.get("requires", "")},
         )
     by_code = {t["code"]: t for t in config["tracks"]}
     chapters = {}
@@ -67,7 +81,7 @@ def run_import(content):
                 "teaches": m["teaches"],
                 "content_version": version,
                 "status": Mission.Status.PUBLISHED,
-                "answer_spec": m.get("answer", {}),
+                "answer_spec": {"stages": _stages(m)[1]} if m["check"] == "ops" else _answer_spec(m),
                 "expect": m.get("expect", []),
                 "debrief": m["debrief"],
                 "rewind": m["rewind"],
@@ -76,8 +90,8 @@ def run_import(content):
     # A lab opens from the mission that teaches it. Rebuilt each time, so it always matches the YAML.
     MissionPrereq.objects.all().delete()
     for m in content["missions"]:
-        if m.get("requires"):
-            MissionPrereq.objects.create(mission=Mission.objects.get(code=m["id"]), requires=Mission.objects.get(code=m["requires"]))
+        for needed in [*([m["requires"]] if m.get("requires") else []), *m.get("requires_all", [])]:
+            MissionPrereq.objects.create(mission=Mission.objects.get(code=m["id"]), requires=Mission.objects.get(code=needed))
     codes = {m["id"] for m in content["missions"]}
     retired = Mission.objects.exclude(code__in=codes).exclude(status=Mission.Status.RETIRED).update(status=Mission.Status.RETIRED)
     paths = set()

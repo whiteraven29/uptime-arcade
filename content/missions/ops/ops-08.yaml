@@ -1,0 +1,130 @@
+id: ops-08
+track: OPS
+skill: shell
+chapter: On the rota
+order: 8
+title: Nightly backup
+from: Platform
+difficulty: medium
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- sh-30
+- vi-20
+lesson:
+  text: A backup is only real once it has run and you have checked the copy. A script makes it the same every time, and cron runs it on a schedule. The five time fields in a cron line are minute, hour, day, month and weekday, so 0 2 * * * means 2am daily.
+  example: 0 2 * * * /home/ops/backup.sh
+brief: The team loses a day of work whenever a disk dies. Write the backup script, test it, then move its schedule from 9am to 2am.
+goal: Write and run the script, then fix the schedule in vi.
+hints:
+- Use echo with > and >> to write the script, one line at a time.
+- In the crontab, the second number on line 2 is the hour.
+debrief:
+  why: Running the script yourself proves it works before you trust it to run alone at night.
+  solution: |-
+    # Write and test the script
+    mkdir ops/backup
+    echo '#!/bin/sh' > ops/backup.sh
+    echo 'cp /home/ops/ops/data.txt /home/ops/ops/backup/data.txt' >> ops/backup.sh
+    chmod +x ops/backup.sh
+    ~/ops/backup.sh
+
+    # Fix the schedule
+    :2<CR>:s/0 9/0 2/<CR>:wq<CR>
+  job: Most backup failures are found on the day you need the backup, so test the restore too.
+teaches:
+- cron
+stages:
+- title: Write and test the script
+  check: fs
+  brief: Create ~/ops/backup.sh. It should copy ~/ops/data.txt into ~/ops/backup/, so make that folder first. Then make it executable and run it.
+  goal: The script exists, can run, has run, and the copy is there.
+  expect:
+  - file_contains:
+      path: ~/ops/backup.sh
+      text: 'cp '
+  - mode_has:
+      path: ~/ops/backup.sh
+      bit: x
+  - file_exists: ~/ops/backup/data.txt
+  solution: |-
+    mkdir ops/backup
+    echo '#!/bin/sh' > ops/backup.sh
+    echo 'cp /home/ops/ops/data.txt /home/ops/ops/backup/data.txt' >> ops/backup.sh
+    chmod +x ops/backup.sh
+    ~/ops/backup.sh
+- title: Fix the schedule
+  check: vi
+  brief: The backup runs at 9am, in the middle of the working day. It should run at 2am.
+  goal: 'Change the 9 on line 2 of ~/ops/crontab to 2, then save with :wq. You must use vi: vi ~/ops/crontab'
+  file: ~/ops/crontab
+  expect:
+  - file_contains:
+      path: ~/ops/crontab
+      text: 0 2 * * * /home/ops/ops/backup.sh
+  - vi_saved: ~/ops/crontab
+  solution: :2<CR>:s/0 9/0 2/<CR>:wq<CR>
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: When is a backup really proven to work?
+  options:
+  - When the script exists.
+  - When the disk is new.
+  - When cron is installed.
+  - When you have run it and checked that the copy is good.
+  answer: When you have run it and checked that the copy is good.
+  hint: Trust comes from seeing it work.
+- type: mc
+  level: easy
+  label: Cron
+  q: What does 0 2 * * * mean?
+  options:
+  - Every 2 minutes.
+  - Every day at 2am.
+  - Twice a day.
+  - On the 2nd of each month.
+  answer: Every day at 2am.
+  hint: The fields are minute, then hour.
+- type: mc
+  level: medium
+  label: The script
+  q: Why chmod +x the script?
+  options:
+  - So it can be run as a program.
+  - To make it smaller.
+  - To hide it.
+  - To back it up.
+  answer: So it can be run as a program.
+  hint: x stands for execute.
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Fix the schedule
+  - Write and test the script
+  answer:
+  - Write and test the script
+  - Fix the schedule
+  hint: 'It started with: Write and test the script.'
+- type: mc
+  level: hard
+  label: On the job
+  q: A backup has run nightly for a year, but nobody has tried a restore. What is the risk?
+  options:
+  - There is no risk.
+  - The disk fills faster.
+  - It may not actually restore, and you would only find out in a disaster.
+  - Cron stops working after a year.
+  answer: It may not actually restore, and you would only find out in a disaster.
+  hint: A backup you have not restored is a hope.
+fixtures:
+  ops/data.txt: |
+    customer records
+  ops/crontab: |
+    # m h dom mon dow command
+    0 9 * * * /home/ops/ops/backup.sh

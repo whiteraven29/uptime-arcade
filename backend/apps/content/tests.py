@@ -27,17 +27,17 @@ def content():
 
 class TestImport:
     def test_imports_every_mission(self):
-        assert Mission.objects.count() == 263
-        assert Mission.objects.filter(track__after_archmage=False).count() == 213
-        assert Track.objects.count() == 7
+        assert Mission.objects.count() == 283
+        assert Mission.objects.filter(track__after_archmage=False, track__side=False).count() == 213
+        assert Track.objects.count() == 8
         assert FixtureFile.objects.count() > 50
 
     def test_every_track_is_the_size_it_should_be(self):
-        sizes = {"SH": 30, "VI": 30, "PY": 30, "GO": 30, "NET": 49, "LAB": 44, "BX": 50}
+        sizes = {"SH": 30, "VI": 30, "PY": 30, "GO": 30, "NET": 49, "LAB": 44, "OPS": 20, "BX": 50}
         assert {t.code: t.missions.count() for t in Track.objects.all()} == sizes
 
     def test_archmage_is_every_core_mission(self):
-        assert rules.LEVELS[-1][0] == Mission.objects.filter(track__after_archmage=False).count()
+        assert rules.LEVELS[-1][0] == Mission.objects.filter(track__after_archmage=False, track__side=False).count()
 
     def test_running_it_again_changes_nothing_but_the_version(self, content):
         before = ContentRelease.latest().version
@@ -55,11 +55,11 @@ class TestImport:
         before = ContentRelease.objects.count()
         out = StringIO()
         call_command("import_content", "--check", stdout=out)
-        assert "263 missions" in out.getvalue()
+        assert "283 missions" in out.getvalue()
         assert ContentRelease.objects.count() == before
 
     def test_top_level_is_reached_by_clearing_every_core_mission(self):
-        assert rules.LEVELS[-1][0] == Mission.objects.filter(track__after_archmage=False).count()
+        assert rules.LEVELS[-1][0] == Mission.objects.filter(track__after_archmage=False, track__side=False).count()
 
 
 class TestValidation:

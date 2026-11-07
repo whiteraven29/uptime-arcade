@@ -1,0 +1,203 @@
+id: ops-06
+track: OPS
+skill: python
+chapter: First shifts
+order: 6
+title: Shadowed rules
+from: Security
+difficulty: hard
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- py-13
+- lab-22
+lesson:
+  text: Rules run from the top, and the first match wins. A rule below a broader one can never fire, which is called a shadowed rule. Finding them by eye is hard in a long list, so a small program can do it.
+  example: |-
+    rules = [("deny", "any"), ("permit", "10.0.0.5")]
+    # the second rule can never match
+brief: Someone keeps adding firewall rules that do nothing. Write a check that finds them, then fix the real one on the router.
+goal: Find shadowed rules in Python, then repair the list in the lab.
+hints:
+- Once a rule matches any, everything after it is shadowed.
+- On the router, sequence numbers let you put a rule in the right place.
+debrief:
+  why: A rule that can never fire is worse than no rule, because everyone believes it is protecting them.
+  solution: |-
+    # Find the dead rules
+    def shadowed(rules):
+        found = []
+        seen_any = False
+        for i in range(len(rules)):
+            if seen_any:
+                found.append(i)
+            if rules[i][1] == "any":
+                seen_any = True
+        return found
+
+
+    # Fix the router
+    [R1]
+    enable
+    show access-lists
+    configure terminal
+    ip access-list extended EDGE
+    no 20
+    5 deny tcp any host 10.40.23.80 eq 22
+    end
+    show access-lists
+  job: Rule audits like this are a routine part of firewall work.
+teaches:
+- shadowed
+stages:
+- title: Find the dead rules
+  check: py
+  brief: Each rule is a pair of action and source. shadowed(rules) returns the positions of the rules that can never match, which are all the rules after the first one whose source is "any".
+  goal: Write shadowed(rules). Tests run when you press Run tests.
+  python:
+    starter: |
+      def shadowed(rules):
+          # your code here
+          pass
+    tests:
+    - expr: shadowed([("permit", "a"), ("deny", "any"), ("permit", "b")])
+      want: '[2]'
+    - expr: shadowed([("permit", "a"), ("permit", "b")])
+      want: '[]'
+    - expr: shadowed([("deny", "any"), ("permit", "a"), ("permit", "b")])
+      want: '[1, 2]'
+  solution: |
+    def shadowed(rules):
+        found = []
+        seen_any = False
+        for i in range(len(rules)):
+            if seen_any:
+                found.append(i)
+            if rules[i][1] == "any":
+                seen_any = True
+        return found
+- title: Fix the router
+  check: net
+  brief: 'Your check found the rule. Now fix it on the router. Audit report: "SSH to SRV-1 is open from the staff network, despite policy." The list on R1 has a deny line for it. Nothing else should change: web traffic has to keep working.'
+  goal: SSH to SRV-1 is blocked, and the web still works.
+  lab:
+    devices:
+    - name: STAFF-1
+      kind: pc
+      x: 12
+      y: 50
+      config: 'ip addr add 10.40.22.10/24 dev eth0
+
+        ip route add default via 10.40.22.1'
+    - name: R1
+      kind: router
+      x: 48
+      y: 50
+      config: "interface Gi0/0\n ip address 10.40.22.1 255.255.255.0\n ip access-group EDGE in\n no shutdown\ninterface Gi0/1\n ip address 10.40.23.1 255.255.255.0\n no shutdown\nip access-list extended EDGE\n 10 permit ip 10.40.22.0 0.0.0.255 any\n 20 deny tcp any host 10.40.23.80 eq 22"
+    - name: SRV-1
+      kind: server
+      x: 85
+      y: 50
+      config: 'ip addr add 10.40.23.80/24 dev eth0
+
+        ip route add default via 10.40.23.1
+
+        service http start
+
+        service ssh start'
+    cables:
+    - - STAFF-1
+      - eth0
+      - R1
+      - Gi0/0
+    - - SRV-1
+      - eth0
+      - R1
+      - Gi0/1
+  expect:
+  - label: SSH is blocked
+    reach:
+      from: STAFF-1
+      to: SRV-1
+      proto: tcp
+      port: 22
+      expect: blocked
+  - label: The web still works
+    reach:
+      from: STAFF-1
+      to: SRV-1
+      proto: tcp
+      port: 80
+  - label: The list is still in place
+    config:
+      device: R1
+      interface: Gi0/0
+      contains: ip access-group EDGE in
+  solution: |-
+    [R1]
+    enable
+    show access-lists
+    configure terminal
+    ip access-list extended EDGE
+    no 20
+    5 deny tcp any host 10.40.23.80 eq 22
+    end
+    show access-lists
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What is a shadowed rule?
+  options:
+  - A rule that can never fire because an earlier one always matches first.
+  - A rule hidden from the admin.
+  - A rule that only works at night.
+  - A rule with no action.
+  answer: A rule that can never fire because an earlier one always matches first.
+  hint: First match wins.
+- type: mc
+  level: easy
+  label: The order
+  q: Rules run in which order?
+  options:
+  - Bottom to top.
+  - From the top, stopping at the first match.
+  - All of them, and the last one wins.
+  - At random.
+  answer: From the top, stopping at the first match.
+  hint: Think of reading a list.
+- type: mc
+  level: medium
+  label: The code
+  q: Why does the code keep a flag once it sees any?
+  options:
+  - To count the rules.
+  - To speed up the router.
+  - Because Python requires it.
+  - Every rule after that point is shadowed.
+  answer: Every rule after that point is shadowed.
+  hint: What changes once you pass a catch-all rule?
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Fix the router
+  - Find the dead rules
+  answer:
+  - Find the dead rules
+  - Fix the router
+  hint: 'It started with: Find the dead rules.'
+- type: mc
+  level: hard
+  label: On the job
+  q: Why is a shadowed deny rule dangerous?
+  options:
+  - It crashes the router.
+  - It uses too much memory.
+  - People believe traffic is blocked when it is actually allowed.
+  - It logs too much.
+  answer: People believe traffic is blocked when it is actually allowed.
+  hint: Think about what everyone assumes.

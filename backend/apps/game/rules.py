@@ -89,6 +89,7 @@ BADGES = (
     ("first", "First Clear", "Clear one mission"),
     *((f"lv{i + 1}", name, f"Reach level {i + 1}") for i, (_, name) in enumerate(LEVELS) if 0 < i < len(LEVELS) - 1),
     *((f"t{code}", f"{name} Master", f"Clear the {name} path") for code, name in CORE_TRACK_BADGES),
+    ("tOPS", "Operator of Operations", "Clear every Operation"),
     ("par50", "Par Hunter", "50 missions at or under par"),
     ("nohints", "No Hints Needed", "Clear a whole chapter without hints"),
     ("night", "Night Shift", "Finish 25 on-call incidents"),

@@ -6,6 +6,7 @@ import { TerminalWorkspace } from './workspaces/terminal/TerminalWorkspace.jsx';
 import { ViWorkspace } from './workspaces/vi/ViWorkspace.jsx';
 import { PythonWorkspace, ensurePython } from './workspaces/python/PythonWorkspace.jsx';
 import { GoReader } from './workspaces/go/GoReader.jsx';
+import { GoWorkspace } from './workspaces/go/GoWorkspace.jsx';
 import { NetLabWorkspace } from './workspaces/netlab/NetLabWorkspace.jsx';
 import { DifficultyTag } from '../../ui/DifficultyTag.jsx';
 
@@ -26,6 +27,15 @@ function SidePanel({ t }) {
     <HudPanel className="side" label={trackName(t.track)}>
       <h3>{t.title}</h3>
       {t.difficulty && <DifficultyTag code={t.difficulty} />}
+      {t.stage && (
+        <ol className="ops-rail" id="opsRail" aria-label="Stages of this Operation">
+          {t.stage.names.map((name, i) => (
+            <li key={name} className={i < t.stage.index ? 'done' : i === t.stage.index ? 'now' : ''} aria-current={i === t.stage.index ? 'step' : undefined}>
+              <i aria-hidden="true">{i < t.stage.index ? '✓' : i + 1}</i><span>{name}</span>
+            </li>
+          ))}
+        </ol>
+      )}
       {t.revisit && <p className="revisit-note">A free replay. It uses no play time, hints are free, and it pays no XP.</p>}
       <p>{t.brief}</p>
       <p className="obj">{t.goal}</p>
@@ -49,13 +59,13 @@ export function PlayArea({ t }) {
   useEffect(() => {
     if (isPy) ensurePython();
   }, [isPy]);
-  const workspace = isPy ? 'python' : t.kind === 'net' ? 'netlab' : t.program ? 'go' : 'terminal';
+  const workspace = isPy ? 'python' : t.kind === 'go-code' ? 'gocode' : t.kind === 'net' ? 'netlab' : t.program ? 'go' : 'terminal';
   return (
     <div className="play">
       <SidePanel t={t} />
       <HudPanel className="work">
         <div className="work-bar">
-          <span className="work-title"><i className={`led${on ? ' on' : ''}`} aria-hidden="true" />{workspace === 'python' ? 'Python' : workspace === 'netlab' ? 'NetLab' : workspace === 'go' ? 'Go reader' : 'Terminal'}</span>
+          <span className="work-title"><i className={`led${on ? ' on' : ''}`} aria-hidden="true" />{workspace === 'python' ? 'Python' : workspace === 'gocode' ? 'Go' : workspace === 'netlab' ? 'NetLab' : workspace === 'go' ? 'Go reader' : 'Terminal'}</span>
           <span className="work-stats">
             {t.par_kind === 'commands' && <span>Commands <b>{S.cmds?.[t.id] || 0}</b> / par {t.par_value}</span>}
             {t.par_kind === 'keys' && <span>Keys par <b>{t.par_value}</b></span>}
@@ -64,6 +74,7 @@ export function PlayArea({ t }) {
           </span>
         </div>
         {workspace === 'python' && (t.ready ? <PythonWorkspace mission={t} /> : <div className="code-pane" />)}
+        {workspace === 'gocode' && (t.ready ? <GoWorkspace mission={t} /> : <div className="code-pane" />)}
         {workspace === 'go' && (t.ready ? <GoReader code={t.program} /> : <TerminalWorkspace />)}
         {workspace === 'terminal' && <TerminalWorkspace />}
         {workspace === 'netlab' && <NetLabWorkspace />}

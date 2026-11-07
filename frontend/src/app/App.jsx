@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useGame } from '../api/useGame.js';
-import { S, level, mmss, refreshPlayer, setNavigator, tick, ui } from '../api/game.js';
+import { S, closeSession, level, mmss, refreshPlayer, setNavigator, tick, ui } from '../api/game.js';
 import { ensureAudio } from '../sound/cues.js';
 import { SceneBackdrop } from '../ui/SceneBackdrop.jsx';
 import { Toast } from '../ui/Toast.jsx';
@@ -14,7 +14,6 @@ import { MissionsScreen } from '../features/missions/MissionsScreen.jsx';
 import { BriefingScreen } from '../features/briefing/BriefingScreen.jsx';
 import { PlayScreen } from '../features/play/PlayScreen.jsx';
 import { RewindScreen } from '../features/rewind/RewindScreen.jsx';
-import { OpsScreen } from '../features/ops/OpsScreen.jsx';
 import { OnCallScreen } from '../features/oncall/OnCallScreen.jsx';
 import { RewardsScreen } from '../features/rewards/RewardsScreen.jsx';
 import { ProfileScreen } from '../features/profile/ProfileScreen.jsx';
@@ -37,7 +36,10 @@ function TopBar() {
         <span className="chip"><b>{level()}</b></span>
         <span className="chip">XP <b>{S.xp}</b></span>
         <span className="chip">Streak <b>{S.streak}d</b></span>
-        <span className="chip-time">{running ? 'Session' : 'Play time'} <b>{clock}</b></span>
+        <span className="chip-time">
+          {running ? 'Session' : 'Play time'} <b>{clock}</b>
+          {running && <button className="chip-stop" type="button" id="stopSession" aria-label="Stop the session and bank the time" title="Stop the session and bank the time" onClick={() => closeSession()}>Stop</button>}
+        </span>
         <Link className="me" to="/profile" title="Your profile">
           <Avatar avatar={ui.account?.avatar} name={ui.account?.username} size={32} />
           <b id="meName">{ui.account?.username}</b>
@@ -88,6 +90,9 @@ export function App() {
             <Routes>
               <Route path="/register" element={<AuthScreen />} />
               <Route path="/login" element={<AuthScreen />} />
+              <Route path="/verify" element={<AuthScreen />} />
+              <Route path="/forgot" element={<AuthScreen />} />
+              <Route path="/reset" element={<AuthScreen />} />
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
           </main>
@@ -100,7 +105,7 @@ export function App() {
             <Route path="/missions/:slug" element={<BriefingScreen />} />
             <Route path="/missions/:slug/play" element={<PlayScreen />} />
             <Route path="/missions/:slug/rewind" element={<RewindScreen />} />
-            <Route path="/ops" element={<OpsScreen />} />
+            <Route path="/ops" element={<Navigate to="/missions" replace />} />
             <Route path="/oncall" element={<OnCallScreen />} />
             <Route path="/rewards" element={<RewardsScreen />} />
             <Route path="/profile" element={<ProfileScreen />} />

@@ -1,4 +1,5 @@
 import json
+from types import SimpleNamespace
 
 import pytest
 from django.conf import settings
@@ -6,6 +7,7 @@ from django.core.cache import cache
 
 from apps.content.loader import ContentError, load
 from apps.content.models import Chapter, Mission, Track
+from apps.focus.models import PlaySession
 from apps.focus.services import open_session
 from apps.game import rules, services
 from apps.game.models import Player, TimeLedger, UserBadge, XPLedger
@@ -34,10 +36,15 @@ def mission(code):
 
 def solve(api, code, **extra):
     m = mission(code)
-    if m.check_type in ("answer", "go-out", "go-fix"):
+    if m.check_type in ("answer", "go-out"):
         return api.post(url(code, "submit/"), {"answer": m.answer_spec["accept"][0], "commands": m.par_value, **extra}, format="json")
-    if m.check_type == "py":
-        return api.post(url(code, "submit/"), {"code": "x = 1", "passed": True, **extra}, format="json")
+    if m.check_type in ("py", "go-code"):
+        # Real code through the sandbox, and the answer the queue comes back with.
+        sent = api.post(url(code, "submit/"), {"code": m.debrief["solution"], "passed": True, **extra}, format="json")
+        if sent.json().get("result") != "grading":
+            return sent
+        job = api.get(f"/api/v1/missions/jobs/{sent.json()['job']}/").json()
+        return SimpleNamespace(status_code=200, json=lambda: job["result"])
     return api.post(url(code, "submit/"), {"state": _state_meeting(m), "commands": m.par_value, "keys": m.par_value, **extra}, format="json")
 
 
@@ -96,6 +103,9 @@ def clear_rewind(api, code):
     for _ in range(5):
         response = answer(api, code, right_value(current_task(api, code)))
         assert response.json()["correct"] is True
+    # Finishing stops the clock. These flows carry on playing, so they open the next session as a player would.
+    if response.json()["state"] == "cleared":
+        open_session(api.user)
     return response
 
 
@@ -316,7 +326,9 @@ class TestDifficultyAndWorth:
 
     def test_keys_over_par_lose_the_bonus(self, playing):
         m = mission("vi-01")
-        assert solve(playing, "vi-01", keys=m.par_value + 1).json()["xp_on_clear"] == 100
+        state = _state_meeting(m)
+        state["vi_keys"][m.play["file"].replace("~", "/home/ops")] = m.par_value + 1
+        assert solve(playing, "vi-01", state=state).json()["xp_on_clear"] == 100
 
 
 class TestRewindHelp:
@@ -419,6 +431,8 @@ class TestAnswersStayOnTheServer:
         top_up(p)
         open_session(api.user)
         MissionProgress.objects.create(player=p, mission=mission("net-05"), season=p.season, state="cleared")  # opens the first lab
+        for row in mission("ops-01").prereqs.select_related("requires"):
+            MissionProgress.objects.create(player=p, mission=row.requires, season=p.season, state="cleared")
         for m in Mission.objects.filter(order=1).select_related("track"):
             for tail in ("", "play/"):
                 response = api.get(url(m.code, tail))
@@ -427,11 +441,14 @@ class TestAnswersStayOnTheServer:
                 if len(m.debrief["solution"]) > 30:
                     assert m.debrief["solution"] not in response.content.decode()
 
-    def test_a_go_fix_program_keeps_its_blank(self, playing):
+    def test_a_go_code_mission_keeps_its_test_and_solution(self, playing):
         m = mission("go-08")
-        assert "____" in m.play["go"]["program"]
-        assert "prints" not in m.play["go"]
-        assert m.answer_spec["accept"][0] not in m.play["go"]["program"]
+        assert set(m.play["go"]) == {"starter"}
+        assert m.debrief["solution"] != m.play["go"]["starter"]
+        assert "go_test" in m.answer_spec
+
+    def test_a_go_reading_mission_keeps_what_it_prints(self, playing):
+        assert set(mission("go-05").play["go"]) == {"program"}
 
     def test_a_wrong_submission_says_only_that_it_was_wrong(self, playing):
         response = playing.post(url("net-01", "submit/"), {"answer": "wrong"}, format="json")
@@ -556,10 +573,9 @@ class TestServerAgreesWithTheEngines:
 
 
 class TestPythonMissions:
-    def test_stores_the_code_and_trusts_the_browser_for_now(self, playing):
-        response = playing.post(url("py-01", "submit/"), {"code": 'print("x")', "passed": True}, format="json")
-        assert response.json()["result"] == "pass"
-        assert Submission.objects.get(progress__mission__code="py-01").payload["code"] == 'print("x")'
+    def test_stores_the_code_that_the_server_ran(self, playing):
+        assert solve(playing, "py-01").json()["result"] == "pass"
+        assert Submission.objects.get(progress__mission__code="py-01").payload["code"] == mission("py-01").debrief["solution"]
 
     def test_a_failed_run_isnt_a_pass(self, playing):
         assert playing.post(url("py-01", "submit/"), {"code": "x", "passed": False}, format="json").json()["result"] == "fail"
@@ -751,3 +767,39 @@ class TestNetLabGate:
         with pytest.raises(ContentError) as e:
             load(root)
         assert any("net-99" in p for p in e.value.problems)
+
+
+class TestFinishingStopsTheClock:
+    def finish(self, api, code):
+        assert solve(api, code).json()["result"] == "pass"
+        for _ in range(4):
+            answer(api, code, right_value(current_task(api, code)))
+        return answer(api, code, right_value(current_task(api, code))).json()
+
+    def test_clearing_a_mission_stops_the_clock_and_banks_the_rest(self, api, playing, clock):
+        player = Player.objects.get(user=api.user)
+        code = "sh-01"
+        clock.advance(seconds=600)
+        events = self.finish(api, code)["events"]
+        closed = [e for e in events if e["type"] == "session_closed"]
+        assert len(closed) == 1 and closed[0]["returned"] > 0
+        assert api.get("/api/v1/player/").json()["session"] is None
+        assert player.bank() == closed[0]["returned"]
+
+    def test_the_time_used_stays_used(self, api, playing, clock):
+        player = Player.objects.get(user=api.user)
+        before = PlaySession.objects.get(player=player)
+        total = int((before.expires_at - clock.now()).total_seconds())
+        clock.advance(seconds=600)
+        self.finish(api, "sh-01")
+        assert player.bank() == total - 600
+
+    def test_solving_alone_keeps_the_clock_running_for_the_questions(self, api, playing):
+        solve(api, "sh-01")
+        assert api.get("/api/v1/player/").json()["session"] is not None
+        assert current_task(api, "sh-01")
+
+    def test_the_next_mission_asks_for_a_new_session(self, api, playing):
+        self.finish(api, "sh-01")
+        response = api.post(url("sh-02", "submit/"), {}, format="json")
+        assert response.status_code == 409 and response.json()["error"]["code"] == "no_active_session"

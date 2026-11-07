@@ -1,0 +1,354 @@
+id: ops-18
+track: OPS
+skill: networking
+chapter: Senior on call
+order: 18
+title: Branch office
+from: Infrastructure
+difficulty: expert
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- net-08
+- lab-33
+lesson:
+  text: 'A new site brings the whole job together: plan the addresses, split the networks, then give people addresses and a way out. Doing the sums first means you do not renumber later. A /26 holds 62 hosts, and two of them fit in a /25.'
+  example: /26 = 2 ** 6 - 2 = 62 hosts
+brief: The new branch opens on Monday. Size its network, then build everything it needs.
+goal: Do the subnet sums, then build the branch in the lab.
+hints:
+- 2 ** (32 - 26) addresses, minus the two reserved.
+- Take the lab goals one at a time.
+debrief:
+  why: You planned first, so nothing had to be redone once people moved in.
+  solution: |-
+    # Do the sums
+    submit 62
+
+    # Build the branch
+    [cable] STAFF-1 eth0 SW1 Gi0/1
+    [cable] APP-1 eth0 SW1 Gi0/2
+    [cable] MGMT-1 eth0 SW1 Gi0/3
+    [cable] R1 Gi0/0 SW1 Gi0/8
+    [SW1]
+    enable
+    configure terminal
+    vlan 10
+    name STAFF
+    vlan 20
+    name SERVERS
+    vlan 30
+    name MGMT
+    interface Gi0/1
+    switchport mode access
+    switchport access vlan 10
+    interface Gi0/2
+    switchport mode access
+    switchport access vlan 20
+    interface Gi0/3
+    switchport mode access
+    switchport access vlan 30
+    interface Gi0/8
+    switchport mode trunk
+    switchport trunk allowed vlan 10,20,30
+    end
+    [R1]
+    enable
+    configure terminal
+    interface Gi0/0
+    no shutdown
+    interface Gi0/0.10
+    encapsulation dot1q 10
+    ip address 10.50.0.1 255.255.255.128
+    ip nat inside
+    ip access-group STAFF in
+    interface Gi0/0.20
+    encapsulation dot1q 20
+    ip address 10.50.0.129 255.255.255.224
+    ip nat inside
+    interface Gi0/0.30
+    encapsulation dot1q 30
+    ip address 10.50.0.161 255.255.255.240
+    ip nat inside
+    interface Gi0/1
+    ip nat outside
+    exit
+    ip dhcp excluded-address 10.50.0.1 10.50.0.9
+    ip dhcp pool STAFF
+    network 10.50.0.0 255.255.255.128
+    default-router 10.50.0.1
+    exit
+    ip access-list extended STAFF
+    deny ip 10.50.0.0 0.0.0.127 10.50.0.160 0.0.0.15
+    permit ip any any
+    exit
+    access-list 1 permit 10.50.0.0 0.0.0.255
+    ip nat inside source list 1 interface Gi0/1 overload
+    end
+    copy running-config startup-config
+    [STAFF-1]
+    dhclient eth0
+    [APP-1]
+    ip addr add 10.50.0.130/27 dev eth0
+    ip route add default via 10.50.0.129
+    [MGMT-1]
+    ip addr add 10.50.0.162/28 dev eth0
+    ip route add default via 10.50.0.161
+  job: Standing up a branch is one of the most common network projects there is.
+teaches:
+- branch
+stages:
+- title: Do the sums
+  check: answer
+  brief: The branch needs a /26 for each team.
+  goal: 'Run: submit <how many hosts fit in a /26>'
+  answer:
+    accept:
+    - '62'
+  solution: submit 62
+  reasoned: true
+- title: Build the branch
+  check: net
+  brief: 'New Kisumu branch, opening Monday. You have 10.50.0.0/24 to split between three VLANs: 10 Staff (100 hosts), 20 Servers (25 hosts), and 30 Mgmt (10 hosts). R1 is a router on a stick on SW1''s Gi0/8. Staff get addresses by DHCP. Staff must not reach Mgmt. Everyone shares 203.0.113.2 to get out. Choose your subnets carefully, because no address is spare. Nothing is cabled in the new branch yet: use Gi0/1 for Staff, Gi0/2 for Servers and Gi0/3 for Mgmt.'
+  goal: The branch works, as designed.
+  lab:
+    devices:
+    - name: STAFF-1
+      kind: pc
+      x: 10
+      y: 75
+      config: ''
+    - name: APP-1
+      kind: server
+      x: 30
+      y: 92
+      config: service http start
+    - name: MGMT-1
+      kind: pc
+      x: 55
+      y: 92
+      config: ''
+    - name: SW1
+      kind: switch
+      x: 32
+      y: 55
+      ports: 8
+      config: ''
+    - name: R1
+      kind: router
+      x: 42
+      y: 22
+      config: "interface Gi0/1\n ip address 203.0.113.2 255.255.255.0\n no shutdown\nip route 0.0.0.0 0.0.0.0 203.0.113.1"
+    - name: ISP
+      kind: router
+      x: 70
+      y: 22
+      locked: true
+      config: "interface Gi0/0\n ip address 203.0.113.1 255.255.255.0\n no shutdown\ninterface Gi0/1\n ip address 198.51.100.1 255.255.255.0\n no shutdown"
+    - name: INTERNET
+      kind: server
+      x: 92
+      y: 22
+      locked: true
+      config: 'ip addr add 198.51.100.10/24 dev eth0
+
+        ip route add default via 198.51.100.1
+
+        service http start'
+    cables:
+    - - R1
+      - Gi0/1
+      - ISP
+      - Gi0/0
+    - - INTERNET
+      - eth0
+      - ISP
+      - Gi0/1
+    cabling: true
+  expect:
+  - label: The Staff subnet holds 100 hosts, inside the block
+    fits:
+      device: R1
+      interface: Gi0/0.10
+      hosts: 100
+      within: 10.50.0.0/24
+  - label: The Servers subnet holds 25 hosts, and isn't oversized
+    fits:
+      device: R1
+      interface: Gi0/0.20
+      hosts: 25
+      within: 10.50.0.0/24
+      max_len: 27
+  - label: The Mgmt subnet holds 10 hosts, and isn't oversized
+    fits:
+      device: R1
+      interface: Gi0/0.30
+      hosts: 10
+      within: 10.50.0.0/24
+      max_len: 28
+  - label: The three subnets don't overlap
+    no_overlap:
+      interfaces:
+      - - R1
+        - Gi0/0.10
+      - - R1
+        - Gi0/0.20
+      - - R1
+        - Gi0/0.30
+  - label: STAFF-1 got its address by DHCP
+    dhcp:
+      host: STAFF-1
+      in: 10.50.0.0/24
+  - label: Staff reach the app server
+    reach:
+      from: STAFF-1
+      to: APP-1
+      proto: tcp
+      port: 80
+  - label: Staff can't reach Mgmt
+    reach:
+      from: STAFF-1
+      to: MGMT-1
+      expect: blocked
+  - label: Mgmt reach the app server
+    reach:
+      from: MGMT-1
+      to: APP-1
+      proto: tcp
+      port: 80
+  - label: Staff reach the internet
+    reach:
+      from: STAFF-1
+      to: INTERNET
+      proto: tcp
+      port: 80
+  - label: It's all saved
+    saved:
+      device: R1
+  solution: |-
+    [cable] STAFF-1 eth0 SW1 Gi0/1
+    [cable] APP-1 eth0 SW1 Gi0/2
+    [cable] MGMT-1 eth0 SW1 Gi0/3
+    [cable] R1 Gi0/0 SW1 Gi0/8
+    [SW1]
+    enable
+    configure terminal
+    vlan 10
+    name STAFF
+    vlan 20
+    name SERVERS
+    vlan 30
+    name MGMT
+    interface Gi0/1
+    switchport mode access
+    switchport access vlan 10
+    interface Gi0/2
+    switchport mode access
+    switchport access vlan 20
+    interface Gi0/3
+    switchport mode access
+    switchport access vlan 30
+    interface Gi0/8
+    switchport mode trunk
+    switchport trunk allowed vlan 10,20,30
+    end
+    [R1]
+    enable
+    configure terminal
+    interface Gi0/0
+    no shutdown
+    interface Gi0/0.10
+    encapsulation dot1q 10
+    ip address 10.50.0.1 255.255.255.128
+    ip nat inside
+    ip access-group STAFF in
+    interface Gi0/0.20
+    encapsulation dot1q 20
+    ip address 10.50.0.129 255.255.255.224
+    ip nat inside
+    interface Gi0/0.30
+    encapsulation dot1q 30
+    ip address 10.50.0.161 255.255.255.240
+    ip nat inside
+    interface Gi0/1
+    ip nat outside
+    exit
+    ip dhcp excluded-address 10.50.0.1 10.50.0.9
+    ip dhcp pool STAFF
+    network 10.50.0.0 255.255.255.128
+    default-router 10.50.0.1
+    exit
+    ip access-list extended STAFF
+    deny ip 10.50.0.0 0.0.0.127 10.50.0.160 0.0.0.15
+    permit ip any any
+    exit
+    access-list 1 permit 10.50.0.0 0.0.0.255
+    ip nat inside source list 1 interface Gi0/1 overload
+    end
+    copy running-config startup-config
+    [STAFF-1]
+    dhclient eth0
+    [APP-1]
+    ip addr add 10.50.0.130/27 dev eth0
+    ip route add default via 10.50.0.129
+    [MGMT-1]
+    ip addr add 10.50.0.162/28 dev eth0
+    ip route add default via 10.50.0.161
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why plan the addresses first?
+  options:
+  - Routers require a plan.
+  - So you do not have to renumber once people move in.
+  - It makes cables shorter.
+  - DHCP needs it in writing.
+  answer: So you do not have to renumber once people move in.
+  hint: Changing addresses later is painful.
+- type: mc
+  level: easy
+  label: The sums
+  q: How many hosts fit in a /26?
+  options:
+  - '62'
+  - '64'
+  - '26'
+  - '30'
+  answer: '62'
+  hint: 2 ** 6, minus 2.
+- type: mc
+  level: medium
+  label: The parts
+  q: What does NAT do for a branch?
+  options:
+  - It hands out addresses.
+  - It splits the VLANs.
+  - It lets private addresses share a public one to reach the internet.
+  - It names servers.
+  answer: It lets private addresses share a public one to reach the internet.
+  hint: Think about the way out.
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Build the branch
+  - Do the sums
+  answer:
+  - Do the sums
+  - Build the branch
+  hint: 'It started with: Do the sums.'
+- type: mc
+  level: hard
+  label: On the job
+  q: The branch might double next year. What should your plan do?
+  options:
+  - Leave spare address space next to what you use today.
+  - Use every address now.
+  - Plan nothing, and fix it later.
+  - Buy a second building.
+  answer: Leave spare address space next to what you use today.
+  hint: Room to grow costs little now.

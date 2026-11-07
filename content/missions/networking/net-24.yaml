@@ -15,14 +15,16 @@ lesson:
   example: |-
     curl -I https://example.test
     HTTP/1.1 200 OK
-brief: What status does https://app.whiteraven.example return right now?
+brief: "This box still points at the dead DNS server, so fix /etc/resolv.conf the way you did before. Then: what status does https://app.whiteraven.example return right now?"
 goal: "Run: submit <status code>"
 hints:
   - curl -I shows just the headers.
   - The number on the first line.
 debrief:
   why: The status tells you whose fault it is before you read anything else, and 503 means the server knows it is unavailable.
-  solution: curl -I https://app.whiteraven.example
+  solution: |-
+    sed -i 's/10.40.10.99/10.40.10.53/' /etc/resolv.conf
+    curl -I https://app.whiteraven.example
   job: curl -I is how you check a site without a browser.
 teaches:
   - curl

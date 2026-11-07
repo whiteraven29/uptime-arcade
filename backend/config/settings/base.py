@@ -66,6 +66,12 @@ TIME_ZONE = "Africa/Dar_es_Salaam"  # section 17: default player time zone
 USE_I18N = True
 USE_TZ = True
 
+# Mail. Production reads its SMTP account from the environment (prod.py), and everywhere else prints it.
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "Uptime Arcade <no-reply@localhost>"
+EMAIL_TIMEOUT = 15
+BACKGROUND_INLINE = False
+
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -108,6 +114,8 @@ REST_FRAMEWORK = {
         "user": "300/min",
         "auth": "10/min",  # section 17
         "login_account": "10/min",
+        "code_account": "10/min",
+        "register": "10/hour",
         "username_check": "60/min",
         "avatar": "10/min",
         "submit": "30/min",  # section 17
@@ -126,6 +134,8 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
+    # Changing a password makes every access token issued before it stop working at once.
+    "CHECK_REVOKE_TOKEN": True,
 }
 REFRESH_COOKIE = {
     "key": "ua_refresh",
@@ -141,3 +151,20 @@ NODE_BINARY = os.environ.get("NODE_BINARY", "node")
 LAB_GRADER = BASE_DIR.parent / "runner" / "grade_lab.mjs"
 LAB_DRILL = BASE_DIR.parent / "runner" / "lab_drill.mjs"
 LAB_GRADER_TIMEOUT = 8  # seconds
+MACHINE_REPLAY = BASE_DIR.parent / "runner" / "replay_machine.mjs"
+
+# Running a player's code (section 11, ADR 0015). "local" has no isolation, so prod.py turns it off for good.
+RUNNER_BACKEND = "local"
+RUNNER_ALLOW_LOCAL = True
+RUNNER_DOCKER = "docker"
+RUNNER_RUNTIME = ""  # an optional stronger runtime, such as gVisor's "runsc"
+RUNNER_IMAGES = {"python": "uptime-arcade/sandbox-python:1", "go": "uptime-arcade/sandbox-go:1"}
+RUNNER_LIMITS = {
+    "python": {"seconds": 10, "memory": "128m", "cpus": 0.5, "pids": 32, "tmp": "16m", "tmp_exec": "noexec,"},
+    "go": {"seconds": 30, "memory": "1g", "cpus": 1, "pids": 256, "tmp": "600m", "tmp_exec": ""},  # go test builds and runs a binary here
+}
+
+# Without a broker, jobs run inside the request, which suits development and tests.
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_IGNORE_RESULT = True
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True

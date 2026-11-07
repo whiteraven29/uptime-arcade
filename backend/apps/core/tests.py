@@ -15,7 +15,7 @@ def test_health_is_public(anon):
 def test_every_other_endpoint_needs_login(anon):
     from django.urls import get_resolver
 
-    public = {"health/", "auth/username/", "auth/register/", "auth/login/", "auth/refresh/", "auth/logout/", "avatars/<uuid:token>.webp"}
+    public = {"health/", "auth/username/", "auth/register/", "auth/verify/", "auth/verify/resend/", "auth/password/forgot/", "auth/password/reset/", "auth/login/", "auth/refresh/", "auth/logout/", "avatars/<uuid:token>.webp"}
     checked = 0
     def walk(patterns, prefix=""):
         for p in patterns:
@@ -30,7 +30,7 @@ def test_every_other_endpoint_needs_login(anon):
         short = route[len("api/v1/"):]
         if short in public:
             continue
-        url = "/" + route.replace("<str:code>", "sh-01").replace("<int:block_id>", "1")
+        url = "/" + route.replace("<str:code>", "sh-01").replace("<int:block_id>", "1").replace("<uuid:job_id>", "00000000-0000-0000-0000-000000000000")
         for method in ("get", "post"):
             status = getattr(anon, method)(url, {}, format="json").status_code
             assert status in (401, 405), f"{method} {url} answered {status} without a login"
@@ -82,6 +82,7 @@ def test_production_settings_pass_djangos_deploy_check():
         "DJANGO_SECRET_KEY": "x" * 30 + "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8",
         "DJANGO_ALLOWED_HOSTS": "arcade.example.test",
         "POSTGRES_DB": "x", "POSTGRES_USER": "x", "POSTGRES_PASSWORD": "x",
+        "REDIS_URL": "redis://127.0.0.1:6379/0", "EMAIL_HOST": "smtp.example.test", "EMAIL_HOST_USER": "x", "EMAIL_HOST_PASSWORD": "x", "DEFAULT_FROM_EMAIL": "Uptime Arcade <a@example.test>",
     }
     result = subprocess.run([sys.executable, "manage.py", "check", "--deploy", "--fail-level", "WARNING"], cwd=backend, env=env, capture_output=True, text=True, check=False)
     assert result.returncode == 0, result.stderr

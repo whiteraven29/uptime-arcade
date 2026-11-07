@@ -1,12 +1,12 @@
-/* Python editor with a Run tests button and an output pane. */
-export function CodeEditor({ value, onChange, readOnly, canRun, onRun, note, output }) {
+/* A code editor with a Run tests button and an output pane. */
+export function CodeEditor({ language = 'Python', value, onChange, readOnly, canRun, onRun, note, output }) {
   return (
     <div className="code-pane">
       <textarea
         value={value}
         readOnly={readOnly}
         spellCheck="false"
-        aria-label="Python code"
+        aria-label={`${language} code`}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Tab') {

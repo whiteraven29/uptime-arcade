@@ -17,7 +17,12 @@ const worth = (m) => {
   const d = difficulties.find((x) => x.code === m.difficulty);
   return m.track === 'BX' ? d.beyond_xp : d.xp;
 };
-const KIND = { answer: 'answer', 'go-out': 'answer', 'go-fix': 'answer', fs: 'auto', vi: 'auto', py: 'py', net: 'net' };
+const KIND = { ops: 'ops', answer: 'answer', 'go-out': 'answer', 'go-code': 'go-code', fs: 'auto', vi: 'auto', py: 'py', net: 'net' };
+
+/* A stage has the fields a mission has, so the content tools can play it the same way. */
+function flattenStage(s, m) {
+  return flatten({ ...m, ...s, stages: undefined, requires: undefined, requires_all: undefined, skill: { vi: 'vi', 'go-out': 'go', 'go-code': 'go', py: 'python', net: 'networking' }[s.check] || 'shell', debrief: { ...m.debrief, solution: s.solution }, par: { kind: 'first-try', value: 1000 }, file: s.file, teaches: [] });
+}
 
 function flatten(m) {
   const o = {
@@ -28,7 +33,6 @@ function flatten(m) {
   };
   if (m.par.kind === 'keys') o.parKind = 'keys';
   if (m.answer) o.answer = m.answer.accept;
-  if (m.check === 'go-fix') o.fixes = m.answer.accept;
   for (const k of ['expect', 'fixtures', 'file', 'reasoned', 'lab', 'requires']) if (m[k] !== undefined) o[k] = m[k];
   if (m.verify) o.v = m.verify;
   if (o.file) o.file = o.file.replace(/^~/, '/home/ops');
@@ -40,9 +44,18 @@ function flatten(m) {
     if (m.python.capture_output) o.captureOutput = true;
     if (m.python.files) o.files = m.python.files;
   }
-  if (m.go) {
+  if (m.go?.program) {
     o.program = m.go.program;
     if (m.go.prints) o.prints = m.go.prints;
+  }
+  if (m.check === 'ops') {
+    o.stages = m.stages.map((st) => flattenStage(st, m));
+    o.requiresAll = m.requires_all;
+  }
+  if (m.check === 'go-code') {
+    o.starter = m.go.starter;
+    o.goTest = m.go.test;
+    o.program = m.debrief.solution; // what the content tools read for which words it uses
   }
   return o;
 }
@@ -61,7 +74,7 @@ for (const t of tracks) {
 
 mkdirSync(join(ROOT, 'content/build'), { recursive: true });
 writeFileSync(join(ROOT, 'content/build/catalogue.json'), JSON.stringify({
-  difficulties, tracks: tracks.map(({ code, name, subtitle, after_archmage: after }) => ({ code, name, subtitle, after: !!after })),
+  difficulties, tracks: tracks.map(({ code, name, subtitle, after_archmage: after, side }) => ({ code, name, subtitle, after: !!after, side: !!side })),
   chapters, missions, fixtures: read('content/fixtures/fs/base.yaml').files,
 }));
 console.log(`catalogue: ${missions.length} missions`);

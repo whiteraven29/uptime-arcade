@@ -17,6 +17,14 @@ def django_db_setup(django_db_setup, django_db_blocker):
 
 
 @pytest.fixture(autouse=True)
+def _replay_says_what_the_test_says(request, monkeypatch):
+    """Most tests are about the rules around a goal, not about reaching it, so they state the machine they want. Tests
+    of the replay itself use the real thing through the runner with @pytest.mark.real_replay."""
+    if request.node.get_closest_marker("real_replay") is None:
+        monkeypatch.setattr("apps.missions.services._played", lambda mission, data: {"state": data.get("state") or {}, "commands": data.get("commands") or 0})
+
+
+@pytest.fixture(autouse=True)
 def _db_and_clean_limits(db):
     cache.clear()  # rate limit counters live here
 

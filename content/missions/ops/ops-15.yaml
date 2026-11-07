@@ -1,0 +1,248 @@
+id: ops-15
+track: OPS
+skill: networking
+chapter: Senior on call
+order: 15
+title: Guest isolation audit
+from: Security
+difficulty: hard
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- lab-36
+- py-13
+lesson:
+  text: An audit does not trust the design, and it tests what really happens. You try each path, write down which ones work, and report any that should not. A short function turns that list into something a manager can read.
+  example: |-
+    blocked = {("guest", "finance")}
+    print(("guest", "finance") in blocked)  # True
+brief: The auditors are coming. Build the guest network properly, then write the report that lists any path that should have been blocked.
+goal: Build it in the lab, then write the report function.
+hints:
+- Follow the goals in the lab one at a time.
+- Loop over the paths, and keep those that worked and are in the forbidden set.
+debrief:
+  why: The report is only worth anything because it comes from real tests.
+  solution: |
+    # Build the guest network
+    [AP-1]
+    enable
+    configure terminal
+    dot11 ssid GUEST
+    vlan 20
+    authentication open
+    client-isolation
+    exit
+    interface Dot11Radio0
+    ssid GUEST
+    end
+    [R1]
+    enable
+    configure terminal
+    ip access-list extended GUEST
+    deny ip 10.70.20.0 0.0.0.255 10.70.10.0 0.0.0.255
+    permit ip any any
+    interface Gi0/0.20
+    ip access-group GUEST in
+    end
+    [GUEST-1]
+    wifi connect GUEST
+    [GUEST-2]
+    wifi connect GUEST
+
+    # Write the audit report
+    def violations(worked, forbidden):
+        found = []
+        for pair in worked:
+            if pair in forbidden:
+                found.append(pair)
+        return found
+  job: Auditors ask for evidence, and a repeatable test is the best evidence you can give them.
+teaches:
+- audit
+stages:
+- title: Build the guest network
+  check: net
+  brief: Visitors keep asking for the Wi-Fi password, and staff don't want to share it. Add an open network called GUEST on VLAN 20 on the same radio as STAFF. Guests must not reach the staff server at 10.70.10.9 or each other, but they must reach the router's gateway.
+  goal: Guests get on easily, and can't reach staff or each other.
+  lab:
+    devices:
+    - name: GUEST-1
+      kind: laptop
+      x: 12
+      y: 75
+      config: 'ip addr add 10.70.20.50/24 dev wlan0
+
+        ip route add default via 10.70.20.1'
+    - name: GUEST-2
+      kind: laptop
+      x: 32
+      y: 80
+      config: 'ip addr add 10.70.20.51/24 dev wlan0
+
+        ip route add default via 10.70.20.1'
+    - name: AP-1
+      kind: ap
+      x: 25
+      y: 40
+      config: "vlan 10\ndot11 ssid STAFF\n vlan 10\n authentication wpa2 Wh1teraven-Staff\ninterface Do0\n channel 6\n ssid STAFF\n no shutdown\ninterface Gi0/1\n switchport mode trunk"
+    - name: SW1
+      kind: switch
+      x: 55
+      y: 40
+      ports: 8
+      config: "vlan 10\n name STAFF\nvlan 20\n name GUEST\ninterface Gi0/1\n switchport mode trunk\ninterface Gi0/2\n switchport access vlan 10\ninterface Gi0/8\n switchport mode trunk"
+    - name: STAFF-SRV
+      kind: server
+      x: 85
+      y: 40
+      config: 'ip addr add 10.70.10.9/24 dev eth0
+
+        ip route add default via 10.70.10.1'
+    - name: R1
+      kind: router
+      x: 55
+      y: 88
+      config: "interface Gi0/0\n no shutdown\ninterface Gi0/0.10\n encapsulation dot1q 10\n ip address 10.70.10.1 255.255.255.0\ninterface Gi0/0.20\n encapsulation dot1q 20\n ip address 10.70.20.1 255.255.255.0"
+    cables:
+    - - AP-1
+      - Gi0/1
+      - SW1
+      - Gi0/1
+    - - STAFF-SRV
+      - eth0
+      - SW1
+      - Gi0/2
+    - - R1
+      - Gi0/0
+      - SW1
+      - Gi0/8
+  expect:
+  - label: GUEST-1 is on GUEST
+    wifi_assoc:
+      host: GUEST-1
+      ssid: GUEST
+  - label: Guests reach their gateway
+    reach:
+      from: GUEST-1
+      to: 10.70.20.1
+  - label: Guests can't reach the staff server
+    reach:
+      from: GUEST-1
+      to: STAFF-SRV
+      expect: blocked
+  - label: Guests can't reach each other
+    reach:
+      from: GUEST-1
+      to: GUEST-2
+      expect: blocked
+  - label: Staff's network is still protected
+    config:
+      device: AP-1
+      contains: authentication wpa2 Wh1teraven-Staff
+  solution: |-
+    [AP-1]
+    enable
+    configure terminal
+    dot11 ssid GUEST
+    vlan 20
+    authentication open
+    client-isolation
+    exit
+    interface Dot11Radio0
+    ssid GUEST
+    end
+    [R1]
+    enable
+    configure terminal
+    ip access-list extended GUEST
+    deny ip 10.70.20.0 0.0.0.255 10.70.10.0 0.0.0.255
+    permit ip any any
+    interface Gi0/0.20
+    ip access-group GUEST in
+    end
+    [GUEST-1]
+    wifi connect GUEST
+    [GUEST-2]
+    wifi connect GUEST
+- title: Write the audit report
+  check: py
+  brief: violations(worked, forbidden) takes a list of pairs that really connected and a set of forbidden pairs. It returns the pairs that broke the rules, in order.
+  goal: Write violations(worked, forbidden). Tests run when you press Run tests.
+  python:
+    starter: |
+      def violations(worked, forbidden):
+          # your code here
+          pass
+    tests:
+    - expr: violations([("g", "f"), ("g", "w")], {("g", "f")})
+      want: '[("g", "f")]'
+    - expr: violations([("g", "w")], {("g", "f")})
+      want: '[]'
+    - expr: violations([], set())
+      want: '[]'
+  solution: |
+    def violations(worked, forbidden):
+        found = []
+        for pair in worked:
+            if pair in forbidden:
+                found.append(pair)
+        return found
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What makes an audit different from a design review?
+  options:
+  - It is shorter.
+  - It only reads documents.
+  - It needs no evidence.
+  - An audit tests what really happens.
+  answer: An audit tests what really happens.
+  hint: Do not just trust the design.
+- type: mc
+  level: easy
+  label: Client isolation
+  q: What does client isolation stop?
+  options:
+  - Guests reaching each other on the same Wi-Fi.
+  - Guests reaching the internet.
+  - Staff logging in.
+  - The access point starting.
+  answer: Guests reaching each other on the same Wi-Fi.
+  hint: Think about two laptops side by side.
+- type: mc
+  level: medium
+  label: The set
+  q: Why keep forbidden pairs in a set?
+  options:
+  - Sets are printed in order.
+  - Lists cannot hold pairs.
+  - Checking if something is in a set is quick and simple.
+  - Sets save to disk.
+  answer: Checking if something is in a set is quick and simple.
+  hint: in works well on sets.
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Write the audit report
+  - Build the guest network
+  answer:
+  - Build the guest network
+  - Write the audit report
+  hint: 'It started with: Build the guest network.'
+- type: mc
+  level: hard
+  label: On the job
+  q: Your test finds a forbidden path that works. What goes in the report?
+  options:
+  - Nothing, to keep the audit clean.
+  - The exact path, how you tested it, and that it needs fixing.
+  - Only that everything passed.
+  - The tester's opinion of the auditor.
+  answer: The exact path, how you tested it, and that it needs fixing.
+  hint: Honest evidence is the point.

@@ -1,0 +1,120 @@
+id: ops-16
+track: OPS
+skill: shell
+chapter: Senior on call
+order: 16
+title: Log rotation
+from: Platform
+difficulty: hard
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- sh-28
+- vi-20
+lesson:
+  text: Logs grow until they fill the disk. Rotating means renaming the current log so a fresh one can start, and keeping a limited number of old ones. A loop handles every file the same way, and a config file sets how often it happens.
+  example: for f in *.log; do mv $f $f.1; done
+brief: The logs have grown out of control. Rotate them now, then change the schedule so it happens daily.
+goal: Rotate every log with a loop, then fix the config in vi.
+hints:
+- Loop over ops/rotate/*.log and mv each to the same name plus .1.
+- In vi, replace weekly with daily.
+debrief:
+  why: The loop means the third log gets the same treatment as the first, and the config means it keeps happening.
+  solution: |-
+    # Rotate the logs
+    for f in ops/rotate/*.log; do mv $f $f.1; done
+
+    # Rotate daily from now on
+    :%s/weekly/daily/<CR>:wq<CR>
+  job: Log rotation is one of the first things you set up on any real server.
+teaches:
+- rotate
+stages:
+- title: Rotate the logs
+  check: fs
+  brief: Rename each .log file in ~/ops/rotate by adding .1 to its name.
+  goal: app.log and db.log have become app.log.1 and db.log.1.
+  expect:
+  - file_exists: ~/ops/rotate/app.log.1
+  - file_exists: ~/ops/rotate/db.log.1
+  - file_missing: ~/ops/rotate/app.log
+  - file_missing: ~/ops/rotate/db.log
+  solution: for f in ops/rotate/*.log; do mv $f $f.1; done
+- title: Rotate daily from now on
+  check: vi
+  brief: Weekly lets logs grow too much on this box.
+  goal: 'Change weekly to daily in ~/ops/rotate.conf, then save with :wq. You must use vi: vi ~/ops/rotate.conf'
+  file: ~/ops/rotate.conf
+  expect:
+  - file_contains:
+      path: ~/ops/rotate.conf
+      text: daily
+  - vi_saved: ~/ops/rotate.conf
+  solution: :%s/weekly/daily/<CR>:wq<CR>
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why rotate logs?
+  options:
+  - So they do not grow until they fill the disk.
+  - To make them easier to delete.
+  - To encrypt them.
+  - Because logs expire.
+  answer: So they do not grow until they fill the disk.
+  hint: Think about a file that only grows.
+- type: mc
+  level: easy
+  label: The loop
+  q: In a for loop, what does $f hold?
+  options:
+  - The number of files.
+  - The current file name.
+  - The file contents.
+  - The folder.
+  answer: The current file name.
+  hint: It changes each time around.
+- type: mc
+  level: medium
+  label: The rename
+  q: What does mv do here?
+  options:
+  - Copies it to another server.
+  - Renames the file, so a new log can start.
+  - Deletes it.
+  - Compresses it.
+  answer: Renames the file, so a new log can start.
+  hint: mv moves or renames.
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Rotate daily from now on
+  - Rotate the logs
+  answer:
+  - Rotate the logs
+  - Rotate daily from now on
+  hint: 'It started with: Rotate the logs.'
+- type: mc
+  level: hard
+  label: On the job
+  q: Why keep only a limited number of rotated logs?
+  options:
+  - Old logs are unreadable.
+  - Servers can only hold ten files.
+  - It breaks the loop.
+  - Otherwise old logs still fill the disk, just more slowly.
+  answer: Otherwise old logs still fill the disk, just more slowly.
+  hint: Rotation alone frees no space.
+fixtures:
+  ops/rotate/app.log: |
+    one
+  ops/rotate/db.log: |
+    two
+  ops/rotate.conf: |
+    schedule weekly
+    keep 4

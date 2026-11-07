@@ -188,7 +188,7 @@ Each screen is its own route, and the top bar shows the logo, navigation, level,
 | `/missions/:slug` | **Briefing** | Lesson and example, mission brief, sender, worth and par, plus the Launch button |
 | `/missions/:slug/play` | **Play** | Mission panel on the left, workspace on the right (terminal, vi, Python, Go reader or NetLab) |
 | `/missions/:slug/rewind` | **Rewind** | Five tasks with progress pips and feedback |
-| `/ops` | **Operations** | Multi-skill missions with their prerequisites shown as linked track icons |
+| `/ops` | Redirect | Operations is a category on the Missions screen, and each locked one says what opens it |
 | `/oncall` | **On-call** | Endless incident shifts, unlocked after all track missions are cleared. Arrives in M11 ([ADR 0007](adr/0007-the-game-runs-on-the-server.md)) |
 | `/rewards` | **Rewards** | Streak ladder, level ladder and badge grid |
 | `/sandbox` | **Sandbox** | Your own network with no goals: add, drag, cable and configure devices, test every ping, and break something to practise. It opens after LAB-05 and is free |
@@ -245,7 +245,8 @@ Targets round up to the next 5 minutes and count only days from when the plan st
 ### 6.2 Sessions
 
 - **Opening:** moves the whole bank into a session with `expires_at = now + bank`.
-- **Closing:** returns the unused seconds to the bank.
+- **Closing:** returns the unused seconds to the bank. A Stop button sits beside the timer on every screen.
+- **Finishing:** clearing a mission closes the session by itself and sends the rest back to the bank. Solving it doesn't, because its questions still need the session ([ADR 0014](adr/0014-confirmed-email-and-a-clock-that-stops.md)).
 - **Enforcement:** submissions for missions and rewinds are rejected with `409 no_active_session` when no session is active. Replays of cleared missions are the exception: they need no session, and they're refused while a focus block runs.
 
 ### 6.3 XP and scoring
@@ -390,7 +391,7 @@ The six tracks below are built and playable (213 missions, [ADR 0004](adr/0004-t
 - `vi`: file state, edited in vi, with a key-count par
 - `py`: Python tests pass
 - `go-out`: predict Go output
-- `go-fix`: choose or type the fix that makes the program print the expected output
+- `go-code`: write real Go, which the server compiles and runs with `go test`
 - `net`: NetLab state assertions
 - `multi`: several checks in sequence
 
@@ -526,7 +527,7 @@ The six tracks below are built and playable (213 missions, [ADR 0004](adr/0004-t
 | GO-19 | Cleanup | defer order | `defer` | go-out |
 | GO-20 | Cleanup | panic and recover | `panic`, `recover` | go-out |
 | GO-21 | Errors and packages | Wrap and inspect | `Errorf`, `%w`, `errors`, `New`, `Is` | go-out |
-| GO-22 | Errors and packages | Exported names | `strings`, `ToUpper` | go-fix |
+| GO-22 | Errors and packages | Exported names | `strings`, `ToUpper` | go-code |
 | GO-23 | Concurrency | Goroutines | `go`, `time`, `Sleep`, `Millisecond`, `Second` | go-out |
 | GO-24 | Concurrency | Channels | `chan`, `<-` | go-out |
 | GO-25 | Concurrency | Close and drain | `close` | go-out |
@@ -534,9 +535,9 @@ The six tracks below are built and playable (213 missions, [ADR 0004](adr/0004-t
 | GO-27 | Concurrency | Share safely | `sync`, `Mutex`, `WaitGroup`, `Add`, `Done`, `Wait`, `Lock`, `Unlock` | go-out |
 | GO-28 | Concurrency | Cancel work | `context`, `WithTimeout`, `Background`, `After`, `Err` | go-out |
 | GO-29 | Quality | Table tests | table, `testing` | go-out |
-| GO-30 | Quality | Capstone: the worker pool | everything so far | go-fix |
+| GO-30 | Quality | Capstone: the worker pool | everything so far | go-code |
 
-When the sandboxed runner ships (M9), `go-fix` missions upgrade to *write and run* missions with real `go test`.
+The three `go-code` missions (GO-08, GO-22 and GO-30) are *write and run*: real Go, compiled on the server and run with `go test` ([ADR 0015](adr/0015-the-server-decides.md)). The rest are read and predict.
 
 ### 8.5 Networking (NET): concepts and host tools
 
@@ -647,30 +648,30 @@ Each lab is a piece of daily network work: a ticket, a change or a build. You ge
 
 ### 8.7 Operations (OPS): multi-skill missions
 
-Each Operation has 2 to 4 stages, each in a different tool. The state carries across stages, so what you find in the logs is what you fix in the lab.
+Each Operation has 2 to 5 stages, usually in different tools, and files changed in one stage are there in the next. They sit beside the 213: they don't count toward levels or Archmage, they can be played in any order, and each opens when its own prerequisites are cleared ([ADR 0016](adr/0016-operations-on-the-side.md)). A stage is graded like a mission of its own. The XP is paid once, after the last stage and the five questions.
 
-| ID | Operation | Skills | Stages | Opens after |
-|---|---|---|---|---|
-| OPS-01 | Who broke the Wi-Fi? | Shell, NetLab | awk the DHCP log for a rogue MAC, then enable port security on that port | SH-21, LAB-27 |
-| OPS-02 | Config drift | Shell, vi, NetLab | `diff` two switch configs, fix the saved copy in vi, apply it on the switch | SH-29, VI-14, LAB-10 |
-| OPS-03 | Subnet planner | Python, NetLab | write `plan(needs)` with `ipaddress`, then apply the plan to three VLANs | PY-24, LAB-12 |
-| OPS-04 | Latency report | Shell, Python | extract timings with awk, compute p95 in Python | SH-20, PY-21 |
-| OPS-05 | DNS outage | Networking, vi, NetLab | `dig` shows timeouts, fix `resolv.conf` in vi, fix the lab DNS record | NET-17, VI-11, LAB-18 |
-| OPS-06 | Shadowed rules | Python, NetLab | parse an ACL and find rules that can never match, then reorder on the router | PY-23, LAB-21 |
-| OPS-07 | Inventory sync | Shell, Python | `cut` and `sort -u` hosts, then a JSON inventory diff in Python | SH-15, PY-19 |
-| OPS-08 | Nightly backup | Shell, vi | write the backup script, add the cron line in vi, test it | SH-30, VI-20 |
-| OPS-09 | The racing health checker | Go, Networking | predict the race, choose the fix, read which ports failed | GO-27, NET-15 |
-| OPS-10 | Certificate sweep | Networking, Python | read certificate expiry dates, compute days left with `datetime` | NET-27, PY-22 |
-| OPS-11 | The noisy client | Shell, Python, NetLab | find the top talker, simulate the rate limit, block it with an ACL | SH-21, PY-29, LAB-20 |
-| OPS-12 | VLAN migration | Python, NetLab | generate switch config from CSV, paste it into the lab, verify with ping | PY-20, LAB-10 |
-| OPS-13 | Disk full | Shell | find big files, delete safely, script the cleanup | SH-18, SH-29 |
-| OPS-14 | Bad deploy | Shell, vi, Go | `diff` versions, fix in vi, predict the version comparison | SH-29, VI-21, GO-21 |
-| OPS-15 | Guest isolation audit | NetLab, Python | ping matrix in the lab, write the report function | LAB-20, PY-25 |
-| OPS-16 | Log rotation | Shell, vi | sed and awk, a loop, permissions, a config in vi | SH-28, VI-27 |
-| OPS-17 | ISP failover | NetLab, Networking | floating static routes, verify with traceroute | LAB-14, NET-22 |
-| OPS-18 | Branch office | Networking, NetLab | plan the subnets, then build VLANs, DHCP and NAT | NET-08, LAB-29 |
-| OPS-19 | Port audit | Networking, Go | read `ss` output, predict the scanner's output, close what shouldn't listen | NET-23, GO-26 |
-| OPS-20 | Final exam: Total Recall | All six | a five-stage incident across every tool | All track capstones |
+| ID | Operation | Stages | Opens after |
+|---|---|---|---|
+| OPS-01 | Who broke the Wi-Fi? | Find the noisy machine → Lock the port | SH-21, LAB-24 |
+| OPS-02 | Config drift | Spot the drift → Fix the saved copy → Fix the live switch | SH-14, VI-06, LAB-10 |
+| OPS-03 | Subnet planner | Size the network → Route the VLANs | PY-14, LAB-12 |
+| OPS-04 | Latency report | Find the worst request → Compute the p95 | SH-20, PY-15 |
+| OPS-05 | DNS outage | Diagnose it → Fix the client → Fix the server | NET-17, VI-20, LAB-17 |
+| OPS-06 | Shadowed rules | Find the dead rules → Fix the router | PY-13, LAB-22 |
+| OPS-07 | Inventory sync | Count the real hosts → Find what is missing | SH-15, PY-19 |
+| OPS-08 | Nightly backup | Write and test the script → Fix the schedule | SH-30, VI-20 |
+| OPS-09 | The racing health checker | Read the report → Fix the checker | SH-13, GO-27, NET-23 |
+| OPS-10 | Certificate sweep | Find the next to expire → Warn in time | SH-14, NET-27, PY-22 |
+| OPS-11 | The noisy client | Find the top talker → Decide what counts as too much → Block it on the router | SH-21, PY-15, LAB-21 |
+| OPS-12 | VLAN migration | Generate the commands → Build the VLANs | PY-18, LAB-08 |
+| OPS-13 | Disk full | Find what is using the room → Clear it safely → Script the cleanup | SH-18, SH-30 |
+| OPS-14 | Bad deploy | See what changed → Put it right → Why the check missed it | SH-14, VI-20, GO-05 |
+| OPS-15 | Guest isolation audit | Build the guest network → Write the audit report | LAB-36, PY-13 |
+| OPS-16 | Log rotation | Rotate the logs → Rotate daily from now on | SH-28, VI-20 |
+| OPS-17 | ISP failover | Find where it dies → Build the failover | NET-22, LAB-20 |
+| OPS-18 | Branch office | Do the sums → Build the branch | NET-08, LAB-33 |
+| OPS-19 | Port audit | Read what is listening → Predict the scanner | NET-23, GO-13 |
+| OPS-20 | Final exam: Total Recall | Read the logs → Fix the config → Count the damage → Read the restart loop → Bring the office back | SH-30, VI-30, PY-30, GO-30, NET-30, LAB-34 |
 
 ### 8.8 Beyond (BX): after Archmage
 
@@ -874,7 +875,7 @@ All engines are framework-free JavaScript in `engines/`, imported by React throu
 | `fs` | Map-based virtual file system with overlay | Separate module. Fixtures are loaded from YAML |
 | `vi` | `vi.js` (modes, motions, operators, counts, dot-repeat, search, `:s`, `>>`) | Add text objects, visual and block mode, registers, marks, macros, `:g` and ranges, as VI-22 to VI-29 require |
 | `python` | Skulpt in the browser | Keep Skulpt for instant feedback, and re-run tests server-side in the sandbox once M9 ships |
-| `go` | Predict-only today | v1: `go-out` and `go-fix` with outputs verified in CI by real `go run`. v2: sandboxed runner executes player code |
+| `go` | Predict, plus real code on the server | `go-out` outputs are verified in CI by real `go run`, and `go-code` runs in the sandbox with `go test` |
 | `netsim` | New | As described in section 9 |
 | `rewind` | `rewind.js` | Move generation to the server (Python port) so answers stay server-side |
 
@@ -903,8 +904,8 @@ flowchart LR
 | Django + DRF | Accounts, content, player state, economy, grading orchestration, admin |
 | PostgreSQL | All persistent data |
 | Redis (from M5) | Cache for content lists, Celery broker, rate limiting |
-| Celery worker (from M9) | Runs slow grading jobs asynchronously |
-| Runner service (M9) | Re-verifies state-based submissions with the same JS engines in Node, and runs Python and Go in a sandbox (container per job, no network, CPU, memory and time limits, read-only root, seccomp) |
+| Celery worker (from M9) | Runs code jobs through a queue, two at a time |
+| Runner (M9) | `runner/replay_machine.mjs` replays shell and vi logs and `runner/grade_lab.mjs` grades labs, both short-lived Node processes. `apps/missions/sandbox.py` runs Python and Go with the images in `runner/sandbox/` (container per job, no network, CPU, memory, process and time limits, read-only root, default seccomp profile) |
 | Nginx | TLS, static files, proxying, security headers |
 
 **Backend apps** (each in `backend/apps/`):
@@ -922,7 +923,7 @@ flowchart LR
 | `core` | Shared base models, errors, pagination, health (from the foundation) |
 
 **Frontend features** (each in `frontend/src/features/`):
-`auth`, `deck`, `focus`, `missions`, `briefing`, `play` (with `workspaces/terminal|vi|python|go|netlab`), `rewind`, `ops`, `oncall`, `rewards`, `profile`, `system`.
+`auth`, `deck`, `focus`, `missions`, `briefing`, `play` (with `workspaces/terminal|vi|python|go|netlab`), `rewind`, `oncall`, `rewards`, `profile`, `system`.
 
 The shared HUD kit lives in `frontend/src/ui/`.
 
@@ -1041,14 +1042,16 @@ The legacy JS (`t_shell.js`, `t_rest.js`, `learn.js`) is converted to YAML by a 
 | Check | Where it's graded | What the browser gets |
 |---|---|---|
 | `answer` | Server compares the normalized submission with `accept` | Never the answer, only a pass or fail |
-| `fs`, `vi` | v1: the browser sends its changed files, and the server applies the `expect` rules to them. M9: runner replays a log and re-checks | Expect rules stay server-side, and the browser receives only pass or fail |
-| `py` | v1: Skulpt in the browser runs the tests, and the server stores the code. M9: sandbox re-runs the tests | Test cases are visible, which is part of learning |
-| `go-out`, `go-fix` | Server, like `answer` | Code only |
+| `fs`, `vi` | The browser sends a log of every line and key. The server replays it through the same engines in Node on a clean machine, and applies the `expect` rules to that ([ADR 0015](adr/0015-the-server-decides.md)) | Expect rules stay server-side, and the browser receives only pass or fail |
+| `py` | Skulpt in the browser gives instant feedback. A pass is only a claim: the same tests run in a sandbox on the server, and that run decides | Test cases are visible, which is part of learning |
+| `go-out` | Server, like `answer` | Code only |
+| `go-code` | Compiled and run with `go test` in a sandbox on the server | The starter code and the test output. The test file isn't sent to the browser |
+| `ops` | Each stage is graded by its own check above. The server tracks the stage ([ADR 0016](adr/0016-operations-on-the-side.md)) | Only the current stage, and the names of the others |
 | `net` | The browser submits only configs, and the server re-runs the same engine on them in Node ([ADR 0011](adr/0011-netlab.md)) | Each goal's label and, after a check, its result and reason. The assertions stay server-only |
 
 - **Debrief:** the solution and debrief come from `GET /missions/:id/debrief/`, which only works once the mission is solved.
 - **Rewind:** tasks are sent without their answers. A wrong answer returns only that it was wrong. The hint and the answer are added to a task only once they've been earned (section 6.5).
-- **Threat model:** this is a single-player game, so client-side cheating mostly cheats the player. The server still controls everything that matters for the aim: time, play-time balance, session validity, XP, unlocks and streaks. Server-side re-verification (M9) is required before any leaderboard or shared feature.
+- **Threat model:** this is a single-player game, so client-side cheating mostly cheats the player. The server still controls everything that matters for the aim: time, play-time balance, session validity, XP, unlocks and streaks. Results are now verified on the server. A player can still hard-code visible test values, which only cheats themselves, so hidden test cases would be needed before any leaderboard or shared feature.
 
 ---
 
@@ -1114,7 +1117,10 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `auth/username/?name=` | Whether a username is available (public, rate limited). Nothing ever says whether an email is in use |
-| POST | `auth/register/`, `auth/login/`, `auth/refresh/`, `auth/logout/` | Auth (public), by username. The refresh token is only ever in an HttpOnly cookie |
+| POST | `auth/register/` | Creates an account and emails a code (public). Gives no tokens yet, and needs `confirm_password` |
+| POST | `auth/verify/`, `auth/verify/resend/` | `{username, code}` confirms the email and logs in. Resend always answers the same (public) |
+| POST | `auth/password/forgot/`, `auth/password/reset/` | `{identifier}` emails a code, with the same answer whether or not anything matched. `{username, code, password, confirm_password}` changes it and logs out every device (public) |
+| POST | `auth/login/`, `auth/refresh/`, `auth/logout/` | Auth (public), by username. The refresh token is only ever in an HttpOnly cookie |
 | GET, PATCH, DELETE | `auth/me/` | Account, including which system avatar. Delete needs the password and wipes everything |
 | POST, DELETE | `auth/avatar/` | Upload or remove a picture. It's always re-encoded ([ADR 0009](adr/0009-seasons-gates-and-profiles.md)) |
 | GET | `avatars/{token}.webp` | A picture, at an unguessable address (public) |
@@ -1123,8 +1129,9 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 | GET | `missions/{code}/` | Briefing: lesson, brief, goal, par, worth, state |
 | GET | `missions/{code}/play/` | Play payload: fixtures, starter, topology, hints already revealed. **Needs a session** |
 | POST | `missions/{code}/hint/` | Reveal the next hint, lowering what the mission will pay. **Session** |
-| POST | `missions/{code}/submit/` | `{answer}`, `{state}` or `{code, passed}` returns pass or fail, and what it will pay when cleared. A lab's `{state}` is its configs, and the answer also lists each goal with why it failed. **Session**, unless it's a replay |
-| POST | `missions/{code}/check/` | `{state}` for terminal and vi goals, sent after each command. A check that fails costs nothing. **Session** |
+| POST | `missions/{code}/submit/` | `{answer}`, `{state, log}` or `{code, passed}` returns pass or fail, `stage` when an Operation moves on, or `grading` with a job to wait for, and what it will pay when cleared. A lab's `{state}` is its configs, and the answer also lists each goal with why it failed. **Session**, unless it's a replay |
+| GET | `missions/jobs/{id}/` | How a code run went: `pending`, `failed`, or `done` with the same result a submit gives, plus `output`. Only the player's own |
+| POST | `missions/{code}/check/` | `{state, log}` for terminal and vi goals, sent after each command. A check that fails costs nothing. **Session** |
 | GET | `missions/{code}/debrief/` | Why, solution, job. Only after it's solved |
 | GET | `missions/{code}/rewind/` | Current task (without its answer), progress, and a hint or answer once earned |
 | POST | `missions/{code}/rewind/answer/` | `{value}` returns correct and the next task. The last one pays the XP and returns unlock, level and badge events. **Session** |
@@ -1150,7 +1157,7 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 | GET | `fixtures/` | The starting file tree, with its content version |
 | GET | `health/` | Public health check |
 
-**Responses carry events:** every mutating game endpoint returns an `events` array, such as `[{type: "level_up", level: 4, title: "Operator"}, {type: "unlocked", mission: "SH-16"}]`. An `unlocked` event is only sent for something that really just opened, and a lab's also has a `preview` of where its devices and cables are. The UI plays animations from these, so the server stays the source of truth for what happened.
+**Responses carry events:** every mutating game endpoint returns an `events` array, such as `[{type: "level_up", level: 4, title: "Operator"}, {type: "unlocked", mission: "SH-16"}, {type: "session_closed", returned: 840}]`. An `unlocked` event is only sent for something that really just opened, and a lab's also has a `preview` of where its devices and cables are. The UI plays animations from these, so the server stays the source of truth for what happened.
 
 ---
 
@@ -1191,17 +1198,17 @@ Each milestone is one or more pull requests and ends with `make check` passing a
 
 | # | Milestone | Scope | Acceptance criteria |
 |---|---|---|---|
-| M0 | Foundation | New repo from the template, rename, `legacy/` folder, `docs/DESIGN.md`, CI green | `make check` passes, and the health endpoint answers |
+| M0 | Foundation (done) | New repo from the template, rename, `legacy/` folder, `docs/DESIGN.md`, CI green | `make check` passes, and the health endpoint answers |
 | M1 | Content system (done) | `content` app, YAML schema, `import_content`, conversion of the existing missions, admin views | 200 missions imported. Schema validation in CI. Answers absent from all public serializers (tested) |
 | M2 | Player and economy (done, plus server-side mission and rewind play from M4 and M5, ADR 0005) | `game` and `focus` apps, ledgers, focus blocks, sessions, streaks, shields, rules config | Every rule in sections 6.1, 6.2 and 6.7 has tests. Server time enforced |
 | M3 | HUD shell (done, with Play and Rewind on the API too, ADR 0007) | Design tokens, fonts, HUD kit, Deck, Focus, Missions, Briefing, Rewards, System screens on real API data, plus login | Screens match section 4 at 1400px and 400px. Keyboard accessible. No answers in the bundle |
-| M4 | Play and engines | `engines/` package with fs, shell and vi ported, Python runner, Go reader, Play screen, submit, hints, debrief | All 100 legacy missions playable and passing in CI through engine scripts |
-| M5 | Rewind and progression | Server-side rewind generation, Rewind screen, unlocks, levels, badges, events and animations, Redis cache | Unlock-after-five works. Level-up and unlock animations play from API events |
+| M4 | Play and engines (done, on 30-mission tracks, ADR 0004) | `engines/` package with fs, shell and vi ported, Python runner, Go reader, Play screen, submit, hints, debrief | All 100 legacy missions playable and passing in CI through engine scripts |
+| M5 | Rewind and progression (done, with Redis for rate limits and the queue) | Server-side rewind generation, Rewind screen, unlocks, levels, badges, events and animations, Redis cache | Unlock-after-five works. Level-up and unlock animations play from API events |
 | M6 | NetLab (done, with M8's OSPF, spanning tree, port security and layer 3 switch, ADR 0011) | Engine, CLI, map, consoles, goals, and labs from daily work | Every lab's solution passes through the real grader in CI. No lab passes untouched |
-| M7 | Curriculum | OPS-01 to OPS-20 with multi-stage play. The core reached 213 early, with Networking at 49 and NetLab at 44 (ADR 0011, ADR 0012) | All of section 8 is in YAML and verified in CI |
+| M7 | Curriculum (done, ADR 0016) | OPS-01 to OPS-20 with multi-stage play. The core reached 213 early, with Networking at 49 and NetLab at 44 (ADR 0011, ADR 0012) | All of section 8 is in YAML and verified in CI |
 | M8 | NetLab v2 (done, ADR 0012) | Fault drills, stepping through packets, Wi-Fi and IPv6 | Every lab can be drilled, and every fault saves and loads cleanly |
-| M9 | Runner | Celery, runner service, sandbox for Python and Go, server re-verification for `fs`, `vi` and `net` | Tampered client submissions are rejected (tested). Go missions upgrade to real code |
-| M10 | Launch | Deploy to the Contabo server per `DEPLOYMENT.md`, backups, uptime monitor, import from the offline game | Live over HTTPS, a backup is restored once, the offline save imports |
+| M9 | Runner (done, ADR 0015) | Celery, runner service, sandbox for Python and Go, server re-verification for `fs`, `vi` and `net` | Tampered client submissions are rejected (tested). Go missions upgrade to real code |
+| M10 | Launch (files ready, `docs/DEPLOYMENT.md`) | Deploy to the Contabo server per `docs/DEPLOYMENT.md`, backups, uptime monitor, import from the offline game | Live over HTTPS, a backup is restored once, the offline save imports |
 | M11 | Polish | PWA offline shell, sound pack, on-call. Profile charts, seasons and the sandbox lab came early (ADR 0009, ADR 0010, ADR 0012) | Lighthouse 90+ on performance and accessibility |
 
 ---
@@ -1347,7 +1354,7 @@ Then merge when CI is green, and start the next milestone in a fresh Claude Code
 
 | # | Question | Default if undecided |
 |---|---|---|
-| 1 | Public sign-up at launch, or invite-only? | Invite-only until M9 (server re-verification) ships |
+| 1 | Public sign-up at launch, or invite-only? | Public, with confirmed emails, since M9 has shipped |
 | 2 | Leaderboards? | No. Revisit after M9 |
 | 3 | Keep the offline single-file game updated? | Freeze it at the current version and offer import into the hosted game |
 | 4 | Swahili interface later? | Plan for it: keep UI strings in one file per feature |

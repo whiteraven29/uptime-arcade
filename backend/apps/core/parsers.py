@@ -1,5 +1,5 @@
 from django.conf import settings
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ParseError
 from rest_framework.parsers import JSONParser
 
 
@@ -22,7 +22,10 @@ class LimitedJSONParser(JSONParser):
                 raise TooLarge()
         except ValueError as e:
             raise TooLarge() from e
-        return super().parse(_Capped(stream, limit), media_type, parser_context)
+        try:
+            return super().parse(_Capped(stream, limit), media_type, parser_context)
+        except RecursionError as e:  # JSON nested deep enough to overflow the parser
+            raise ParseError("That request is nested too deeply.") from e
 
 
 class _Capped:

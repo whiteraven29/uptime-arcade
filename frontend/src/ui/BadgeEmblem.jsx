@@ -6,7 +6,7 @@ const FAMILY = {
   firstblock: 'ember', clean10: 'ember', hours10: 'ember', hours100: 'ember',
   week: 'jade', month: 'jade', centurion: 'jade',
   first: 'holo', par50: 'holo', nohints: 'holo', night: 'violet',
-  tSH: 'violet', tVI: 'violet', tPY: 'violet', tGO: 'violet', tNET: 'violet', tLAB: 'violet',
+  tSH: 'violet', tVI: 'violet', tPY: 'violet', tGO: 'violet', tNET: 'violet', tLAB: 'violet', tOPS: 'violet',
   arch: 'gold',
   lv2: 'rank', lv3: 'rank', lv4: 'rank', lv5: 'rank', lv6: 'rank', lv7: 'rank', lv8: 'rank', lv9: 'rank',
   bx1: 'jade', bx2: 'holo', bx3: 'ember', bx4: 'gold', bx5: 'blood',
@@ -114,6 +114,12 @@ const GLYPH = {
     <g stroke="currentColor" strokeWidth="2.5">
       <path fill="none" d="M60 36 38 76H82ZM60 36V58M38 76 60 58 82 76" />
       {[[60, 36], [38, 76], [82, 76], [60, 58]].map(([x, y]) => <circle key={`${x}${y}`} cx={x} cy={y} r={x === 60 && y === 58 ? 4 : 6} fill="currentColor" />)}
+    </g>
+  ),
+  tOPS: (
+    <g fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="60" cy="60" r="27" />
+      <path d="M60 33V22M60 98V87M33 60H22M98 60H87M60 60L74 46" />
     </g>
   ),
   tLAB: (

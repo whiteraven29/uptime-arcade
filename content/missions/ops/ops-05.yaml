@@ -1,0 +1,201 @@
+id: ops-05
+track: OPS
+skill: networking
+chapter: First shifts
+order: 5
+title: DNS outage
+from: Platform
+difficulty: medium
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- net-17
+- vi-20
+- lab-17
+lesson:
+  text: When names stop working but addresses still do, suspect DNS. A machine asks the server named in /etc/resolv.conf, so a wrong line there breaks every name. The server itself can also hold a bad record, so check both.
+  example: |-
+    dig example.test
+    cat /etc/resolv.conf
+brief: Nothing opens by name this morning. Find out which DNS server this box is asking, fix that, then fix the record on the company DNS server.
+goal: Diagnose with dig, fix resolv.conf in vi, then fix the DNS record in the lab.
+hints:
+- dig tells you which server it tried.
+- In vi, :%s replaces text across the whole file.
+debrief:
+  why: 'DNS trouble has layers: the client can ask the wrong server, and the right server can give a wrong answer.'
+  solution: |-
+    # Diagnose it
+    dig app.whiteraven.example
+    cat /etc/resolv.conf
+    submit 10.40.10.99
+
+    # Fix the client
+    :%s/10.40.10.99/10.40.10.53/<CR>:wq<CR>
+
+    # Fix the server
+    [PC-1]
+    dig portal.corp.test
+    [DNS-1]
+    dns list
+    dns del portal.corp.test
+    dns add portal.corp.test A 10.40.17.80
+    [PC-1]
+    echo nameserver 10.40.17.53 > /etc/resolv.conf
+    curl portal.corp.test
+  job: It is always DNS, so it is worth being fast at this.
+teaches:
+- resolv.conf
+stages:
+- title: Diagnose it
+  check: answer
+  brief: dig shows the lookup timing out, and resolv.conf shows why.
+  goal: 'Run: submit <the DNS server this box is asking>'
+  answer:
+    accept:
+    - 10.40.10.99
+  solution: |-
+    dig app.whiteraven.example
+    cat /etc/resolv.conf
+    submit 10.40.10.99
+- title: Fix the client
+  check: vi
+  brief: The working DNS server is 10.40.10.53.
+  goal: 'Point /etc/resolv.conf at 10.40.10.53, then save with :wq. You must use vi: vi /etc/resolv.conf'
+  file: /etc/resolv.conf
+  expect:
+  - file_contains:
+      path: /etc/resolv.conf
+      text: nameserver 10.40.10.53
+  - vi_saved: /etc/resolv.conf
+  solution: :%s/10.40.10.99/10.40.10.53/<CR>:wq<CR>
+- title: Fix the server
+  check: net
+  brief: 'This box is fixed, and now the server has a bad record. Ticket: "portal.corp.test stopped working after the server moved. The address works for the people who know it." The portal is now 10.40.17.80, and PC-1 also seems to be asking an old DNS server.'
+  goal: PC-1 can open portal.corp.test.
+  lab:
+    devices:
+    - name: PC-1
+      kind: pc
+      x: 15
+      y: 50
+      config: 'ip addr add 10.40.17.10/24 dev eth0
+
+        nameserver 10.40.17.99'
+    - name: SW1
+      kind: switch
+      x: 50
+      y: 50
+      ports: 8
+      config: ''
+    - name: DNS-1
+      kind: server
+      x: 85
+      y: 20
+      config: 'ip addr add 10.40.17.53/24 dev eth0
+
+        service dns start
+
+        dns add portal.corp.test A 10.40.17.40'
+    - name: PORTAL
+      kind: server
+      x: 85
+      y: 80
+      config: 'ip addr add 10.40.17.80/24 dev eth0
+
+        service http start'
+    cables:
+    - - PC-1
+      - eth0
+      - SW1
+      - Gi0/1
+    - - DNS-1
+      - eth0
+      - SW1
+      - Gi0/2
+    - - PORTAL
+      - eth0
+      - SW1
+      - Gi0/3
+  expect:
+  - label: The record points at the new server
+    dns:
+      from: PC-1
+      name: portal.corp.test
+      answer: 10.40.17.80
+  - label: PC-1 can open the portal by name
+    reach:
+      from: PC-1
+      to: portal.corp.test
+      proto: tcp
+      port: 80
+  solution: |-
+    [PC-1]
+    dig portal.corp.test
+    [DNS-1]
+    dns list
+    dns del portal.corp.test
+    dns add portal.corp.test A 10.40.17.80
+    [PC-1]
+    echo nameserver 10.40.17.53 > /etc/resolv.conf
+    curl portal.corp.test
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Pings to addresses work, but names fail. What do you suspect?
+  options:
+  - The cable
+  - DNS
+  - The power supply
+  - The screen
+  answer: DNS
+  hint: Names turn into addresses through which service?
+- type: mc
+  level: easy
+  label: The file
+  q: What does /etc/resolv.conf tell a machine?
+  options:
+  - Its own password.
+  - Which websites to block.
+  - Which DNS server to ask.
+  - Its IP address.
+  answer: Which DNS server to ask.
+  hint: Look for the word nameserver.
+- type: mc
+  level: medium
+  label: The layers
+  q: Why was fixing the client not enough?
+  options:
+  - The client needed a reboot.
+  - The right server was also giving out a wrong record.
+  - vi had not saved.
+  - dig was broken.
+  answer: The right server was also giving out a wrong record.
+  hint: There were two faults.
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Fix the server
+  - Fix the client
+  - Diagnose it
+  answer:
+  - Diagnose it
+  - Fix the client
+  - Fix the server
+  hint: 'It started with: Diagnose it.'
+- type: mc
+  level: hard
+  label: On the job
+  q: You fix a bad DNS record, but some users still get the old address. Why?
+  options:
+  - Their machines cached the old answer until its time to live runs out.
+  - DNS records can never change.
+  - The fix failed.
+  - They need new laptops.
+  answer: Their machines cached the old answer until its time to live runs out.
+  hint: Answers are remembered for a while.

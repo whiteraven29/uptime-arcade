@@ -1,0 +1,28 @@
+[Unit]
+Description=Uptime Arcade API
+After=network.target postgresql.service redis-server.service
+
+[Service]
+User=uptime
+Group=uptime
+WorkingDirectory=/srv/uptime-arcade/backend
+EnvironmentFile=/etc/uptime-arcade/env
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+ExecStart=/srv/uptime-arcade/.venv/bin/gunicorn config.wsgi:application -c /srv/uptime-arcade/deploy/gunicorn.conf.py
+Restart=always
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+ReadWritePaths=/srv/uptime-arcade/backend/staticfiles
+MemoryMax=1G
+TasksMax=200
+
+[Install]
+WantedBy=multi-user.target

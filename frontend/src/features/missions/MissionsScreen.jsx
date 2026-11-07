@@ -6,7 +6,7 @@ import { BEYOND, CHAPTERS, COMING, DIFFICULTIES, S, TK, TRACKS, TRACK_LOCKS, bum
 
 import { LabProgressMap } from './LabProgressMap.jsx';
 
-const EMBLEM = { SH: 'tSH', VI: 'tVI', PY: 'tPY', GO: 'tGO', NET: 'tNET', LAB: 'tLAB', BX: 'bx5' };
+const EMBLEM = { SH: 'tSH', VI: 'tVI', PY: 'tPY', GO: 'tGO', NET: 'tNET', LAB: 'tLAB', OPS: 'tOPS', BX: 'bx5' };
 const CYCLE_MS = 2800;
 
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;

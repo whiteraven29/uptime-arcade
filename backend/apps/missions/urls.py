@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path("tracks/", views.tracks, name="tracks"),
+    path("missions/jobs/<uuid:job_id>/", views.job, name="grading-job"),
     path("missions/<str:code>/", views.briefing, name="briefing"),
     path("missions/<str:code>/play/", views.play, name="play"),
     path("missions/<str:code>/hint/", views.hint, name="hint"),

@@ -1,0 +1,237 @@
+id: ops-12
+track: OPS
+skill: python
+chapter: On the rota
+order: 12
+title: VLAN migration
+from: Infrastructure
+difficulty: medium
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- py-18
+- lab-08
+lesson:
+  text: When a change touches many ports, generating the config avoids typos. Each line of a plan becomes the same commands with different values, and split pulls the values out. An f-string puts them into each command.
+  example: |-
+    port, vlan = "Gi0/1,10".split(",")
+    print(f"interface {port}")
+brief: Finance is moving to its own VLAN, and the plan is a list of ports. Generate the commands, then do the split on the switch.
+goal: Generate the config in Python, then build the VLANs in the lab.
+hints:
+- Split each row on the comma.
+- Each row adds two lines to the result.
+debrief:
+  why: Generated config is the same every time, which is what stops mistakes on port 37 of 48.
+  solution: |-
+    # Generate the commands
+    def config_for(rows):
+        lines = []
+        for row in rows:
+            parts = row.split(",")
+            lines.append(f"interface {parts[0]}")
+            lines.append(f"switchport access vlan {parts[1]}")
+        return lines
+
+
+    # Build the VLANs
+    [SW1]
+    enable
+    configure terminal
+    vlan 10
+    name STAFF
+    vlan 20
+    name FINANCE
+    interface Gi0/1
+    switchport mode access
+    switchport access vlan 10
+    interface Gi0/2
+    switchport mode access
+    switchport access vlan 10
+    interface Gi0/3
+    switchport mode access
+    switchport access vlan 20
+    interface Gi0/4
+    switchport mode access
+    switchport access vlan 20
+    end
+    show vlan brief
+  job: Most network teams generate their config for exactly this reason.
+teaches:
+- generate
+stages:
+- title: Generate the commands
+  check: py
+  brief: 'config_for(rows) takes rows like "Gi0/1,10" and returns a list of lines: an "interface Gi0/1" line then a "switchport access vlan 10" line, for each row.'
+  goal: Write config_for(rows). Tests run when you press Run tests.
+  python:
+    starter: |
+      def config_for(rows):
+          # your code here
+          pass
+    tests:
+    - expr: config_for(["Gi0/1,10"])
+      want: '["interface Gi0/1", "switchport access vlan 10"]'
+    - expr: config_for([])
+      want: '[]'
+    - expr: config_for(["Gi0/1,10", "Gi0/2,20"])
+      want: '["interface Gi0/1", "switchport access vlan 10", "interface Gi0/2", "switchport access vlan 20"]'
+  solution: |
+    def config_for(rows):
+        lines = []
+        for row in rows:
+            parts = row.split(",")
+            lines.append(f"interface {parts[0]}")
+            lines.append(f"switchport access vlan {parts[1]}")
+        return lines
+- title: Build the VLANs
+  check: net
+  brief: Now apply it on the switch. Finance and Staff share a switch and one flat network, and Audit says that has to stop. Put Gi0/1 and Gi0/2 in VLAN 10 named STAFF, and Gi0/3 and Gi0/4 in VLAN 20 named FINANCE.
+  goal: Each team can reach only its own team.
+  lab:
+    devices:
+    - name: STAFF-1
+      kind: pc
+      x: 15
+      y: 20
+      config: ip addr add 10.40.20.1/24 dev eth0
+    - name: STAFF-2
+      kind: pc
+      x: 15
+      y: 80
+      config: ip addr add 10.40.20.2/24 dev eth0
+    - name: SW1
+      kind: switch
+      x: 50
+      y: 50
+      ports: 8
+      config: ''
+    - name: FIN-1
+      kind: pc
+      x: 85
+      y: 20
+      config: ip addr add 10.40.20.3/24 dev eth0
+    - name: FIN-2
+      kind: pc
+      x: 85
+      y: 80
+      config: ip addr add 10.40.20.4/24 dev eth0
+    cables:
+    - - STAFF-1
+      - eth0
+      - SW1
+      - Gi0/1
+    - - STAFF-2
+      - eth0
+      - SW1
+      - Gi0/2
+    - - FIN-1
+      - eth0
+      - SW1
+      - Gi0/3
+    - - FIN-2
+      - eth0
+      - SW1
+      - Gi0/4
+  expect:
+  - label: VLAN 10 is named STAFF
+    config:
+      device: SW1
+      contains: "vlan 10\n name STAFF"
+  - label: VLAN 20 is named FINANCE
+    config:
+      device: SW1
+      contains: "vlan 20\n name FINANCE"
+  - label: Staff can reach Staff
+    reach:
+      from: STAFF-1
+      to: STAFF-2
+  - label: Finance can reach Finance
+    reach:
+      from: FIN-1
+      to: FIN-2
+  - label: Staff can't reach Finance
+    reach:
+      from: STAFF-1
+      to: FIN-1
+      expect: blocked
+  solution: |-
+    [SW1]
+    enable
+    configure terminal
+    vlan 10
+    name STAFF
+    vlan 20
+    name FINANCE
+    interface Gi0/1
+    switchport mode access
+    switchport access vlan 10
+    interface Gi0/2
+    switchport mode access
+    switchport access vlan 10
+    interface Gi0/3
+    switchport mode access
+    switchport access vlan 20
+    interface Gi0/4
+    switchport mode access
+    switchport access vlan 20
+    end
+    show vlan brief
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why generate config instead of typing it?
+  options:
+  - Typing is not allowed.
+  - It avoids typos and comes out the same every time.
+  - Switches prefer it.
+  - It uses less electricity.
+  answer: It avoids typos and comes out the same every time.
+  hint: Think about port 37 of 48.
+- type: mc
+  level: easy
+  label: The code
+  q: What does "Gi0/1,10".split(",") give you?
+  options:
+  - '"Gi0/1"'
+  - '["Gi0/1", "10"]'
+  - '["Gi0/1,10"]'
+  - '10'
+  answer: '["Gi0/1", "10"]'
+  hint: It cuts at each comma.
+- type: mc
+  level: medium
+  label: The VLAN
+  q: What does a VLAN do?
+  options:
+  - It splits one switch into separate networks.
+  - It speeds up a cable.
+  - It encrypts traffic.
+  - It gives a PC its address.
+  answer: It splits one switch into separate networks.
+  hint: One switch, several networks.
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Build the VLANs
+  - Generate the commands
+  answer:
+  - Generate the commands
+  - Build the VLANs
+  hint: 'It started with: Generate the commands.'
+- type: mc
+  level: hard
+  label: On the job
+  q: Your generator has a bug, and it ran on 48 ports. What protects you?
+  options:
+  - Review its output and try it on one port before rolling it out.
+  - Nothing can.
+  - Run it twice.
+  - Delete the VLAN.
+  answer: Review its output and try it on one port before rolling it out.
+  hint: Generated mistakes spread fast.

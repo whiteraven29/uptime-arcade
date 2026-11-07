@@ -1,0 +1,138 @@
+id: ops-14
+track: OPS
+skill: shell
+chapter: On the rota
+order: 14
+title: Bad deploy
+from: Backend
+difficulty: hard
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- sh-14
+- vi-20
+- go-05
+lesson:
+  text: 'After a bad deploy, compare what changed before you try anything else. diff shows the exact change. Watch for version numbers too: compared as text, "1.10" comes before "1.9", because text compares one character at a time.'
+  example: diff old.conf new.conf
+brief: The new release slows everything down. See what changed in its config, put it right, then work out why the version check let this one through.
+goal: Compare, fix in vi, then predict the version check.
+hints:
+- diff shows the changed line.
+- Text comparison goes one character at a time, and 1 comes before 9.
+debrief:
+  why: The fix took one line, but only because you looked at the change first.
+  solution: |-
+    # See what changed
+    diff ops/v1.conf ops/v2.conf
+    submit 30000
+
+    # Put it right
+    :%s/30000/30/<CR>:wq<CR>
+
+    # Why the check missed it
+    submit true
+  job: Comparing versions as plain text is a classic bug, and it has caused real deployment accidents.
+teaches:
+- diff
+stages:
+- title: See what changed
+  check: answer
+  brief: Compare ~/ops/v1.conf with ~/ops/v2.conf.
+  goal: 'Run: submit <the new timeout value>'
+  answer:
+    accept:
+    - '30000'
+  solution: |-
+    diff ops/v1.conf ops/v2.conf
+    submit 30000
+- title: Put it right
+  check: vi
+  brief: That timeout should be 30, not 30000.
+  goal: 'Change it back in ~/ops/v2.conf, then save with :wq. You must use vi: vi ~/ops/v2.conf'
+  file: ~/ops/v2.conf
+  expect:
+  - file_contains:
+      path: ~/ops/v2.conf
+      text: 'timeout=30
+
+        '
+  - vi_saved: ~/ops/v2.conf
+  solution: :%s/30000/30/<CR>:wq<CR>
+- title: Why the check missed it
+  check: go-out
+  brief: The deploy tool compares versions as text. Read what it does.
+  goal: 'Predict the output, then run: submit <the printed text>'
+  go:
+    program: "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"1.10\" < \"1.9\")\n}\n"
+  answer:
+    accept:
+    - 'true'
+  solution: submit true
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What should you do first after a bad deploy?
+  options:
+  - See exactly what changed.
+  - Restart everything.
+  - Write a new release.
+  - Blame the network.
+  answer: See exactly what changed.
+  hint: diff exists for this.
+- type: mc
+  level: easy
+  label: The tool
+  q: In vi, what does :%s/a/b/ do?
+  options:
+  - Deletes the file.
+  - Replaces a with b across the whole file.
+  - Saves and quits.
+  - Searches for a only.
+  answer: Replaces a with b across the whole file.
+  hint: '% means every line.'
+- type: mc
+  level: medium
+  label: Text compare
+  q: Why is "1.10" < "1.9" true for text?
+  options:
+  - Comparing one character at a time, 1 comes before 9.
+  - Because 1.10 is smaller.
+  - Go has a bug.
+  - The dot is ignored.
+  answer: Comparing one character at a time, 1 comes before 9.
+  hint: Look at the third character.
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Why the check missed it
+  - Put it right
+  - See what changed
+  answer:
+  - See what changed
+  - Put it right
+  - Why the check missed it
+  hint: 'It started with: See what changed.'
+- type: mc
+  level: hard
+  label: On the job
+  q: How should a tool compare versions?
+  options:
+  - As plain text.
+  - By file size.
+  - By the release date only.
+  - Split them into numbers and compare each part as a number.
+  answer: Split them into numbers and compare each part as a number.
+  hint: 10 is more than 9 only as a number.
+fixtures:
+  ops/v1.conf: |
+    workers=4
+    timeout=30
+  ops/v2.conf: |
+    workers=4
+    timeout=30000

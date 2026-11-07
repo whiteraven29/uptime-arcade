@@ -1,0 +1,139 @@
+id: ops-04
+track: OPS
+skill: shell
+chapter: First shifts
+order: 4
+title: Latency report
+from: Backend
+difficulty: medium
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- sh-20
+- py-15
+lesson:
+  text: The average hides slow requests. The 95th percentile, or p95, is the time that 95 percent of requests beat, so it shows what your slowest users really feel. Sort the times, then take the value 95 percent of the way along.
+  example: |-
+    times = sorted([5, 1, 9, 3])
+    print(times[int(len(times) * 0.5)])  # 5
+brief: Users say the API feels slow, but the dashboard average looks fine. Pull the times from the log, then compute a proper p95.
+goal: Find the worst request with awk, then write p95 in Python.
+hints:
+- The time is the last column of ~/ops/latency.log.
+- Use sorted, then index int(len(values) * 0.95).
+debrief:
+  why: One tool pulls out the numbers, and another does the maths, so you pick whichever is simplest for each job.
+  solution: |
+    # Find the worst request
+    awk '{print $4}' ops/latency.log | sort -n | tail -1
+    submit 950
+
+    # Compute the p95
+    def p95(values):
+        ordered = sorted(values)
+        return ordered[int(len(values) * 0.95)]
+  job: Percentiles are how real services set their targets, because averages hide the pain.
+teaches:
+- p95
+- percentile
+stages:
+- title: Find the worst request
+  check: answer
+  brief: Each line of ~/ops/latency.log ends with its time in milliseconds.
+  goal: 'Run: submit <the slowest time>'
+  answer:
+    accept:
+    - '950'
+  solution: |-
+    awk '{print $4}' ops/latency.log | sort -n | tail -1
+    submit 950
+- title: Compute the p95
+  check: py
+  brief: p95(values) sorts the values and returns the one at index int(len(values) * 0.95).
+  goal: Write p95(values). Tests run when you press Run tests.
+  python:
+    starter: |
+      def p95(values):
+          # your code here
+          pass
+    tests:
+    - expr: p95([120, 80, 950, 110, 95, 130, 101, 88, 140, 97])
+      want: '950'
+    - expr: p95([1, 2, 3, 4])
+      want: '4'
+    - expr: p95(list(range(100)))
+      want: '95'
+  solution: |
+    def p95(values):
+        ordered = sorted(values)
+        return ordered[int(len(values) * 0.95)]
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why can an average look fine while users suffer?
+  options:
+  - A few very slow requests barely move the average.
+  - Averages are always wrong.
+  - Users cannot tell the difference.
+  - Slow requests are not logged.
+  answer: A few very slow requests barely move the average.
+  hint: Think about one 950 ms request among many fast ones.
+- type: mc
+  level: easy
+  label: The word
+  q: What does a p95 of 200 ms mean?
+  options:
+  - Every request took 200 ms.
+  - 95 requests took 200 ms.
+  - The server is 95 percent busy.
+  - 95 percent of requests finished within 200 ms.
+  answer: 95 percent of requests finished within 200 ms.
+  hint: It is about the share of requests.
+- type: mc
+  level: medium
+  label: The code
+  q: What must you do before picking the p95 value?
+  options:
+  - Remove the largest value.
+  - Add them all up.
+  - Sort the values.
+  - Print them.
+  answer: Sort the values.
+  hint: A position only means something in order.
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Compute the p95
+  - Find the worst request
+  answer:
+  - Find the worst request
+  - Compute the p95
+  hint: 'It started with: Find the worst request.'
+- type: mc
+  level: hard
+  label: On the job
+  q: Your p95 is great, but your p99 is terrible. What does that tell you?
+  options:
+  - Everything is fine.
+  - A small share of users get a very slow experience worth investigating.
+  - The clock is wrong.
+  - The server has run out of disk.
+  answer: A small share of users get a very slow experience worth investigating.
+  hint: p99 looks further into the slowest requests.
+fixtures:
+  ops/latency.log: |
+    GET /api/a 200 120
+    GET /api/b 200 80
+    GET /api/c 200 950
+    GET /api/d 200 110
+    GET /api/e 200 95
+    GET /api/f 200 130
+    GET /api/g 200 101
+    GET /api/h 200 88
+    GET /api/i 200 140
+    GET /api/j 200 97

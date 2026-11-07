@@ -16,7 +16,8 @@ const row = (t) => [t.code, t.name, t.subtitle];
 const TRACKS = catalogue.tracks.filter((t) => !t.after).map(row);
 const BEYOND = row(catalogue.tracks.find((t) => t.after));
 /* The missions Archmage is measured against. Beyond comes on top of these. */
-const TICKETS = ALL_MISSIONS.filter((m) => m.track !== BEYOND[0]);
+const SIDE = new Set(catalogue.tracks.filter((t) => t.side).map((t) => t.code));
+const TICKETS = ALL_MISSIONS.filter((m) => m.track !== BEYOND[0] && !SIDE.has(m.track));
 
 /* Saves from before the rebuild used numbered ids. Where the mission survives, keep the progress. */
 const OLD_IDS = {

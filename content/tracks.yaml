@@ -45,6 +45,11 @@ tracks:
     subtitle: Real routers and switches, in a lab you can break
     dir: netlab
     requires: net-05
+  - code: OPS
+    name: Operations
+    subtitle: Real incidents that need more than one tool
+    dir: ops
+    side: true
   - code: BX
     name: Beyond
     subtitle: "After Archmage: from Easy to Brainfuck"

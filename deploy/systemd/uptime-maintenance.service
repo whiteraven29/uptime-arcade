@@ -1,0 +1,15 @@
+[Unit]
+Description=Uptime Arcade nightly backup and cleanup
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=uptime
+Group=uptime
+EnvironmentFile=/etc/uptime-arcade/env
+WorkingDirectory=/srv/uptime-arcade/backend
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+ExecStart=/srv/uptime-arcade/deploy/scripts/backup.sh
+ExecStart=/srv/uptime-arcade/.venv/bin/python manage.py purge_unverified
+ExecStart=/srv/uptime-arcade/.venv/bin/python manage.py purge_old_jobs
+ExecStart=/srv/uptime-arcade/.venv/bin/python manage.py flushexpiredtokens

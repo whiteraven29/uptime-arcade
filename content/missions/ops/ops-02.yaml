@@ -1,0 +1,236 @@
+id: ops-02
+track: OPS
+skill: shell
+chapter: First shifts
+order: 2
+title: Config drift
+from: Platform
+difficulty: medium
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- sh-14
+- vi-06
+- lab-10
+lesson:
+  text: Drift is when a device slowly stops matching the copy you trust. diff compares two files line by line and prints only what is different, so you see the drift straight away.
+  example: |-
+    diff good.txt live.txt
+    2c2
+    < port 80
+    ---
+    > port 8080
+brief: Floor 2 lost VLAN 30 overnight. Your golden config is ~/ops/golden.cfg and the saved copy is ~/ops/saved.cfg. Compare them, repair the saved copy, then repair the switch.
+goal: Find what drifted, fix the saved copy in vi, then fix the switch.
+hints:
+- diff shows the line that changed.
+- Use :4 to jump to the line and A to add at its end.
+debrief:
+  why: Fixing only the switch leaves a saved file that would bring the bug back. Fixing both ends it for good.
+  solution: |-
+    # Spot the drift
+    diff ops/golden.cfg ops/saved.cfg
+    submit 30
+
+    # Fix the saved copy
+    :4<CR>A,30<Esc>:wq<CR>
+
+    # Fix the live switch
+    [OPS-2]
+    ping 10.40.30.5
+    [FL2]
+    enable
+    show interfaces trunk
+    configure terminal
+    interface Gi0/8
+    switchport trunk allowed vlan add 30
+    end
+  job: Config drift is one of the most common causes of outages, and comparing against a known good copy finds it in seconds.
+teaches:
+- diff
+stages:
+- title: Spot the drift
+  check: answer
+  brief: Compare the two configs.
+  goal: 'Run: submit <the VLAN missing from saved.cfg>'
+  answer:
+    accept:
+    - '30'
+  solution: |-
+    diff ops/golden.cfg ops/saved.cfg
+    submit 30
+  reasoned: true
+- title: Fix the saved copy
+  check: vi
+  brief: The fourth line of the saved copy should allow VLANs 10 and 30.
+  goal: 'Add ,30 to the end of the allowed vlan line, then save with :wq. You must use vi: vi ~/ops/saved.cfg'
+  file: ~/ops/saved.cfg
+  expect:
+  - file_equals:
+      path: ~/ops/saved.cfg
+      content: |
+        hostname FL2
+        interface Gi0/8
+         switchport mode trunk
+         switchport trunk allowed vlan 10,30
+  - vi_saved: ~/ops/saved.cfg
+  solution: :4<CR>A,30<Esc>:wq<CR>
+- title: Fix the live switch
+  check: net
+  brief: 'Now the live switch. Ticket: "Everyone in VLAN 30 on floor 2 lost the file server this morning. Other teams are fine." A change went in overnight. Find it and fix it, changing as little as you can.'
+  goal: VLAN 30 works again, and the other VLANs still do.
+  lab:
+    devices:
+    - name: STAFF-2
+      kind: pc
+      x: 85
+      y: 20
+      config: ip addr add 10.40.10.20/24 dev eth0
+    - name: OPS-2
+      kind: pc
+      x: 85
+      y: 80
+      config: ip addr add 10.40.30.20/24 dev eth0
+    - name: FL2
+      kind: switch
+      x: 60
+      y: 50
+      ports: 8
+      config: "vlan 10\nvlan 30\ninterface Gi0/1\n switchport access vlan 10\ninterface Gi0/2\n switchport access vlan 30\ninterface Gi0/8\n switchport mode trunk\n switchport trunk allowed vlan 10"
+    - name: FL1
+      kind: switch
+      x: 30
+      y: 50
+      ports: 8
+      config: "vlan 10\nvlan 30\ninterface Gi0/1\n switchport access vlan 10\ninterface Gi0/2\n switchport access vlan 30\ninterface Gi0/8\n switchport mode trunk\n switchport trunk allowed vlan 10,30"
+    - name: SRV-10
+      kind: server
+      x: 8
+      y: 20
+      config: ip addr add 10.40.10.5/24 dev eth0
+    - name: SRV-30
+      kind: server
+      x: 8
+      y: 80
+      config: ip addr add 10.40.30.5/24 dev eth0
+    cables:
+    - - STAFF-2
+      - eth0
+      - FL2
+      - Gi0/1
+    - - OPS-2
+      - eth0
+      - FL2
+      - Gi0/2
+    - - FL2
+      - Gi0/8
+      - FL1
+      - Gi0/8
+    - - SRV-10
+      - eth0
+      - FL1
+      - Gi0/1
+    - - SRV-30
+      - eth0
+      - FL1
+      - Gi0/2
+  expect:
+  - label: VLAN 30 reaches its server
+    reach:
+      from: OPS-2
+      to: SRV-30
+  - label: VLAN 10 still works
+    reach:
+      from: STAFF-2
+      to: SRV-10
+  - label: The VLANs stay separate
+    reach:
+      from: OPS-2
+      to: SRV-10
+      expect: blocked
+  - label: The fix is on FL2's trunk
+    config:
+      device: FL2
+      interface: Gi0/8
+      contains: switchport trunk allowed vlan 10,30
+  solution: |-
+    [OPS-2]
+    ping 10.40.30.5
+    [FL2]
+    enable
+    show interfaces trunk
+    configure terminal
+    interface Gi0/8
+    switchport trunk allowed vlan add 30
+    end
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What is config drift?
+  options:
+  - A cable that moved.
+  - A device slowly stops matching the config you trust.
+  - A router losing power.
+  - A new software version.
+  answer: A device slowly stops matching the config you trust.
+  hint: Think about two copies that should be the same.
+- type: mc
+  level: easy
+  label: The tool
+  q: What does diff print?
+  options:
+  - Every line of both files.
+  - Only the lines that differ between two files.
+  - The size of each file.
+  - Who last changed a file.
+  answer: Only the lines that differ between two files.
+  hint: If two files match, it prints nothing.
+- type: mc
+  level: medium
+  label: The order
+  q: Why fix the saved copy as well as the switch?
+  options:
+  - Switches cannot run without it.
+  - The next reload or rollout would otherwise bring the bug back.
+  - It makes the switch faster.
+  - diff requires it.
+  answer: The next reload or rollout would otherwise bring the bug back.
+  hint: What happens the next time that file is used?
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Fix the live switch
+  - Fix the saved copy
+  - Spot the drift
+  answer:
+  - Spot the drift
+  - Fix the saved copy
+  - Fix the live switch
+  hint: 'It started with: Spot the drift.'
+- type: mc
+  level: hard
+  label: On the job
+  q: Two switches differ, and you do not know which one is right. What should you do?
+  options:
+  - Check the change record or the golden copy before changing either.
+  - Copy one over the other at random.
+  - Reload both switches.
+  - Delete both configs.
+  answer: Check the change record or the golden copy before changing either.
+  hint: Find out which is correct first.
+fixtures:
+  ops/golden.cfg: |
+    hostname FL2
+    interface Gi0/8
+     switchport mode trunk
+     switchport trunk allowed vlan 10,30
+  ops/saved.cfg: |
+    hostname FL2
+    interface Gi0/8
+     switchport mode trunk
+     switchport trunk allowed vlan 10

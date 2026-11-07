@@ -3,6 +3,7 @@
    stay on this device. Nothing here decides who earned what.
    No React and no DOM beyond storage, so it can be tested in Node. */
 import { S, host } from '../../../engines/host.js';
+import { cleanMachine, placeFixtures } from '../../../engines/replay.js';
 import { F, fs, HOME, HOST, norm, pad } from '../../../engines/fs/index.js';
 import { sh, runLine } from '../../../engines/shell/index.js';
 import { COMMANDS, MAN } from '../../../engines/shell/commands.js';
@@ -134,7 +135,7 @@ export const missionPath = (m) => (stateOf(m) === 'rewind' ? `/missions/${m.id}/
 export const oncallUnlocked = () => false;
 
 /* ---------- this device's virtual machine ---------- */
-const MACHINE = { cwd: HOME, overlay: {}, hist: [], viKeys: {}, viUsed: {}, net: { gw: '10.40.3.1' }, ranScript: false, code: {}, cmds: {}, len: 25 };
+const MACHINE = { ...cleanMachine(), hist: [], code: {}, cmds: {}, len: 25, log: [], logFor: null };
 const machineKey = () => `uptime-machine-${ui.account?.username}`;
 let practiceSaved = null; // while revisiting a mission, the real machine waits here
 function saveMachine() {
@@ -155,11 +156,11 @@ function loadMachine() {
 
 /* A goal you've already met would pass the moment you typed anything, so revisiting one starts on a clean
    machine. Your real one comes back untouched when you leave. */
-const PRACTICE_KEYS = ['overlay', 'cwd', 'net', 'viKeys', 'viUsed', 'ranScript', 'cmds'];
+const PRACTICE_KEYS = ['overlay', 'cwd', 'net', 'viKeys', 'viUsed', 'ranScript', 'cmds', 'log', 'logFor'];
 function beginPractice() {
   if (practiceSaved) return;
   practiceSaved = Object.fromEntries(PRACTICE_KEYS.map((k) => [k, S[k]]));
-  Object.assign(S, { overlay: {}, cwd: HOME, net: { gw: '10.40.3.1' }, viKeys: {}, viUsed: {}, ranScript: false, cmds: {} });
+  Object.assign(S, cleanMachine(), { cmds: {}, log: [], logFor: null });
   fs.reset(S.overlay);
 }
 export function endPractice() {
@@ -218,7 +219,7 @@ function applyTracks(data) {
       if (chapters.at(-1)?.[0] !== m.chapter) chapters.push([m.chapter, pos]);
       const card = { id: m.code, track: t.code, pos, title: m.title, chapter: m.chapter, difficulty: m.difficulty, xp: m.xp, state: m.state, answered: m.answered, lockedBecause: m.locked_because };
       ALL.set(m.code, card);
-      if (!t.after_archmage) TICKETS.push(card);
+      if (!t.after_archmage && !t.side) TICKETS.push(card);
       return card;
     });
     CHAPTERS[t.code] = chapters;
@@ -299,12 +300,19 @@ export async function login(username, password) {
   setAccess(d.access);
   await enterGame(d.account);
 }
-export async function register(username, email, password) {
+/* Registering sends a code to the email. The game only opens once that code comes back. */
+export async function register(username, email, password, confirm_password) {
   const time_zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const d = await post('/auth/register/', { username, email, password, time_zone });
+  return post('/auth/register/', { username, email, password, confirm_password, time_zone });
+}
+export async function verifyEmail(username, code) {
+  const d = await post('/auth/verify/', { username, code });
   setAccess(d.access);
   await enterGame(d.account);
 }
+export const resendCode = (username) => post('/auth/verify/resend/', { username });
+export const forgotPassword = (identifier) => post('/auth/password/forgot/', { identifier });
+export const resetPassword = (username, code, password, confirm_password) => post('/auth/password/reset/', { username, code, password, confirm_password });
 export async function logout() {
   try {
     await post('/auth/logout/');
@@ -402,6 +410,15 @@ export async function loadBriefing(id) {
 }
 /** Why it works and the solution. The server only answers once the mission has been solved. */
 export const loadDebrief = (id) => get(`/missions/${id}/debrief/`);
+/* Every mission starts on the same clean machine, and what you do from there is logged. The server plays that log back
+   on its own clean machine, so what a mission achieved is what really happened (ADR 0015). Coming back to the mission
+   you're in carries on where you were. */
+function startCleanMachine(t, files) {
+  Object.assign(S, cleanMachine(), { log: [], logFor: t.id });
+  S.cmds[t.id] = 0;
+  fs.reset(S.overlay);
+  placeFixtures(files);
+}
 /* A mission's files come back if an earlier attempt deleted them. */
 function restoreFixtures(files) {
   for (const [rel, content] of Object.entries(files || {})) {
@@ -415,6 +432,14 @@ function restoreFixtures(files) {
     fs.put(p, { t: 'f', c: content, m: 0o644, mt: 'Nov  6 09:00' });
   }
 }
+/* An Operation's machine carries across its stages, so finishing one just moves the workspace on. */
+const replayStages = {};
+async function nextStage(t, res) {
+  playUnlock();
+  toast(`Stage ${res.stage} of ${res.total} done.`);
+  await enterMission(t.id);
+}
+const stageField = (t) => (t.stage ? { stage: t.stage.index } : {});
 /** Gets a mission ready to play. It needs an open session, so it runs again when one opens. */
 export async function enterMission(id) {
   const brief = await loadBriefing(id);
@@ -429,14 +454,22 @@ export async function enterMission(id) {
     bump();
     return;
   }
-  const play = await get(`/missions/${id}/play/`);
+  // A replay of an Operation keeps its place in the browser, since it's only practice.
+  const asked = replay && replayStages[id] ? `?stage=${replayStages[id]}` : '';
+  const play = await get(`/missions/${id}/play/${asked}`);
   const t = { ...toPlayable(brief), ...toWorkspace(play), ready: true, revisit: play.state === 'cleared' };
-  if (ui.current?.id !== id || !ui.current.ready) {
+  if (play.stage) Object.assign(t, { check: play.check_type, kind: kindOf(play.check_type), brief: play.stage.brief, goal: play.stage.goal, stage: play.stage });
+  if (ui.current?.id !== id || !ui.current.ready || ui.current.stage?.index !== t.stage?.index) {
     if (t.revisit && GOAL_CHECKS.has(t.check)) beginPractice();
     else endPractice();
-    S.cwd = HOME;
-    restoreFixtures(play.workspace.fixtures);
+    if (t.revisit) {
+      S.cwd = HOME;
+      restoreFixtures(play.workspace.fixtures);
+    } else if (S.logFor !== id) {
+      startCleanMachine(t, play.workspace.fixtures);
+    }
     if (t.kind === 'net') await startLab(t);
+    else ui.lab = null;
   }
   ui.current = t;
   saveMachine();
@@ -448,16 +481,18 @@ export const leaveCurrent = () => {
   ui.lab = null;
   endPractice();
 };
+const kindOf = (check) => (check === 'py' || check === 'go-code' || check === 'net' ? check : GOAL_CHECKS.has(check) ? 'auto' : 'answer');
 const toPlayable = (b) => ({
   id: b.code, track: b.track, skill: b.skill, title: b.title, from: b.from_dept, difficulty: b.difficulty, xp: b.xp, check: b.check_type,
-  kind: b.check_type === 'py' ? 'py' : b.check_type === 'net' ? 'net' : GOAL_CHECKS.has(b.check_type) ? 'auto' : 'answer',
+  kind: kindOf(b.check_type),
   par_kind: b.par_kind, par_value: b.par_value, learn: [b.lesson.text, b.lesson.example], brief: b.brief, goal: b.goal, hintsShown: [], hintsTotal: 0,
 });
 const toWorkspace = (p) => {
   const w = p.workspace;
   const out = { hintsShown: p.hints, hintsTotal: p.hints_total };
   if (w.file) out.file = w.file.replace(/^~/, HOME);
-  if (w.go) out.program = w.go.program;
+  if (w.go?.program) out.program = w.go.program;
+  if (w.go?.starter) out.starter = w.go.starter;
   if (w.lab) {
     out.labSpec = w.lab;
     out.goals = w.goals;
@@ -497,6 +532,12 @@ function meta(a) {
 const commandsOn = (t) => S.cmds[t.id] || 0;
 function revisited(t, res) {
   if (res.result !== 'pass') return false;
+  if (t.stage && t.stage.index + 1 < t.stage.total) {
+    replayStages[t.id] = t.stage.index + 1;
+    enterMission(t.id).catch(complain);
+    return true;
+  }
+  if (t.stage) delete replayStages[t.id];
   ui.current = { ...t, solved: true };
   pr('Right again. Revisits pay no XP, so this one was just for you.', 'k');
   toast('Solved again. No XP on a revisit.');
@@ -513,13 +554,16 @@ async function afterSolved(t, res) {
 async function submitAnswer(value) {
   const t = T();
   if (!t || t.solved) return pr('Already solved.', 'd');
-  if (t.kind === 'py') return pr('This mission is graded by Run tests.', 'd');
+  if (t.kind === 'py' || t.kind === 'go-code') return pr('This mission is graded by Run tests.', 'd');
   if (t.kind === 'auto') return pr('This mission completes itself when the goal is met.', 'd');
   if (!value) return termErr('Usage: submit <answer>');
   try {
-    const res = await post(`/missions/${t.id}/submit/`, { answer: value, commands: commandsOn(t) });
+    const res = await post(`/missions/${t.id}/submit/`, { answer: value, commands: commandsOn(t), ...stageField(t) });
     if (res.revisit && revisited(t, res)) return bump();
-    if (res.result === 'pass') {
+    if (res.result === 'stage') {
+      pr(`Accepted: ${value}`, 'k');
+      await nextStage(t, res);
+    } else if (res.result === 'pass') {
       pr(`Accepted: ${value}`, 'k');
       await afterSolved(t, res);
     } else pr('Not that one. Check your work and try again.', 'w');
@@ -573,8 +617,9 @@ export async function checkGoal() {
   checking = true;
   try {
     const keys = t.file ? S.viKeys[t.file] || 0 : 0;
-    const res = await post(`/missions/${t.id}/check/`, { state: machineState(), commands: commandsOn(t), keys });
+    const res = await post(`/missions/${t.id}/check/`, { state: machineState(), log: S.log, commands: commandsOn(t), keys, ...stageField(t) });
     if (res.revisit) revisited(t, res);
+    else if (res.result === 'stage') await nextStage(t, res);
     else if (res.result === 'pass') await afterSolved(t, res);
   } catch (e) {
     if (e.code === 'no_active_session') await refreshPlayer();
@@ -602,7 +647,10 @@ export function runCommand(line) {
     return;
   }
   const t = T();
-  if (t && !t.solved) S.cmds[t.id] = commandsOn(t) + 1;
+  if (t && !t.solved) {
+    S.cmds[t.id] = commandsOn(t) + 1;
+    S.log.push(`l${src}`);
+  }
   const buf = [];
   const errorsBefore = ui.term.filter((s) => s.c === 'e').length;
   sh.sink = buf;
@@ -710,6 +758,7 @@ host.afterVi = () => {
 };
 export function viPress(key, ctrl) {
   if (!VI.on) return;
+  if (!T()?.solved) S.log.push(`${ctrl ? 'c' : 'k'}${key}`);
   viKey(key, ctrl);
   bump();
 }
@@ -824,10 +873,10 @@ export async function labCheck() {
   lab.checking = true;
   bump();
   try {
-    const res = await post(`/missions/${t.id}/submit/`, { state: lab.lab.serialize(), commands: commandsOn(t) });
+    const res = await post(`/missions/${t.id}/submit/`, { state: lab.lab.serialize(), commands: commandsOn(t), ...stageField(t) });
     lab.results = res.goals;
     lab.checks++;
-    if (res.result === 'pass') {
+    if (res.result === 'pass' || res.result === 'stage') {
       lab.won = true;
       playNetworkUp();
     }
@@ -836,7 +885,14 @@ export async function labCheck() {
       if (res.result === 'pass') {
         if (lab.drill) lab.drill.fixed = true;
         toast(lab.drill ? 'Fixed. A replay earns nothing and costs nothing.' : 'Every goal passes. A replay earns nothing and costs nothing.');
+        if (t.stage) revisited(t, res);
       }
+    } else if (res.result === 'stage') {
+      clearTimeout(labSaveTimer);
+      labSaveTimer = null;
+      bump();
+      await new Promise((resolve) => { setTimeout(resolve, WIN_MOMENT); });
+      await nextStage(t, res);
     } else if (res.result === 'pass') {
       clearTimeout(labSaveTimer);
       labSaveTimer = null;
@@ -969,17 +1025,34 @@ export function saveCode(t, src) {
   S.code[t.id] = src;
   saveMachine();
 }
-/** The browser runs the tests and reports the result. The server keeps the code, and M9 re-runs it. */
-export async function reportPython(t, code, passed) {
+/* Code runs in a sandbox on the server, through a queue. So a run gets a ticket, and this waits for its answer. */
+const JOB_WAIT = 90_000;
+const JOB_POLL = 700;
+async function waitForJob(job) {
+  const giveUp = Date.now() + JOB_WAIT;
+  for (;;) {
+    const d = await get(`/missions/jobs/${job}/`);
+    if (d.state === 'done') return d.result;
+    if (d.state === 'failed' || Date.now() > giveUp) throw Object.assign(new Error("Your code couldn't be checked just now. Try again in a moment."), { code: 'grader_unavailable' });
+    await new Promise((resolve) => setTimeout(resolve, JOB_POLL));
+  }
+}
+/** Sends a run to the server, which decides whether it passed. Returns what to show. */
+export async function reportCode(t, body) {
   try {
-    const res = await post(`/missions/${t.id}/submit/`, { code, passed });
+    const sent = await post(`/missions/${t.id}/submit/`, { ...body, ...stageField(t) });
+    const res = sent.result === 'grading' ? await waitForJob(sent.job) : sent;
     if (res.revisit) revisited(t, res);
+    else if (res.result === 'stage') await nextStage(t, res);
     else if (res.result === 'pass') await afterSolved(t, res);
+    return { passed: res.result === 'pass' || res.result === 'stage', output: res.output ?? '' };
   } catch (e) {
     complain(e);
     if (e.code === 'no_active_session') await refreshPlayer();
+    return { passed: false, output: e.message };
+  } finally {
+    bump();
   }
-  bump();
 }
 
 /* ---------- rewind ---------- */
@@ -1073,6 +1146,8 @@ function applyEvents(events) {
       playUnlock();
       if (e.preview) showOverlay({ kind: 'unlock', mission: e.mission, preview: e.preview, xp: earned });
       else if (next) toast(`Unlocked: ${next.title}`);
+    } else if (e.type === 'session_closed') {
+      toast(`Mission done, so the session stopped. ${mmss(e.returned)} went back to your bank.`);
     } else if (e.type === 'lab_waiting') {
       toast(`The next lab opens after ${e.needs_title} (${e.needs.toUpperCase()}) in Networking.`);
     } else if (e.type === 'level_up') {

@@ -45,7 +45,8 @@ for (const [width, height] of [[1400, 880], [400, 860]]) {
   await page.waitForFunction(() => document.querySelector('#usernameNote').textContent === 'Available');
   await shot('register');
 
-  const made = await ctx.request.post(`${base}/api/v1/auth/register/`, { data: { username: `shots_${width}`, email: 'shots@example.test', password: 'correct horse battery' } });
+  await ctx.request.post(`${base}/api/v1/auth/register/`, { data: { username: `shots_${width}`, email: 'shots@example.test', password: 'correct horse battery', confirm_password: 'correct horse battery' } });
+  const made = await ctx.request.post(`${base}/api/v1/auth/verify/`, { data: { username: `shots_${width}`, code: stack.latestCode(`shots_${width}`) } });
   const auth = { Authorization: `Bearer ${(await made.json()).access}` };
   const call = (path, data = {}) => ctx.request.post(`${base}/api/v1${path}`, { headers: auth, data });
   // The screens with history are only worth checking with a year of it behind them.
@@ -230,13 +231,14 @@ const fits = (page, name, selectors) => page.evaluate(({ selectors }) => {
   const page = await ctx.newPage();
   for (const [width, height] of SIZES) {
     await page.setViewportSize({ width, height });
-    for (const [path, ready] of [['/login', '#loginBtn'], ['/register', '#registerBtn']]) {
+    for (const [path, ready] of [['/login', '#loginBtn'], ['/register', '#registerBtn'], ['/forgot', '#forgotBtn'], ['/reset', '#resetBtn'], ['/verify', '#verifyBtn']]) {
       await page.goto(base + path);
       await page.waitForSelector(ready);
       await fits(page, `${path} ${width}x${height}`, [ready]);
     }
   }
-  await ctx.request.post(`${base}/api/v1/auth/register/`, { data: { username: 'shots_fit', email: 'fit@example.test', password: 'correct horse battery' } });
+  await ctx.request.post(`${base}/api/v1/auth/register/`, { data: { username: 'shots_fit', email: 'fit@example.test', password: 'correct horse battery', confirm_password: 'correct horse battery' } });
+  await ctx.request.post(`${base}/api/v1/auth/verify/`, { data: { username: 'shots_fit', code: stack.latestCode('shots_fit') } });
   await page.goto(`${base}/`);
   await page.waitForSelector('.deck');
   for (const [width, height] of SIZES) {

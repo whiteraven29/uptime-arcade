@@ -1,0 +1,144 @@
+id: ops-13
+track: OPS
+skill: shell
+chapter: On the rota
+order: 13
+title: Disk full
+from: Platform
+difficulty: medium
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- sh-18
+- sh-30
+lesson:
+  text: A full disk stops everything from logging in to writing files. Look before you delete, so you only remove what you meant to. Once the emergency is over, a script stops the same thing happening next month.
+  example: find tmp -name '*.tmp'
+brief: The disk on the build box is full, and builds are failing. Find what is using the room, clean it up safely, then script the cleanup.
+goal: Find it, delete it safely, then write the script.
+hints:
+- Sort ~/ops/usage.txt by its first column, biggest first.
+- find with -name and -exec can delete what it finds.
+debrief:
+  why: Looking first means nothing important goes, and the script means nobody has to wake up for this again.
+  solution: |-
+    # Find what is using the room
+    sort -rn ops/usage.txt | head -1
+    submit build-cache
+
+    # Clear it safely
+    find ops/build-cache -name '*.tmp' -exec rm {} ;
+
+    # Script the cleanup
+    echo '#!/bin/sh' > ops/clean.sh
+    echo "find /home/ops/ops/build-cache -name '*.tmp' -exec rm {} ;" >> ops/clean.sh
+    chmod +x ops/clean.sh
+  job: Disks fill up in every company, and careless deletes turn a small problem into a big one.
+teaches:
+- cleanup
+stages:
+- title: Find what is using the room
+  check: answer
+  brief: ~/ops/usage.txt lists megabytes used by each folder.
+  goal: 'Run: submit <the biggest folder>'
+  answer:
+    accept:
+    - build-cache
+  solution: |-
+    sort -rn ops/usage.txt | head -1
+    submit build-cache
+- title: Clear it safely
+  check: fs
+  brief: The .tmp files in ~/ops/build-cache can go, but keep.conf must stay.
+  goal: Delete every .tmp file there, and leave keep.conf alone.
+  expect:
+  - file_missing: ~/ops/build-cache/a.tmp
+  - file_missing: ~/ops/build-cache/b.tmp
+  - file_exists: ~/ops/build-cache/keep.conf
+  solution: find ops/build-cache -name '*.tmp' -exec rm {} ;
+- title: Script the cleanup
+  check: fs
+  brief: Next month it will fill up again. Write ~/ops/clean.sh containing the find command you just used, and make it executable.
+  goal: The script contains a find command and can run.
+  expect:
+  - file_contains:
+      path: ~/ops/clean.sh
+      text: 'find '
+  - mode_has:
+      path: ~/ops/clean.sh
+      bit: x
+  solution: |-
+    echo '#!/bin/sh' > ops/clean.sh
+    echo "find /home/ops/ops/build-cache -name '*.tmp' -exec rm {} ;" >> ops/clean.sh
+    chmod +x ops/clean.sh
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why look before deleting?
+  options:
+  - Deleting is slow.
+  - So you only remove what you meant to.
+  - Files need warning first.
+  - It frees more space.
+  answer: So you only remove what you meant to.
+  hint: rm has no undo.
+- type: mc
+  level: easy
+  label: The tool
+  q: What does sort -rn do?
+  options:
+  - Removes numbers.
+  - Sorts names backwards only.
+  - Sorts numbers from biggest to smallest.
+  - Renames files.
+  answer: Sorts numbers from biggest to smallest.
+  hint: r is reverse, n is numeric.
+- type: mc
+  level: medium
+  label: The command
+  q: What does -exec rm {} do in find?
+  options:
+  - It lists files.
+  - It deletes each file that find matched.
+  - It renames them.
+  - It makes them executable.
+  answer: It deletes each file that find matched.
+  hint: '{} stands for each match.'
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Script the cleanup
+  - Clear it safely
+  - Find what is using the room
+  answer:
+  - Find what is using the room
+  - Clear it safely
+  - Script the cleanup
+  hint: 'It started with: Find what is using the room.'
+- type: mc
+  level: hard
+  label: On the job
+  q: The disk is full and you cannot tell what a large folder is for. What should you do?
+  options:
+  - Find its owner, or move it aside, rather than deleting it.
+  - Delete it to save time.
+  - Reboot and hope.
+  - Format the disk.
+  answer: Find its owner, or move it aside, rather than deleting it.
+  hint: Unknown does not mean unused.
+fixtures:
+  ops/usage.txt: |
+    120 logs
+    4800 build-cache
+    310 home
+  ops/build-cache/a.tmp: |
+    x
+  ops/build-cache/b.tmp: |
+    y
+  ops/build-cache/keep.conf: |
+    keep me

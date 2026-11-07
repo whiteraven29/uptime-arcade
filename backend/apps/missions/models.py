@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 
 from apps.content.models import Mission
@@ -15,6 +17,7 @@ class MissionProgress(models.Model):
     season = models.PositiveIntegerField()
     state = models.CharField(max_length=10, choices=State.choices, default=State.OPEN)
     tries = models.PositiveIntegerField(default=0)
+    stage = models.PositiveSmallIntegerField(default=0)  # how far through an Operation
     hints_used = models.PositiveIntegerField(default=0)
     commands = models.PositiveIntegerField(default=0)
     keys = models.PositiveIntegerField(default=0)
@@ -43,3 +46,27 @@ class RewindProgress(models.Model):
     queue = models.JSONField(default=list)
     correct = models.PositiveIntegerField(default=0)
     misses = models.JSONField(default=dict)
+
+
+class GradingJob(models.Model):
+    """One run of a player's code. It goes through a queue, so a player waits a moment and the server stays up."""
+
+    class State(models.TextChoices):
+        PENDING = "pending"
+        DONE = "done"
+        FAILED = "failed"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="grading_jobs")
+    mission = models.ForeignKey(Mission, on_delete=models.PROTECT, related_name="+")
+    code = models.TextField()
+    stage = models.PositiveSmallIntegerField(default=0)
+    commands = models.PositiveIntegerField(default=0)
+    keys = models.PositiveIntegerField(default=0)
+    state = models.CharField(max_length=10, choices=State.choices, default=State.PENDING)
+    result = models.JSONField(default=dict)
+    created_at = models.DateTimeField()
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["player", "state", "created_at"])]

@@ -28,8 +28,16 @@ def validate_mission(mission, validator):
             problems.append(f"rewind {i}: the answer isn't one of the options")
         if task["type"] == "order" and sorted(task["scrambled"]) != sorted(task["answer"]):
             problems.append(f"rewind {i}: scrambled doesn't hold the same items as the answer")
-    if mission["check"] == "go-fix" and "____" not in mission["go"]["program"]:
-        problems.append("a go-fix program needs a ____ blank")
+    for piece in [mission, *mission.get("stages", [])]:
+        if piece.get("check") == "go-out" and "program" not in piece["go"]:
+            problems.append("a go-out mission needs a program to read")
+        if piece.get("check") == "go-code" and not {"starter", "test"} <= set(piece["go"]):
+            problems.append("a go-code mission needs a starter and a test")
+    if mission["check"] == "ops":
+        kinds = [s["check"] for s in mission["stages"]]
+        # A lab's saved work and a code editor's text are kept per mission, so an Operation has room for one of each.
+        if kinds.count("net") > 1 or kinds.count("py") + kinds.count("go-code") > 1:
+            problems.append("an Operation can have one lab stage and one code stage")
     if mission.get("track") == "BX" and mission["difficulty"] != mission["chapter"].lower():
         problems.append("a Beyond mission's chapter must be its difficulty tier")
     return problems
@@ -72,6 +80,9 @@ def load(root=None):
         if track.get("requires") and track["requires"] not in known:
             problems.append(f"{track['code']}: requires {track['requires']}, which doesn't exist")
     for m in missions:
+        for needed in (m.get("requires_all") or []) if isinstance(m, dict) else []:
+            if needed not in known:
+                problems.append(f"{m.get('id')}: requires_all names {needed}, which doesn't exist")
         if isinstance(m, dict) and m.get("requires") and m["requires"] not in known:
             problems.append(f"{m['id']}: requires {m['requires']}, which doesn't exist")
     fixtures = _yaml(root / "fixtures" / "fs" / "base.yaml")["files"]

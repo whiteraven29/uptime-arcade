@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { HudPanel } from '../../ui/HudPanel.jsx';
+import { PasswordField } from '../../ui/PasswordField.jsx';
 import { S, closeSession, deleteAccount, logout, setTimeZone, toggleMute, ui } from '../../api/game.js';
 
 function DeleteAccount() {
@@ -22,8 +23,7 @@ function DeleteAccount() {
     >
       <p className="bad" style={{ margin: 0 }}>This wipes your progress, XP, badges and focus history for good.</p>
       <div>
-        <label className="small" htmlFor="deletePassword">Your password</label>
-        <input type="password" id="deletePassword" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+        <PasswordField id="deletePassword" label="Your password" autoComplete="current-password" value={password} onChange={setPassword} />
       </div>
       {error && <p className="bad" role="alert" style={{ margin: 0 }}>{error}</p>}
       <div className="row">

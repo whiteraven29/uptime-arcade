@@ -1,0 +1,237 @@
+id: ops-11
+track: OPS
+skill: shell
+chapter: On the rota
+order: 11
+title: The noisy client
+from: Security
+difficulty: hard
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- sh-21
+- py-15
+- lab-21
+lesson:
+  text: When one client overwhelms a service, the fix has three steps. Find who it is, decide what counts as too much, then enforce it. An access list on the router is the last step, and it goes as near to the source as possible.
+  example: awk '{print $1}' access.log | sort | uniq -c | sort -rn | head -1
+brief: A guest machine is hammering the web server, and the finance team can also see guest traffic. Find it, write the rule, then block guests from finance on the router.
+goal: Find the top talker, write the limit check, then apply the ACL.
+hints:
+- Count the first column of ~/ops/access.log.
+- sorted gives the names in order, and a loop keeps those over the limit.
+debrief:
+  why: You measured first, so the block is aimed at the real problem and everyone else keeps working.
+  solution: |-
+    # Find the top talker
+    awk '{print $1}' ops/access.log | sort | uniq -c | sort -rn | head -1
+    submit 10.40.21.5
+
+    # Decide what counts as too much
+    def over_limit(counts, limit):
+        found = []
+        for name in counts:
+            if counts[name] > limit:
+                found.append(name)
+        return sorted(found)
+
+
+    # Block it on the router
+    [R1]
+    enable
+    configure terminal
+    ip access-list extended GUESTS
+    deny ip 10.40.21.0 0.0.0.255 10.40.31.0 0.0.0.255
+    permit ip any any
+    interface Gi0/0
+    ip access-group GUESTS in
+    end
+    show access-lists
+  job: This loop of measure, decide and enforce is what incident response looks like in practice.
+teaches:
+- top talker
+stages:
+- title: Find the top talker
+  check: answer
+  brief: ~/ops/access.log has the client address first on each line.
+  goal: 'Run: submit <the busiest client>'
+  answer:
+    accept:
+    - 10.40.21.5
+  solution: |-
+    awk '{print $1}' ops/access.log | sort | uniq -c | sort -rn | head -1
+    submit 10.40.21.5
+- title: Decide what counts as too much
+  check: py
+  brief: over_limit(counts, limit) takes a dict of client to request count and returns, sorted, the clients above the limit.
+  goal: Write over_limit(counts, limit). Tests run when you press Run tests.
+  python:
+    starter: |
+      def over_limit(counts, limit):
+          # your code here
+          pass
+    tests:
+    - expr: 'over_limit({"a": 5, "b": 2, "c": 9}, 4)'
+      want: '["a", "c"]'
+    - expr: 'over_limit({"a": 1}, 4)'
+      want: '[]'
+    - expr: over_limit({}, 4)
+      want: '[]'
+  solution: |
+    def over_limit(counts, limit):
+        found = []
+        for name in counts:
+            if counts[name] > limit:
+                found.append(name)
+        return sorted(found)
+- title: Block it on the router
+  check: net
+  brief: Those clients are all on the guest network. The guest network is 10.40.21.0/24 and finance is 10.40.31.0/24. Guests must never reach finance, but they still need the web server at 10.40.41.80. Filter as close to the guests as you can.
+  goal: Guests reach the web server and can't reach finance.
+  lab:
+    devices:
+    - name: GUEST-1
+      kind: pc
+      x: 12
+      y: 50
+      config: 'ip addr add 10.40.21.10/24 dev eth0
+
+        ip route add default via 10.40.21.1'
+    - name: R1
+      kind: router
+      x: 48
+      y: 50
+      config: "interface Gi0/0\n ip address 10.40.21.1 255.255.255.0\n no shutdown\ninterface Gi0/1\n ip address 10.40.31.1 255.255.255.0\n no shutdown\ninterface Gi0/2\n ip address 10.40.41.1 255.255.255.0\n no shutdown"
+    - name: FIN-1
+      kind: pc
+      x: 85
+      y: 20
+      config: 'ip addr add 10.40.31.10/24 dev eth0
+
+        ip route add default via 10.40.31.1'
+    - name: WEB-1
+      kind: server
+      x: 85
+      y: 80
+      config: 'ip addr add 10.40.41.80/24 dev eth0
+
+        ip route add default via 10.40.41.1
+
+        service http start'
+    cables:
+    - - GUEST-1
+      - eth0
+      - R1
+      - Gi0/0
+    - - FIN-1
+      - eth0
+      - R1
+      - Gi0/1
+    - - WEB-1
+      - eth0
+      - R1
+      - Gi0/2
+  expect:
+  - label: Guests can't reach finance
+    reach:
+      from: GUEST-1
+      to: FIN-1
+      expect: blocked
+  - label: Guests reach the web server
+    reach:
+      from: GUEST-1
+      to: WEB-1
+      proto: tcp
+      port: 80
+  - label: Finance can still use the web server
+    reach:
+      from: FIN-1
+      to: WEB-1
+      proto: tcp
+      port: 80
+  - label: The list is applied near the guests
+    config:
+      device: R1
+      interface: Gi0/0
+      contains: ip access-group
+  solution: |-
+    [R1]
+    enable
+    configure terminal
+    ip access-list extended GUESTS
+    deny ip 10.40.21.0 0.0.0.255 10.40.31.0 0.0.0.255
+    permit ip any any
+    interface Gi0/0
+    ip access-group GUESTS in
+    end
+    show access-lists
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: What should you do before blocking anything?
+  options:
+  - Measure, so you know who is really causing it.
+  - Block every client.
+  - Reboot the server.
+  - Turn off logging.
+  answer: Measure, so you know who is really causing it.
+  hint: Evidence comes first.
+- type: mc
+  level: easy
+  label: The name
+  q: What is a top talker?
+  options:
+  - The loudest server fan.
+  - The client sending the most traffic.
+  - The newest router.
+  - A support engineer.
+  answer: The client sending the most traffic.
+  hint: Top means the most.
+- type: mc
+  level: medium
+  label: The ACL
+  q: Why put the access list near the source?
+  options:
+  - Unwanted traffic is dropped before it crosses the network.
+  - It is cheaper to buy.
+  - Routers only allow that.
+  - It makes the list shorter.
+  answer: Unwanted traffic is dropped before it crosses the network.
+  hint: Think about where the traffic travels.
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Block it on the router
+  - Decide what counts as too much
+  - Find the top talker
+  answer:
+  - Find the top talker
+  - Decide what counts as too much
+  - Block it on the router
+  hint: 'It started with: Find the top talker.'
+- type: mc
+  level: hard
+  label: On the job
+  q: The noisy client turns out to be your own monitoring tool. What now?
+  options:
+  - Fix its settings, since blocking it would blind your monitoring.
+  - Block it anyway.
+  - Delete the logs.
+  - Remove the web server.
+  answer: Fix its settings, since blocking it would blind your monitoring.
+  hint: Do not break what you need.
+fixtures:
+  ops/access.log: |
+    10.40.21.5 GET /
+    10.40.21.9 GET /
+    10.40.21.5 GET /
+    10.40.21.7 GET /
+    10.40.21.5 GET /
+    10.40.21.5 GET /
+    10.40.21.9 GET /
+    10.40.21.5 GET /

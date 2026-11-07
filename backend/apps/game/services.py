@@ -103,7 +103,7 @@ def _clean_chapter(player):
     from apps.missions.models import MissionProgress
 
     clean = set(MissionProgress.objects.filter(player=player, season=player.season, solved_at__isnull=False, hints_used=0).values_list("mission_id", flat=True))
-    for chapter in Chapter.objects.filter(track__after_archmage=False).prefetch_related("missions"):
+    for chapter in Chapter.objects.filter(track__after_archmage=False, track__side=False).prefetch_related("missions"):
         ids = {m.pk for m in chapter.missions.all()}
         if ids and ids <= clean:
             return True
@@ -145,6 +145,7 @@ def _badge_tests(player):
         tests[f"lv{i + 1}"] = lambda i=i: level >= i
     for code, _ in rules.CORE_TRACK_BADGES:
         tests[f"t{code}"] = lambda code=code: _track_cleared(player, code)
+    tests["tOPS"] = lambda: _track_cleared(player, "OPS")
     for i, tier in enumerate(rules.BEYOND_TIERS):
         tests[f"bx{i + 1}"] = lambda tier=tier: _tier_cleared(player, tier)
     return tests
@@ -164,7 +165,7 @@ def award_badges(player):
 def core_mission_count():
     from apps.content.models import Mission
 
-    return Mission.objects.filter(track__after_archmage=False, status=Mission.Status.PUBLISHED).count()
+    return Mission.objects.filter(track__after_archmage=False, track__side=False, status=Mission.Status.PUBLISHED).count()
 
 
 def current_season():

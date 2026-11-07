@@ -71,6 +71,12 @@ def _close_session(player, session):
     return left
 
 
+def stop_session(player):
+    """Stops the clock if it's running, and returns what went back to the bank. The caller holds the player's lock."""
+    session = current_session(player)
+    return _close_session(player, session) if session else None
+
+
 @transaction.atomic
 def open_session(user):
     player = services.locked_player(user)

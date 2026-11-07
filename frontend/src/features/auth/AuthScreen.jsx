@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { OperatorFigure } from '../../ui/OperatorFigure.jsx';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Logo } from '../../ui/icons.jsx';
-import { login, register, usernameStatus } from '../../api/game.js';
+import { PasswordField } from '../../ui/PasswordField.jsx';
+import { login, register, resendCode, usernameStatus } from '../../api/game.js';
+import { ForgotForm, ResetForm, VerifyForm } from './CodeForms.jsx';
+import { HowItWorks } from './HowItWorks.jsx';
 
 const USERNAME_NOTES = {
   invalid: '3 to 20 letters, numbers, _ or -',
@@ -36,21 +38,25 @@ function useUsernameStatus(name) {
 }
 
 function RegisterForm() {
+  const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const status = useUsernameStatus(username);
   const blocked = status && !status.checking && !status.available;
+  const differs = confirm.length > 0 && confirm !== password;
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (busy) return;
+    if (busy || differs) return;
     setBusy(true);
     setError('');
     try {
-      await register(username.trim(), email.trim(), password);
+      const made = await register(username.trim(), email.trim(), password, confirm);
+      navigate('/verify', { state: { username: made.username } });
     } catch (x) {
       const details = x.details && Object.values(x.details).flat().join(' ');
       setError(details || x.message);
@@ -76,19 +82,22 @@ function RegisterForm() {
         <input type="email" id="email" autoComplete="email" autoCapitalize="off" spellCheck="false" maxLength={150} required value={email} onChange={(e) => setEmail(e.target.value)} aria-describedby="emailNote" />
         <p id="emailNote" className="field-note">Private. It's never shown to anyone.</p>
       </div>
-      <div>
-        <label className="small" htmlFor="password">Password</label>
-        <input type="password" id="password" autoComplete="new-password" minLength={10} maxLength={128} required value={password} onChange={(e) => setPassword(e.target.value)} aria-describedby="passwordNote" />
+      <PasswordField id="password" label="Password" autoComplete="new-password" minLength={10} value={password} onChange={setPassword} describedBy="passwordNote">
         <p id="passwordNote" className="field-note">At least 10 characters.</p>
-      </div>
+      </PasswordField>
+      <PasswordField id="confirmPassword" label="Confirm password" autoComplete="new-password" value={confirm} onChange={setConfirm} describedBy="confirmNote">
+        <p id="confirmNote" className={`field-note ${differs ? 'bad' : confirm ? 'good' : ''}`} role="status">{differs ? "These don't match yet" : confirm ? 'They match' : ''}</p>
+      </PasswordField>
       {error && <p className="bad" role="alert" style={{ margin: 0 }}>{error}</p>}
-      <button className="btn cta" type="submit" id="registerBtn" disabled={busy || blocked}>{busy ? 'Creating...' : 'Create account'}</button>
+      <button className="btn cta" type="submit" id="registerBtn" disabled={busy || blocked || differs}>{busy ? 'Creating...' : 'Create account'}</button>
       <p className="small" style={{ margin: 0 }}>Already playing? <Link to="/login">Log in</Link></p>
     </form>
   );
 }
 
 function LoginForm() {
+  const navigate = useNavigate();
+  const { state } = useLocation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -102,6 +111,11 @@ function LoginForm() {
     try {
       await login(username.trim(), password);
     } catch (x) {
+      if (x.code === 'email_not_verified') {
+        await resendCode(username.trim()).catch(() => {});
+        navigate('/verify', { state: { username: username.trim() } });
+        return;
+      }
       setError(x.message);
       setPassword('');
       setBusy(false);
@@ -118,30 +132,36 @@ function LoginForm() {
         <label className="small" htmlFor="username">Username</label>
         <input type="text" id="username" autoComplete="username" autoCapitalize="off" spellCheck="false" required value={username} onChange={(e) => setUsername(e.target.value)} />
       </div>
-      <div>
-        <label className="small" htmlFor="password">Password</label>
-        <input type="password" id="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-      </div>
+      <PasswordField id="password" label="Password" autoComplete="current-password" value={password} onChange={setPassword} />
+      {state?.notice && <p className="good small" id="loginNotice" role="status" style={{ margin: 0 }}>{state.notice}</p>}
       {error && <p className="bad" role="alert" style={{ margin: 0 }}>{error}</p>}
       <button className="btn cta" type="submit" id="loginBtn" disabled={busy}>{busy ? 'Logging in...' : 'Log in'}</button>
-      <p className="small" style={{ margin: 0 }}>New here? <Link to="/register">Create an account</Link></p>
+      <p className="small auth-links" style={{ margin: 0 }}><span>New here? <Link to="/register">Create an account</Link></span> <Link to="/forgot" id="forgotLink">Forgot password?</Link></p>
     </form>
   );
 }
 
+const FORMS = {
+  '/register': ['Create account', RegisterForm],
+  '/verify': ['Confirm your email', VerifyForm],
+  '/forgot': ['Forgot password', ForgotForm],
+  '/reset': ['Choose a new password', ResetForm],
+};
+
 export function AuthScreen() {
   const { pathname } = useLocation();
+  const [label, Form] = FORMS[pathname] || ['Log in', LoginForm];
   return (
-    <section className="screen" aria-label={pathname === '/register' ? 'Create account' : 'Log in'}>
+    <section className="screen" aria-label={label}>
       <div className="auth">
         <div className="auth-card">
           <span className="auth-tabs" aria-hidden="true"><i /><i /><i /><i /><i /></span>
           <div className="auth-inner">
             <p className="auth-brand"><Logo /> Uptime Arcade</p>
-            {pathname === '/register' ? <RegisterForm /> : <LoginForm />}
+            <Form />
           </div>
         </div>
-        <OperatorFigure beam={false} className="auth-figure" />
+        <HowItWorks />
       </div>
     </section>
   );

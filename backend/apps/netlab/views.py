@@ -19,7 +19,7 @@ MAX_DRILL_FAULTS = 3
 
 def _lab_mission(player, code):
     mission = missions.get_mission(code)
-    if mission.check_type != "net":
+    if missions.lab_of(mission) is None:
         raise GameError("not_a_lab", "That mission isn't a lab.", status.HTTP_400_BAD_REQUEST)
     missions._require_playable(player, mission)
     return mission
@@ -36,7 +36,7 @@ def state(request, code):
     if request.method == "DELETE":
         LabState.objects.filter(player=player, mission=mission).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-    clean = grader.clean_state(request.data.get("state") if isinstance(request.data, dict) else None, mission.play["lab"])
+    clean = grader.clean_state(request.data.get("state") if isinstance(request.data, dict) else None, missions.lab_of(mission).play["lab"])
     LabState.objects.update_or_create(player=player, mission=mission, defaults={"state": clean, "updated_at": clock.now()})
     return Response({"saved": True})
 
@@ -52,6 +52,8 @@ def drill(request, code):
     """Break a lab you've cleared and fix it again. Like any replay, it costs nothing and earns nothing."""
     player = request.user.player
     mission = _lab_mission(player, code)
+    if mission.check_type != "net":
+        raise GameError("not_a_lab", "Fault drills are for NetLab labs.", status.HTTP_400_BAD_REQUEST)
     if missions.state_of(player, mission) != "cleared":
         raise GameError("clear_it_first", "Clear this lab first. Then you can break it.", status.HTTP_403_FORBIDDEN)
     _not_during_a_block(player)

@@ -15,7 +15,8 @@ import { S } from '../engines/host.js';
 import { evalExpect } from '../engines/fs/expect.js';
 import { buildProgram, configureSkulpt, judge } from '../frontend/src/features/play/workspaces/python/program.js';
 import { createLab, gradeLab } from '../engines/netsim/index.js';
-import { machineState, pressKeys, resetMachine, run, startMission } from './machine.mjs';
+import { keyLog, machineState, pressKeys, resetMachine, run, startMission } from './machine.mjs';
+import { replay } from '../engines/replay.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const problems = [];
@@ -113,11 +114,52 @@ function playLab(t) {
   solved[id] = { kind: 'net', state };
 }
 
-async function play(t) {
+/* The server decides shell and vi missions by replaying the player's log, so a log of the solution has to end on the
+   exact machine that playing it did. What's saved here lets the backend tests prove the same through the real runner. */
+let carried = null; // an Operation's log runs across its stages, because so does its machine
+function proveReplay(t, stepLog) {
+  const log = carried ? [...carried, ...stepLog] : stepLog;
+  if (carried) carried = log;
+  const played = machineState();
+  const replayed = replay({ base: [], fixtures: t.fixtures, log });
+  if (JSON.stringify(replayed.state.files) !== JSON.stringify(played.files)) fail(t.id, 'replaying the log gave different files');
+  if (replayed.state.cwd !== played.cwd) fail(t.id, 'replaying the log ended in a different folder');
+  solved[t.id] = { ...played, log };
+}
+
+/* Real code, under real `go test`: the solution has to pass, and the starter has to fail. */
+function goTest(t, code) {
+  const d = mkdtempSync(join(tmpdir(), 'uptime-gotest-'));
+  writeFileSync(join(d, 'go.mod'), 'module mission\n\ngo 1.22\n');
+  writeFileSync(join(d, 'main.go'), code);
+  writeFileSync(join(d, 'main_test.go'), t.goTest);
+  try {
+    execSync('go test -vet=off -timeout 10s ./... 2>&1', { cwd: d, env: { ...GOENV, CGO_ENABLED: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function playOperation(t) {
+  checkRewind(t);
+  resetMachine();
+  startMission(t);
+  carried = [];
+  for (const [i, stage] of t.stages.entries()) await play({ ...stage, id: `${t.id}:${i}`, fixtures: t.fixtures, rewind: [] }, true);
+  carried = null;
+}
+
+async function play(t, inOperation = false) {
   const id = t.id;
+  if (t.kind === 'ops') return playOperation(t);
   checkRewind(t);
   if (t.kind === 'net') return playLab(t);
-  startMission(t);
+  if (!inOperation) {
+    // Every mission starts on a clean machine, the same one the server replays a player's work on (ADR 0015).
+    resetMachine();
+    startMission(t);
+  }
   if (t.kind === 'py') {
     if (hasPython) {
       try {
@@ -135,12 +177,18 @@ async function play(t) {
     if (!pressKeys(t.file, t.sol)) fail(id, 'vi was left open');
     if (!evalExpect(t.expect)) fail(id, 'the goal is not met after the solution');
     if (S.viKeys[t.file] > t.par) fail(id, `par ${t.par} took ${S.viKeys[t.file]}`);
-    solved[id] = machineState();
+    proveReplay(t, [`lvi ${t.file}`, ...keyLog(t.sol)]);
+    return;
+  }
+  if (t.check === 'go-code') {
+    if (hasGo) {
+      if (!goTest(t, t.sol)) fail(id, 'the solution fails go test');
+      if (goTest(t, t.starter)) fail(id, 'the starter already passes go test');
+    }
     return;
   }
   if (t.skill === 'GO' && hasGo) {
-    // Fix missions run with the blank filled in, and must print what they promise.
-    const out = goRun(t.program.replace('____', t.answer[0]));
+    const out = goRun(t.program);
     const want = t.prints ?? t.answer[0];
     if (out !== want) fail(id, `go printed [${out}], wanted [${want}]`);
   }
@@ -155,9 +203,10 @@ async function play(t) {
     output += r.out;
     if (r.errors.length) fail(id, `${c}: ${r.errors.join(' ')}`);
   }
+  if (carried && !t.expect) carried = [...carried, ...cmds.map((c) => `l${c}`)];
   if (t.expect) {
     if (!evalExpect(t.expect)) fail(id, 'the goal is not met after the solution');
-    solved[id] = machineState();
+    proveReplay(t, cmds.map((c) => `l${c}`));
   } else if (cmds.length && !t.reasoned && !t.answer.some((x) => output.toLowerCase().includes(x.toLowerCase()))) {
     fail(id, `output lacks ${t.answer}: ${output.slice(-160)}`);
   }

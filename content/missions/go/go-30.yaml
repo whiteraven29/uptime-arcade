@@ -3,205 +3,80 @@ track: GO
 skill: go
 chapter: Quality
 order: 30
-title: "Capstone: the worker pool"
+title: 'Capstone: the worker pool'
 from: CTO
 difficulty: expert
-check: go-fix
+check: go-code
 par:
   kind: first-try
   value: 1
 lesson:
   text: Nothing new. A worker pool is goroutines ranging over a jobs channel. They only leave that loop when the channel is closed, and wg.Wait() only returns when they leave.
-  example: |-
-    for j := range jobs {
-    	// stops when jobs is closed
-    }
-brief: Three workers double each job. As written the program hangs forever at wg.Wait(). What line belongs in the blank?
-goal: "Run: submit <the code that replaces ____>"
+  example: "for j := range jobs {\n\t// stops when jobs is closed\n}"
+brief: Three workers double each job, and sumDoubled adds up what they return. As written it hangs forever at wg.Wait(), because the workers never learn that the jobs have run out. Fix it.
+goal: Add the line that lets the workers finish. Run tests compiles and runs your code with go test.
 hints:
-  - What ends a range over a channel?
-  - The sender is finished at that point.
+- range over a channel only ends when the channel is closed.
+- Close jobs once every job has been sent, before wg.Wait().
 debrief:
   why: range over a channel ends only on close. Whoever sends is responsible for closing, otherwise every worker waits forever.
-  solution: submit close(jobs)
+  solution: "package main\n\nimport (\n\t\"fmt\"\n\t\"sync\"\n)\n\nfunc sumDoubled(nums []int) int {\n\tjobs := make(chan int, len(nums))\n\tresults := make(chan int, len(nums))\n\tvar wg sync.WaitGroup\n\tfor w := 0; w < 3; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor j := range jobs {\n\t\t\t\tresults <- j * 2\n\t\t\t}\n\t\t}()\n\t}\n\tfor _, n := range nums {\n\t\tjobs <- n\n\t}\n\tclose(jobs)\n\twg.Wait()\n\tclose(results)\n\tsum := 0\n\tfor r := range results {\n\t\tsum += r\n\t}\n\treturn sum\n}\n\nfunc main() {\n\tfmt.Println(sumDoubled([]int{1, 2, 3, 4, 5}))\n}\n"
   job: You have just debugged the most common goroutine leak there is.
 teaches:
-  - capstone
-answer:
-  accept:
-    - close(jobs)
+- capstone
 go:
-  program: |
-    package main
-
-    import (
-    	"fmt"
-    	"sync"
-    )
-
-    func main() {
-    	jobs := make(chan int, 5)
-    	results := make(chan int, 5)
-    	var wg sync.WaitGroup
-    	for w := 0; w < 3; w++ {
-    		wg.Add(1)
-    		go func() {
-    			defer wg.Done()
-    			for j := range jobs {
-    				results <- j * 2
-    			}
-    		}()
-    	}
-    	for i := 1; i <= 5; i++ {
-    		jobs <- i
-    	}
-    	____
-    	wg.Wait()
-    	close(results)
-    	sum := 0
-    	for r := range results {
-    		sum += r
-    	}
-    	fmt.Println(sum)
-    }
-  prints: "30"
+  starter: "package main\n\nimport (\n\t\"fmt\"\n\t\"sync\"\n)\n\nfunc sumDoubled(nums []int) int {\n\tjobs := make(chan int, len(nums))\n\tresults := make(chan int, len(nums))\n\tvar wg sync.WaitGroup\n\tfor w := 0; w < 3; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor j := range jobs {\n\t\t\t\tresults <- j * 2\n\t\t\t}\n\t\t}()\n\t}\n\tfor _, n := range nums {\n\t\tjobs <- n\n\t}\n\t// One line is missing here.\n\twg.Wait()\n\tclose(results)\n\tsum := 0\n\tfor r := range results {\n\t\tsum += r\n\t}\n\treturn sum\n}\n\nfunc main() {\n\tfmt.Println(sumDoubled([]int{1, 2, 3, 4, 5}))\n}\n"
+  test: "package main\n\nimport \"testing\"\n\nfunc TestSumDoubled(t *testing.T) {\n\tif got := sumDoubled([]int{1, 2, 3, 4, 5}); got != 30 {\n\t\tt.Errorf(\"sumDoubled gave %d, wanted 30\", got)\n\t}\n\tif got := sumDoubled(nil); got != 0 {\n\t\tt.Errorf(\"sumDoubled(nil) gave %d, wanted 0\", got)\n\t}\n}\n"
 rewind:
-  - type: mc
-    level: easy
-    label: The main idea
-    q: 'You just finished "Capstone: the worker pool". Which sentence best describes what it taught?'
-    options:
-      - range over a channel ends only on close. Whoever sends is responsible for closing, otherwise every worker waits forever.
-      - Closing doesn't throw away buffered values. Without close, this loop would deadlock.
-      - Channels are how goroutines talk safely, by handing over values instead of sharing memory.
-      - Goroutines are cheap to start, but main does not wait for them. That is the first concurrency trap.
-    answer: range over a channel ends only on close. Whoever sends is responsible for closing, otherwise every worker waits forever.
-    hint: "The lesson said: Nothing new."
-  - type: mc
-    level: easy
-    label: Spot the solution
-    q: What did this program print?
-    context: Three workers double each job. As written the program hangs forever at wg.Wait(). What line belongs in the blank?
-    options:
-      - worker main
-      - close(jobs)
-      - 2 a b
-      - 14 0
-    answer: close(jobs)
-    hint: The sender is finished at that point.
-    code: true
-    show: |
-      package main
-
-      import (
-      	"fmt"
-      	"sync"
-      )
-
-      func main() {
-      	jobs := make(chan int, 5)
-      	results := make(chan int, 5)
-      	var wg sync.WaitGroup
-      	for w := 0; w < 3; w++ {
-      		wg.Add(1)
-      		go func() {
-      			defer wg.Done()
-      			for j := range jobs {
-      				results <- j * 2
-      			}
-      		}()
-      	}
-      	for i := 1; i <= 5; i++ {
-      		jobs <- i
-      	}
-      	close(jobs)
-      	wg.Wait()
-      	close(results)
-      	sum := 0
-      	for r := range results {
-      		sum += r
-      	}
-      	fmt.Println(sum)
-      }
-  - type: mc
-    level: medium
-    label: Why it matters
-    q: 'Where would you use what "Capstone: the worker pool" taught you at work?'
-    options:
-      - Worker pools use send, close and range.
-      - Servers run each request in its own goroutine.
-      - Pipelines and worker pools are built from channels.
-      - You have just debugged the most common goroutine leak there is.
-    answer: You have just debugged the most common goroutine leak there is.
-    hint: "It starts with: You have just debugged…"
-  - type: text
-    level: medium
-    label: Fill the gap
-    q: Here is the code with one word missing. Type the missing word.
-    show: |-
-      jobs := make(chan int, 5)
-      results := make(chan int, 5)
-      var wg sync.WaitGroup
-      ____ w := 0; w < 3; w++ {
-      	wg.Add(1)
-      	go func() {
-      		defer wg.Done()
-      		for j := range jobs {
-      			results <- j * 2
-      		}
-      	}()
-      }
-      for i := 1; i <= 5; i++ {
-      	jobs <- i
-      }
-      ____
-      wg.Wait()
-      close(results)
-      sum := 0
-      for r := range results {
-      	sum += r
-      }
-      fmt.Println(sum)
-    answer:
-      - for
-    hint: It starts with "f" and is 3 characters long.
-  - type: text
-    level: hard
-    label: From memory
-    q: "Without looking back: what goes in the blank?"
-    show: |
-      package main
-
-      import (
-      	"fmt"
-      	"sync"
-      )
-
-      func main() {
-      	jobs := make(chan int, 5)
-      	results := make(chan int, 5)
-      	var wg sync.WaitGroup
-      	for w := 0; w < 3; w++ {
-      		wg.Add(1)
-      		go func() {
-      			defer wg.Done()
-      			for j := range jobs {
-      				results <- j * 2
-      			}
-      		}()
-      	}
-      	for i := 1; i <= 5; i++ {
-      		jobs <- i
-      	}
-      	____
-      	wg.Wait()
-      	close(results)
-      	sum := 0
-      	for r := range results {
-      		sum += r
-      	}
-      	fmt.Println(sum)
-      }
-    answer:
-      - close(jobs)
-    hint: It starts with "c" and is 11 characters long.
+- type: mc
+  level: easy
+  label: The main idea
+  q: 'You just finished "Capstone: the worker pool". Which sentence best describes what it taught?'
+  options:
+  - range over a channel ends only on close. Whoever sends is responsible for closing, otherwise every worker waits forever.
+  - Closing doesn't throw away buffered values. Without close, this loop would deadlock.
+  - Channels are how goroutines talk safely, by handing over values instead of sharing memory.
+  - Goroutines are cheap to start, but main does not wait for them. That is the first concurrency trap.
+  answer: range over a channel ends only on close. Whoever sends is responsible for closing, otherwise every worker waits forever.
+  hint: 'The lesson said: Nothing new.'
+- type: mc
+  level: easy
+  label: Spot the solution
+  q: What did this program print?
+  context: Three workers double each job. As written the program hangs forever at wg.Wait(). What line belongs in the blank?
+  options:
+  - worker main
+  - close(jobs)
+  - 2 a b
+  - 14 0
+  answer: close(jobs)
+  hint: The sender is finished at that point.
+  code: true
+  show: "package main\n\nimport (\n\t\"fmt\"\n\t\"sync\"\n)\n\nfunc main() {\n\tjobs := make(chan int, 5)\n\tresults := make(chan int, 5)\n\tvar wg sync.WaitGroup\n\tfor w := 0; w < 3; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor j := range jobs {\n\t\t\t\tresults <- j * 2\n\t\t\t}\n\t\t}()\n\t}\n\tfor i := 1; i <= 5; i++ {\n\t\tjobs <- i\n\t}\n\tclose(jobs)\n\twg.Wait()\n\tclose(results)\n\tsum := 0\n\tfor r := range results {\n\t\tsum += r\n\t}\n\tfmt.Println(sum)\n}\n"
+- type: mc
+  level: medium
+  label: Why it matters
+  q: 'Where would you use what "Capstone: the worker pool" taught you at work?'
+  options:
+  - Worker pools use send, close and range.
+  - Servers run each request in its own goroutine.
+  - Pipelines and worker pools are built from channels.
+  - You have just debugged the most common goroutine leak there is.
+  answer: You have just debugged the most common goroutine leak there is.
+  hint: 'It starts with: You have just debugged…'
+- type: text
+  level: medium
+  label: Fill the gap
+  q: Here is the code with one word missing. Type the missing word.
+  show: "jobs := make(chan int, 5)\nresults := make(chan int, 5)\nvar wg sync.WaitGroup\n____ w := 0; w < 3; w++ {\n\twg.Add(1)\n\tgo func() {\n\t\tdefer wg.Done()\n\t\tfor j := range jobs {\n\t\t\tresults <- j * 2\n\t\t}\n\t}()\n}\nfor i := 1; i <= 5; i++ {\n\tjobs <- i\n}\n____\nwg.Wait()\nclose(results)\nsum := 0\nfor r := range results {\n\tsum += r\n}\nfmt.Println(sum)"
+  answer:
+  - for
+  hint: It starts with "f" and is 3 characters long.
+- type: text
+  level: hard
+  label: From memory
+  q: 'Without looking back: what goes in the blank?'
+  show: "package main\n\nimport (\n\t\"fmt\"\n\t\"sync\"\n)\n\nfunc main() {\n\tjobs := make(chan int, 5)\n\tresults := make(chan int, 5)\n\tvar wg sync.WaitGroup\n\tfor w := 0; w < 3; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor j := range jobs {\n\t\t\t\tresults <- j * 2\n\t\t\t}\n\t\t}()\n\t}\n\tfor i := 1; i <= 5; i++ {\n\t\tjobs <- i\n\t}\n\t____\n\twg.Wait()\n\tclose(results)\n\tsum := 0\n\tfor r := range results {\n\t\tsum += r\n\t}\n\tfmt.Println(sum)\n}\n"
+  answer:
+  - close(jobs)
+  hint: It starts with "c" and is 11 characters long.

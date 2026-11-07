@@ -1,0 +1,114 @@
+id: ops-19
+track: OPS
+skill: networking
+chapter: Senior on call
+order: 19
+title: Port audit
+from: Security
+difficulty: hard
+check: ops
+par:
+  kind: first-try
+  value: 1
+requires_all:
+- net-23
+- go-13
+lesson:
+  text: Every listening port is a door, so you should know why each one is open. ss lists them. 0.0.0.0 means it listens on every network, while 127.0.0.1 is only reachable from the machine itself. An allow list then says which are expected.
+  example: |-
+    ss -tln
+    port, ok := allowed[8080]
+brief: Security wants to know what this box exposes. Read what is listening, then predict what the audit tool will say about it.
+goal: Read ss, then predict the scanner.
+hints:
+- Look for 0.0.0.0 in the ss output, leaving out SSH.
+- A comma-ok lookup gives false when the key is missing.
+debrief:
+  why: The port was not in the allow list, and the tool and your own reading agree, so you can be confident it should be closed.
+  solution: |-
+    # Read what is listening
+    ss -tln
+    submit 8080
+
+    # Predict the scanner
+    submit false
+  job: Port audits are a routine part of hardening any server.
+teaches:
+- allow list
+stages:
+- title: Read what is listening
+  check: answer
+  brief: Run ss to see the listening TCP ports.
+  goal: 'Run: submit <the TCP port on all interfaces, other than SSH>'
+  answer:
+    accept:
+    - '8080'
+  solution: |-
+    ss -tln
+    submit 8080
+- title: Predict the scanner
+  check: go-out
+  brief: The audit tool checks each port against an allow list. Read what it does with 8080.
+  goal: 'Predict the output, then run: submit <the printed text>'
+  go:
+    program: "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tallowed := map[int]bool{22: true, 443: true}\n\t_, ok := allowed[8080]\n\tfmt.Println(ok)\n}\n"
+  answer:
+    accept:
+    - 'false'
+  solution: submit false
+rewind:
+- type: mc
+  level: easy
+  label: The main idea
+  q: Why audit listening ports?
+  options:
+  - To speed up the network.
+  - To save memory.
+  - Every open port is a way in, so you should know why it is open.
+  - Because ports expire.
+  answer: Every open port is a way in, so you should know why it is open.
+  hint: Think of doors.
+- type: mc
+  level: easy
+  label: Reading ss
+  q: What does 0.0.0.0:8080 mean?
+  options:
+  - It listens on every network the machine has.
+  - It is switched off.
+  - It is only reachable locally.
+  - It has no port.
+  answer: It listens on every network the machine has.
+  hint: All interfaces.
+- type: mc
+  level: medium
+  label: The Go
+  q: What does ok hold after a map lookup?
+  options:
+  - The value.
+  - Whether the key was in the map.
+  - The length of the map.
+  - The port number.
+  answer: Whether the key was in the map.
+  hint: Comma-ok.
+- type: order
+  level: medium
+  label: Put it in order
+  q: This incident was worked through in stages. Tap them from first to last.
+  scrambled:
+  - Predict the scanner
+  - Read what is listening
+  answer:
+  - Read what is listening
+  - Predict the scanner
+  hint: 'It started with: Read what is listening.'
+- type: mc
+  level: hard
+  label: On the job
+  q: You find an unknown service on a public port. What should you do first?
+  options:
+  - Ignore it.
+  - Reboot the server.
+  - Add it to the allow list.
+  - Find out what it is and who owns it, then close it if it is not needed.
+  answer: Find out what it is and who owns it, then close it if it is not needed.
+  hint: Unknown is the problem.

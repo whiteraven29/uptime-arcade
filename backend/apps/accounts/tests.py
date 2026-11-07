@@ -1,27 +1,42 @@
+import re
 import uuid
-from io import BytesIO
+from datetime import timedelta
+from io import BytesIO, StringIO
 
 import pytest
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core import mail
+from django.core.management import call_command
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from django.utils import timezone
+
+from apps.accounts import email_codes
 from apps.accounts.avatars import MAX_BYTES
+from apps.accounts.models import EmailCode
 from apps.game import rules
 from apps.game.models import AvatarImage, Player, TimeLedger
 
-GOOD = {"username": "Sara_01", "email": "Sara@Example.test", "password": "correct horse battery"}
+GOOD = {"username": "Sara_01", "email": "Sara@Example.test", "password": "correct horse battery", "confirm_password": "correct horse battery"}
 COOKIE = settings.REFRESH_COOKIE["key"]
+
+
+def code_from(message):
+    return re.search(r"\b([0-9]{6})\b", message.body).group(1)
 
 
 @pytest.fixture
 def registered(anon):
+    """An account that has confirmed its email, logged in the way a person would be."""
     response = anon.post("/api/v1/auth/register/", GOOD, format="json")
     assert response.status_code == 201
-    return response
+    verified = anon.post("/api/v1/auth/verify/", {"username": "sara_01", "code": code_from(mail.outbox[-1])}, format="json")
+    assert verified.status_code == 200
+    return verified
 
 
 class TestRegister:
@@ -425,3 +440,209 @@ class TestServingAvatars:
 
     def test_addresses_cant_be_walked_through(self, anon):
         assert anon.get("/api/v1/avatars/1.webp").status_code == 404
+
+
+def fresh_account(username="dana_01", email="dana@example.test"):
+    client = APIClient()
+    made = client.post("/api/v1/auth/register/", {"username": username, "email": email, "password": GOOD["password"], "confirm_password": GOOD["password"]}, format="json")
+    assert made.status_code == 201
+    return client, code_from(mail.outbox[-1])
+
+
+def confirm(client, username, code):
+    return client.post("/api/v1/auth/verify/", {"username": username, "code": code}, format="json")
+
+
+def wrong_code(right):
+    return "000000" if right != "000000" else "111111"
+
+
+@pytest.mark.django_db
+class TestEmailConfirmation:
+    def test_registering_gives_no_tokens_until_the_email_is_confirmed(self):
+        client = APIClient()
+        made = client.post("/api/v1/auth/register/", {**GOOD, "username": "dana_01"}, format="json")
+        assert made.status_code == 201
+        assert "access" not in made.data and settings.REFRESH_COOKIE["key"] not in made.cookies
+        assert mail.outbox[-1].to == ["sara@example.test"]
+
+    def test_passwords_have_to_match_on_the_server_too(self):
+        response = APIClient().post("/api/v1/auth/register/", {**GOOD, "confirm_password": "something else entirely"}, format="json")
+        assert response.status_code == 400
+        assert "confirm_password" in response.data["error"]["details"]
+        assert not get_user_model().objects.filter(username="sara_01").exists()
+
+    def test_the_right_code_logs_you_in(self):
+        client, code = fresh_account()
+        response = confirm(client, "dana_01", code)
+        assert response.status_code == 200 and response.data["access"]
+        assert client.get("/api/v1/auth/me/", HTTP_AUTHORIZATION=f"Bearer {response.data['access']}").status_code == 200
+
+    def test_a_code_works_once(self):
+        client, code = fresh_account()
+        assert confirm(client, "dana_01", code).status_code == 200
+        assert confirm(client, "dana_01", code).status_code == 400
+
+    def test_the_right_password_alone_does_not_log_in(self):
+        fresh_account()
+        response = APIClient().post("/api/v1/auth/login/", {"username": "dana_01", "password": GOOD["password"]}, format="json")
+        assert response.status_code == 403 and response.data["error"]["code"] == "email_not_verified"
+        assert "access" not in response.data
+
+    def test_a_wrong_password_never_says_the_email_is_unconfirmed(self):
+        fresh_account()
+        response = APIClient().post("/api/v1/auth/login/", {"username": "dana_01", "password": "nope nope nope"}, format="json")
+        assert response.status_code == 401 and response.data["error"]["code"] == "bad_credentials"
+
+    def test_five_wrong_guesses_kill_the_code(self):
+        client, code = fresh_account()
+        for _ in range(5):
+            assert confirm(client, "dana_01", wrong_code(code)).status_code == 400
+        assert confirm(client, "dana_01", code).status_code == 400
+
+    def test_an_old_code_expires(self):
+        client, code = fresh_account()
+        EmailCode.objects.update(expires_at=timezone.now() - timedelta(seconds=1))
+        assert confirm(client, "dana_01", code).status_code == 400
+
+    def test_a_new_code_replaces_the_old_one(self):
+        client, old = fresh_account()
+        EmailCode.objects.update(created_at=timezone.now() - timedelta(minutes=2))
+        client.post("/api/v1/auth/verify/resend/", {"username": "dana_01"}, format="json")
+        new = code_from(mail.outbox[-1])
+        if old != new:
+            assert confirm(client, "dana_01", old).status_code == 400
+        assert confirm(client, "dana_01", new).status_code == 200
+
+    def test_a_stranger_gets_the_same_answer_as_an_account(self):
+        client, _ = fresh_account()
+        real = client.post("/api/v1/auth/verify/", {"username": "dana_01", "code": "123456"}, format="json")
+        ghost = client.post("/api/v1/auth/verify/", {"username": "ghost_user", "code": "123456"}, format="json")
+        assert (real.status_code, real.data) == (ghost.status_code, ghost.data)
+
+    def test_resending_is_limited_so_it_cannot_flood_an_inbox(self):
+        client, _ = fresh_account()
+        sent = len(mail.outbox)
+        for _ in range(4):
+            assert client.post("/api/v1/auth/verify/resend/", {"username": "dana_01"}, format="json").status_code == 200
+        assert len(mail.outbox) == sent  # the cooldown holds them all back
+        for _ in range(30):
+            EmailCode.objects.update(created_at=timezone.now() - timedelta(minutes=2))
+            client.post("/api/v1/auth/verify/resend/", {"username": "dana_01"}, format="json")
+        assert EmailCode.objects.filter(user__username="dana_01").count() <= email_codes.MAX_PER_HOUR
+
+    def test_the_database_never_holds_a_usable_code(self):
+        _, code = fresh_account()
+        row = EmailCode.objects.get()
+        assert code not in row.code_hash and len(row.code_hash) == 64
+
+    def test_unconfirmed_accounts_are_cleared_away_and_confirmed_ones_kept(self):
+        client, code = fresh_account("kept_01")
+        confirm(client, "kept_01", code)
+        fresh_account("gone_01")
+        get_user_model().objects.update(date_joined=timezone.now() - timedelta(hours=49))
+        call_command("purge_unverified", verbosity=0, stdout=StringIO())
+        assert set(get_user_model().objects.values_list("username", flat=True)) == {"kept_01"}
+
+
+@pytest.mark.django_db
+class TestPasswordReset:
+    NEW = "a brand new long password"
+
+    def account(self):
+        client, code = fresh_account()
+        access = confirm(client, "dana_01", code).data["access"]
+        mail.outbox.clear()
+        return client, access
+
+    def ask(self, identifier="dana_01"):
+        return APIClient().post("/api/v1/auth/password/forgot/", {"identifier": identifier}, format="json")
+
+    def reset(self, code, username="dana_01", password=None, confirm_password=None):
+        password = password or self.NEW
+        return APIClient().post("/api/v1/auth/password/reset/", {"username": username, "code": code, "password": password, "confirm_password": confirm_password or password}, format="json")
+
+    def login(self, password):
+        return APIClient().post("/api/v1/auth/login/", {"username": "dana_01", "password": password}, format="json")
+
+    def test_the_whole_way_through(self):
+        self.account()
+        assert self.ask().status_code == 200
+        assert self.reset(code_from(mail.outbox[-1])).status_code == 200
+        assert self.login(self.NEW).status_code == 200
+        assert self.login(GOOD["password"]).status_code == 401
+
+    def test_an_email_works_and_the_message_names_the_username(self):
+        self.account()
+        self.ask("DANA@example.test")
+        assert "dana_01" in mail.outbox[-1].body and mail.outbox[-1].to == ["dana@example.test"]
+
+    def test_nothing_says_whether_an_account_or_email_exists(self):
+        self.account()
+        answers = [self.ask(value) for value in ("dana_01", "dana@example.test", "ghost_user", "ghost@example.test")]
+        assert len({(a.status_code, str(a.data)) for a in answers}) == 1
+
+    def test_an_unknown_address_sends_nothing(self):
+        self.account()
+        self.ask("ghost@example.test")
+        assert mail.outbox == []
+
+    def test_an_unconfirmed_address_gets_no_reset(self):
+        fresh_account()
+        mail.outbox.clear()
+        self.ask()
+        assert mail.outbox == []
+
+    def test_a_reset_code_cannot_confirm_an_email_and_the_other_way_round(self):
+        client, verify_code = fresh_account()
+        assert self.reset(verify_code).status_code == 400
+        confirm(client, "dana_01", verify_code)
+        mail.outbox.clear()
+        self.ask()
+        reset_code = code_from(mail.outbox[-1])
+        assert confirm(APIClient(), "dana_01", reset_code).status_code == 400
+
+    def test_a_code_for_one_account_cannot_reset_another(self):
+        self.account()
+        client, code = fresh_account("other_01", "other@example.test")
+        confirm(client, "other_01", code)
+        mail.outbox.clear()
+        self.ask("other_01")
+        assert self.reset(code_from(mail.outbox[-1]), username="dana_01").status_code == 400
+
+    def test_a_code_works_once_and_guesses_run_out(self):
+        self.account()
+        self.ask()
+        code = code_from(mail.outbox[-1])
+        for _ in range(5):
+            assert self.reset(wrong_code(code)).status_code == 400
+        assert self.reset(code).status_code == 400
+        assert self.login(GOOD["password"]).status_code == 200
+
+    def test_a_weak_password_is_refused_and_costs_no_guess(self):
+        self.account()
+        self.ask()
+        code = code_from(mail.outbox[-1])
+        assert self.reset(code, password="password123").status_code == 400
+        assert self.reset(code).status_code == 200
+
+    def test_the_passwords_have_to_match(self):
+        self.account()
+        self.ask()
+        response = self.reset(code_from(mail.outbox[-1]), confirm_password="not the same password")
+        assert response.status_code == 400 and "confirm_password" in response.data["error"]["details"]
+
+    def test_a_reset_logs_out_every_device_at_once(self):
+        client, access = self.account()
+        assert client.get("/api/v1/auth/me/", HTTP_AUTHORIZATION=f"Bearer {access}").status_code == 200
+        self.ask()
+        assert self.reset(code_from(mail.outbox[-1])).status_code == 200
+        assert APIClient().get("/api/v1/auth/me/", HTTP_AUTHORIZATION=f"Bearer {access}").status_code == 401
+        assert client.post("/api/v1/auth/refresh/").status_code == 401
+
+    def test_mail_going_wrong_does_not_change_the_answer(self, monkeypatch):
+        self.account()
+        def broken(*args, **kwargs):
+            raise OSError("smtp is down")
+        monkeypatch.setattr(email_codes, "send_mail", broken)
+        assert self.ask().status_code == 200

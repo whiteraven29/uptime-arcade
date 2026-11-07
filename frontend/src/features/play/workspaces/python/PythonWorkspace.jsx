@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CodeEditor } from '../../../../ui/CodeEditor.jsx';
-import { S, bump, reportPython, saveCode, canPlay, ui } from '../../../../api/game.js';
+import { S, bump, reportCode, saveCode, canPlay, ui } from '../../../../api/game.js';
 import { loadPython, runTests } from './runner.js';
 
 export function PythonWorkspace({ mission }) {
@@ -29,8 +29,10 @@ export function PythonWorkspace({ mission }) {
         saveCode(mission, code);
         setOutput('Running...');
         const r = await runTests(mission, code);
-        setOutput(r.out);
-        await reportPython(mission, code, r.passed);
+        // A pass here is only a claim: the same tests then run on the server, and that run decides.
+        setOutput(r.passed ? `${r.out}\nChecking on the server...` : r.out);
+        const server = await reportCode(mission, { code, passed: r.passed });
+        if (r.passed) setOutput(server.output || r.out);
         bump();
       }}
     />
