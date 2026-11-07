@@ -1,7 +1,7 @@
 /* Shell engine: parser, pipelines, globbing, awk and sed interpreters.
    Ported from legacy/uptime-arcade-source/src. Framework-free: no React, no DOM. */
 import { S, host } from '../host.js';
-import { HOME, F, fs, lines, joinL, norm } from '../fs/index.js';
+import { HOME, fs, lines, joinL, norm } from '../fs/index.js';
 import { COMMANDS } from './commands.js';
 
 const sh={env:{},code:0,sink:null,errSink:null,
@@ -278,7 +278,7 @@ function runPipeline(text){
     if(!cmd&&argv[0].includes("/")){const pth=norm(argv[0]),nd=fs.get(pth);
       if(!nd)cmd=()=>sh.e(`${argv[0]}: No such file or directory`);
       else if(!(nd.m&0o100))cmd=()=>sh.e(`${argv[0]}: Permission denied. Try chmod +x.`);
-      else cmd=()=>runScript(pth)}
+      else cmd=()=>runScript(pth,argv.slice(1))}
     if(!cmd){sh.e(`${argv[0]}: command not found. Run 'help' to see what this box has.`);sh.code=127;res=""}
     else{try{res=cmd(argv.slice(1),inp)??""}catch(x){sh.e(`${argv[0]}: ${x.message}`);res=""}}
     sh.errSink=saveErr;
@@ -286,8 +286,8 @@ function runPipeline(text){
     if(outFile!==null){writeFile(norm(outFile),res,"sh",append);res=""}
     inp=res;out=res}
   return out}
-function runScript(p){const n=fs.get(p);if(!n||n.t==="d")return sh.e(`bash: ${p}: No such file or directory`);
-  if(p===HOME+"/bin/errors.sh")S.ranScript=true;
+function runScript(p,args=[]){const n=fs.get(p);if(!n||n.t==="d")return sh.e(`bash: ${p}: No such file or directory`);
+  S.ranScript=p;args.forEach((a,i)=>{sh.env[i+1]=a});
   const buf=[],save=sh.sink;sh.sink=buf;for(const l of lines(n.c))if(l.trim()&&!l.startsWith("#"))runLine(l);sh.sink=save;return buf.join("")}
 function runLine(src){
   const w=/^\s*while\s+read\s+(\w+)\s*;\s*do\s+(.*?)\s*;?\s*done\s*<\s*(\S+)(?:\s*(>>?)\s*(\S+))?\s*$/.exec(src);

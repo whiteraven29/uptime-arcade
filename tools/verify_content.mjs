@@ -3,11 +3,14 @@
    Python solutions run under real python3 and Go snippets under real `go run`, so the expected
    answers are checked against the actual languages (sections 13.2 and 18). Exits 1 on any problem. */
 import { execSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import vm from 'node:vm';
 import * as g from '../frontend/src/api/localGame.js';
 import { fs as vfs } from '../engines/fs/index.js';
+import { buildProgram, configureSkulpt, judge } from '../frontend/src/features/play/workspaces/python/program.js';
 
 const { S, TK, TRACKS, TICKETS, ui } = g;
 const problems = [];
@@ -32,6 +35,35 @@ function goRun(src) {
   return execSync('go run main.go 2>&1', { cwd: d, env: GOENV }).toString().trim();
 }
 const pyValue = (expr) => python(`import ipaddress\nprint(${expr})`);
+
+/* The same program the browser builds, under python3 and under Skulpt, which is what players really run. */
+function realPython(t) {
+  const d = mkdtempSync(join(tmpdir(), 'uptime-py-'));
+  for (const [name, c] of Object.entries(t.files || {})) writeFileSync(join(d, name), c);
+  return execSync('python3 -', { cwd: d, input: buildProgram(t, t.sol).text, stdio: ['pipe', 'pipe', 'pipe'] }).toString();
+}
+const require = createRequire(import.meta.url);
+function loadSkulpt() {
+  if (globalThis.Sk) return globalThis.Sk;
+  const dist = dirname(require.resolve('skulpt/package.json', { paths: [new URL('../frontend/', import.meta.url).pathname] }));
+  // Look like a browser while it loads, because Skulpt decides how open() works at that moment.
+  globalThis.window = globalThis;
+  globalThis.document = { getElementById: () => null };
+  for (const f of ['skulpt.min.js', 'skulpt-stdlib.js']) vm.runInThisContext(readFileSync(join(dist, 'dist', f), 'utf8'));
+  return globalThis.Sk;
+}
+async function skulpt(t) {
+  const Sk = loadSkulpt();
+  const o = [];
+  configureSkulpt(Sk, t, (x) => o.push(x));
+  const { text, offset } = buildProgram(t, t.sol);
+  try {
+    await Sk.misceval.asyncToPromise(() => Sk.importMainWithBody('<stdin>', false, text, true));
+    return judge({ out: o.join(''), ok: true }, offset);
+  } catch (e) {
+    return judge({ out: `${o.join('')}\n${e}`, ok: false }, offset);
+  }
+}
 
 g.boot(null);
 g.setNavigator(() => {});
@@ -64,24 +96,31 @@ for (const t of order) {
   g.setCurrent(id);
   if (t.kind === 'py') {
     if (hasPython) {
-      const src = t.sol + '\n' + t.tests.map((x) => `assert (${x[0]}) == (${x[1]}), ${JSON.stringify(x[0])}`).join('\n') + '\n';
       try {
-        python(src);
+        const out = realPython(t);
+        if (!/ALL_PASSED/.test(out)) fail(id, 'real python: ' + out.slice(-200));
       } catch (e) {
-        fail(id, 'real python: ' + e.stderr.toString().slice(-160));
+        fail(id, 'real python: ' + e.stderr.toString().slice(-200));
       }
     }
+    const sk = await skulpt(t);
+    if (!sk.passed) fail(id, 'skulpt: ' + sk.out.slice(-240));
     g.notePyAttempt(t);
     g.complete(t);
   } else if (t.track === 'VI') {
     g.runCommand('vi ' + t.file);
-    for (const k of t.sol.match(/<CR>|<Esc>|[\s\S]/g)) g.viPress(k === '<CR>' ? 'Enter' : k === '<Esc>' ? 'Escape' : k, false);
+    for (const k of t.sol.match(/<CR>|<Esc>|<C-.>|[\s\S]/g)) {
+      if (k.startsWith('<C-')) g.viPress(k[3], true);
+      else g.viPress(k === '<CR>' ? 'Enter' : k === '<Esc>' ? 'Escape' : k, false);
+    }
     if (!S.done[id]) fail(id, `vi not done: ${JSON.stringify(vfs.get(t.file)?.c)}`);
     else if (S.viKeys[t.file] > t.par) fail(id, `par ${t.par} took ${S.viKeys[t.file]}`);
   } else {
     if (t.track === 'GO' && hasGo) {
-      const out = goRun(`package main\nimport (\n"fmt"\n${t.imports || ''}\n)\n${t.decl || ''}\nfunc main() {\n${t.code}\n}\n`);
-      if (out !== t.answer[0]) fail(id, `go printed [${out}], answer [${t.answer[0]}]`);
+      // Fix missions run with the blank filled in, and must print what they promise.
+      const out = goRun(t.program.replace('____', t.answer[0]));
+      const want = t.prints ?? t.answer[0];
+      if (out !== want) fail(id, `go printed [${out}], wanted [${want}]`);
     }
     if (t.v && hasPython) {
       const out = pyValue(t.v);
@@ -92,7 +131,7 @@ for (const t of order) {
     cmds.forEach((c) => g.runCommand(c));
     if (t.kind === 'answer') {
       const a = termText().slice(before);
-      if (cmds.length && !t.answer.some((x) => a.includes(x))) fail(id, `output lacks ${t.answer}: ${a.slice(-160)}`);
+      if (cmds.length && !t.reasoned && !t.answer.some((x) => a.toLowerCase().includes(x.toLowerCase()))) fail(id, `output lacks ${t.answer}: ${a.slice(-160)}`);
       g.runCommand('submit ' + t.answer[0]);
     }
     if (!S.done[id]) fail(id, 'not done: ' + termText().slice(-200));

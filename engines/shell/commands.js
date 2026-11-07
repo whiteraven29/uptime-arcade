@@ -117,8 +117,8 @@ const COMMANDS={
   tee(a,inp){const[o,r]=opts(a);for(const f of r)writeFile(norm(f),inp??"","tee",o.a);return inp},
   xargs(a,inp){const[o,r]=opts(a,"n");const items=(inp||"").split(/\s+/).filter(Boolean);const cmd=r[0]||"echo",fn=COMMANDS[cmd];if(!fn)return sh.e(`xargs: ${cmd}: not found`);
     const n=+(o.n||items.length||1);let out="";for(let i=0;i<items.length;i+=n)out+=fn([...r.slice(1),...items.slice(i,i+n)],null)||"";return out},
-  bash(a){return runScript(norm(a[0]||""))},
-  sh(a){return runScript(norm(a[0]||""))},
+  bash(a){return runScript(norm(a[0]||""),a.slice(1))},
+  sh(a){return runScript(norm(a[0]||""),a.slice(1))},
   rev(a,inp){return joinL(lines(inputs(a,inp,"rev")).map(l=>[...l].reverse().join("")))},
   tac(a,inp){return joinL(lines(inputs(a,inp,"tac")).reverse())},
   nl(a,inp){return joinL(lines(inputs(a,inp,"nl")).map((l,i)=>String(i+1).padStart(6)+"  "+l))},
@@ -150,6 +150,16 @@ const COMMANDS={
     if(local&&!["10.40.30.1","10.40.30.21","127.0.0.1"].includes(ip)){sh.code=1;return`PING ${h} (${ip}) 56(84) bytes of data.\n\n--- ${h} ping statistics ---\n${c} packets transmitted, 0 received, 100% packet loss\n`}
     const o2=[`PING ${h} (${ip}) 56(84) bytes of data.`];for(let i=1;i<=c;i++)o2.push(`64 bytes from ${ip}: icmp_seq=${i} ttl=62 time=${(3+i*.7).toFixed(1)} ms`);
     o2.push("",`--- ${h} ping statistics ---`,`${c} packets transmitted, ${c} received, 0% packet loss`);return joinL(o2)},
+  ss(a){const[o]=opts(a);if(!o.l&&!o.t&&!o.u)return sh.e("ss: try 'ss -tulpn'");return`Netid State  Local Address:Port  Process
+tcp   LISTEN 0.0.0.0:22          users:(("sshd",pid=612))
+tcp   LISTEN 127.0.0.1:5432      users:(("postgres",pid=733))
+tcp   LISTEN 0.0.0.0:8080        users:(("api",pid=901))
+udp   UNCONN 127.0.0.53:53       users:(("resolved",pid=488))
+`},
+  curl(a){const[o,r]=opts(a);const u=r[0];if(!u)return sh.e("curl: usage: curl [-I] URL");const host=u.replace(/^\w+:\/\//,"").split("/")[0];
+    if(resolver()!==DNS_OK||!ZONE[host]){sh.code=6;return sh.e(`curl: (6) Could not resolve host: ${host}`)}
+    const head="HTTP/1.1 503 Service Unavailable\nserver: nginx\ncontent-type: text/html\nretry-after: 120\n";
+    return o.I?head:head+"\n<h1>Down for maintenance</h1>\n"},
   dig(a){const h=a.filter(x=>!x.startsWith("+")&&!x.startsWith("@"))[0];if(!h)return sh.e("dig: usage: dig name");const ns=resolver();
     if(ns!==DNS_OK)return`;; connection timed out; no servers could be reached (tried ${ns||"none"})\n`;
     if(!ZONE[h])return`;; ->>HEADER<<- status: NXDOMAIN\n;; SERVER: ${ns}#53\n`;
@@ -175,7 +185,7 @@ const MAN={
   sed:"sed [-n] [-E] [-i] 'SCRIPT' [file]\n  s/old/new/g   substitute. With -E use (group) and \\1 in the replacement.\n  /re/d         delete matching lines\n  2,5p          with -n, print lines 2 to 5\n  -i            edit the file in place",
   awk:"awk [-F sep] 'pattern {action}' [file]\n  $1 $2 fields, $NF last field, NR record number, NF field count\n  sum:  {s[$1]+=$2} END {for (k in s) print k, s[k]}\n  NR>1 skips a header row\n  Comparisons, regex /x/, ~, printf, substr, split, length, toupper all work here.",
   find:"find [path] [-name GLOB] [-iname GLOB] [-type f|d] [-maxdepth N] [-exec cmd {} \\;] [-delete]",
-  vi:"vi FILE  (modal editor)\n  Motions: h j k l w b e 0 ^ $ gg G f{c} ; /text n N\n  Change:  x r{c} i a I A o O dd dw D cw C J yy p P u .\n  Counts:  3j, 2dd, 4w\n  Indent:  >> and <<\n  Replace: :%s/old/new/g\n  Save:    :w  :q  :q!  :wq  ZZ",
+  vi:"vi FILE  (modal editor)\n  Motions: h j k l w b e 0 ^ $ gg G f t F T ; , /text ?text n N\n  Change:  x r{c} i a I A o O dd dw D cw cc C J yy p P u Ctrl-r .\n  Objects: ciw di\" da( yi[\n  Visual:  v V Ctrl-v, then d y c > < or I\n  Counts:  3j, 2dd, 4w\n  Indent:  >> and <<\n  Power:   \"ayy \"ap  ma 'a  qa...q @a @@\n  Ex:      :%s/old/new/g  :2,5d  :.,$s/a/b/  :g/re/d  :v/re/d\n  Files:   :w name  :r file  :e file\n  Save:    :w  :q  :q!  :wq  ZZ",
   ip:"ip addr    interfaces and addresses\nip route   routing table. 'default via X' is the gateway.",
   ping:"ping [-c N] host   test reachability. A name needs working DNS first.",
   dig:"dig NAME [+short]   ask the configured DNS server. Server comes from /etc/resolv.conf.",
@@ -186,6 +196,14 @@ const MAN={
   chmod:"chmod +x file   makes a file runnable by path",
   for:"for x in a b c; do echo \"$x\"; done\n  Quote \"$x\" so names with spaces stay one word.\n  ${x%.old}  removes .old from the end of x.",
   mv:"mv SRC DEST   move or rename",
+  cp:"cp SRC DEST   copy a file",
+  rm:"rm [-r] PATH   delete a file. -r also deletes a folder and everything in it. There is no undo.",
+  mkdir:"mkdir [-p] DIR   make a folder. -p makes missing parents too and doesn't mind if it exists.",
+  touch:"touch FILE   create an empty file",
+  pwd:"pwd   print the folder you're in",
+  echo:"echo TEXT   print text. Use > to save it to a file.",
+  ss:"ss -tulpn   listening sockets. -t TCP, -u UDP, -l listening, -p process, -n numbers.",
+  curl:"curl [-I] URL   fetch a URL. -I asks for the headers only.",
 };
 
 export { netLive, resolver, DNS_OK, ZONE, COMMANDS, MAN };

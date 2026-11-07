@@ -6,7 +6,7 @@ import { S, oncallUnlocked, startOncall } from '../../api/localGame.js';
 export function OnCallScreen() {
   if (!oncallUnlocked()) return <Navigate to="/missions" replace />;
   return (
-    <section className="screen" aria-label="On-call">
+    <section className={`screen${S.oc ? " flush" : ""}`} aria-label="On-call">
       {S.oc ? (
         <PlayArea t={S.oc} />
       ) : (

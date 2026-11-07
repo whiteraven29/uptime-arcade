@@ -3,9 +3,8 @@ import { paintScene } from './scene/paintScene.js';
 
 const MAX_DPR = 1.5;
 
-/* The inner canvases fill the glass frame, sharp. The outer canvas repeats the same picture, zoomed
-   and dimmed behind the frame, which gives the floating-window depth of the look. */
-export function SceneBackdrop({ frameRef, outerRef: outer }) {
+/* The landscape fills the whole window, and everything else is drawn into it (ADR 0003). */
+export function SceneBackdrop({ frameRef }) {
   const inner = useRef(null);
   const lava = useRef(null);
 
@@ -29,19 +28,6 @@ export function SceneBackdrop({ frameRef, outerRef: outer }) {
       lava.current.height = H;
       paintScene(c.getContext('2d'), lava.current.getContext('2d'), W, H);
 
-      const o = outer.current;
-      const vw = Math.round(window.innerWidth * dpr);
-      const vh = Math.round(window.innerHeight * dpr);
-      o.width = vw;
-      o.height = vh;
-      const octx = o.getContext('2d');
-      const zoom = Math.max(vw / W, vh / H) * 1.1;
-      const dw = W * zoom;
-      const dh = H * zoom;
-      const dx = (vw - dw) / 2;
-      const dy = (vh - dh) / 2;
-      octx.drawImage(c, dx, dy, dw, dh);
-      octx.drawImage(lava.current, dx, dy, dw, dh);
     };
     const schedule = () => {
       clearTimeout(timer);
@@ -59,7 +45,7 @@ export function SceneBackdrop({ frameRef, outerRef: outer }) {
       ro.disconnect();
       window.removeEventListener('resize', schedule);
     };
-  }, [frameRef, outer]);
+  }, [frameRef]);
 
   return (
     <div className="scene-inner" aria-hidden="true">
@@ -67,19 +53,4 @@ export function SceneBackdrop({ frameRef, outerRef: outer }) {
       <canvas ref={lava} className="scene-layer scene-lava" />
     </div>
   );
-}
-
-/* A small painted card image, used by the Deck's feature cards. */
-export function SceneThumb({ palette, seed, focus, lava = 0 }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const c = ref.current;
-    const box = c.getBoundingClientRect();
-    const W = Math.round((box.width || 340) * 1.5);
-    const H = Math.round((box.height || 120) * 1.5);
-    c.width = W;
-    c.height = H;
-    paintScene(c.getContext('2d'), null, W, H, { palette, seed, focus, lava });
-  }, [palette, seed, focus, lava]);
-  return <canvas ref={ref} className="thumb" aria-hidden="true" />;
 }

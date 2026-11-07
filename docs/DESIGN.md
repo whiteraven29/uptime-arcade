@@ -98,7 +98,7 @@ flowchart LR
 
 ### 4.1 Direction
 
-The look is a **holographic operator HUD set in a cinematic landscape**. The HUD is like the heads-up display in a sci-fi suit or a starship bridge: glowing cyan lines, amber highlights for things that matter, bracketed glass panels, and an animated reactor core at the centre of the home screen. It floats as a rounded glass window over a night world of jagged mountains, a still lake and a basalt plain split by lava. On the Deck, a hooded operator stands on the rock and projects the core into the sky.
+The look is a **holographic operator HUD set in a cinematic landscape**. The HUD is like the heads-up display in a sci-fi suit or a starship bridge: glowing cyan lines, amber highlights for things that matter, and an animated reactor core at the centre of the home screen. It is drawn directly into a night world of jagged mountains, a still lake and a basalt plain split by lava. The scene runs to every edge of the window and is the surface everything sits on: there are no floating frames or boxed panels ([ADR 0003](adr/0003-scene-as-the-surface.md)). On the Deck, a hooded operator stands on the rock and projects the core into the sky.
 
 Display titles are metallic with a slight chromatic split, edges are iridescent hairlines, and buttons are pills. The scene is painted in code from a seeded generator, so no image files ship. It's an original design for Whiteraven, so it uses no logos, characters or marks from any film, game or brand. See [ADR 0001](adr/0001-cinematic-holographic-look.md).
 
@@ -111,14 +111,15 @@ These are carried over from the current game and defined once in `frontend/src/s
 | Token | Value | Use |
 |---|---|---|
 | `--void` | `#030a13` | Page background |
-| `--glass` | `rgba(6,20,36,.68)` | Panel fill, dark enough for 4.5:1 text over lava |
+| `--veil` | `rgba(2,8,16,.78)` | Sinks the scene on reading screens, dark enough for 4.5:1 text over lava |
+| `--rail` | `rgba(2,8,16,.84)` | The Deck's side rails, which dissolve into the scene |
+| `--pane` | `rgba(2,9,18,.93)` | The workspace pane on Play |
 | `--glass-strong` | `rgba(3,12,24,.86)` | Inputs, code, overlays |
-| `--glass-sheen` | `rgba(150,214,255,.07)` | Light across the top of a panel |
 | `--line` | `rgba(96,214,255,.34)` | Input borders, ring tracks |
-| `--line-soft` | `rgba(170,214,255,.16)` | Panel and card borders |
-| `--holo` | `#62dcff` | Primary accent, corner brackets, active nav |
+| `--line-soft` | `rgba(170,214,255,.16)` | Hairlines between sections |
+| `--holo` | `#62dcff` | Primary accent, active nav |
 | `--holo-soft` | `#a9ecff` | Secondary text accent, code |
-| `--iris` | conic gradient, cyan through violet and amber | Iridescent hairlines on the frame and on hovered panels |
+| `--iris` | conic gradient, cyan through violet and amber | Iridescent hairline under the top bar |
 | `--metal` | vertical gradient, white to steel blue | Metallic display titles |
 | `--text` | `#dcf4ff` | Body text |
 | `--dim` | `#8db3c8` | Secondary text |
@@ -127,6 +128,7 @@ These are carried over from the current game and defined once in `frontend/src/s
 | `--ok` | `#6bf0b2` | Success, cleared |
 | `--danger` | `#ff5d6c` | Errors, failed checks |
 | `--on-accent` | `#031018` | Text on accent buttons |
+| `--ember-*`, `--jade-*`, `--holo-*`, `--violet-*`, `--gold-*` | two stops each | The metal of each badge family |
 
 | Role | Font | Fallback |
 |---|---|---|
@@ -139,9 +141,9 @@ Fonts are self-hosted from `frontend/public/fonts/`, so the game works offline.
 
 | Component | Description |
 |---|---|
-| `SceneBackdrop` | The painted landscape: a sharp copy inside the frame and a dimmed, zoomed copy behind it. `SceneThumb` paints small card images. |
+| `SceneBackdrop` | The painted landscape, filling the window. |
 | `OperatorFigure` | The player's silhouette on the Deck, with a projector beam and a floor plate. |
-| `HudPanel` | Rounded glass panel with two glowing corner brackets (top left, bottom right) and an iridescent edge on hover. Optional title label in spaced uppercase. |
+| `HudPanel` | A section with no box of its own, separated from its neighbours by a hairline. Optional title label in spaced uppercase. |
 | `CoreRing` | The reactor: an SVG with a rotating dashed outer ring, a counter-rotating inner ring, a pulsing glow, and an amber arc showing progress to the next level. Shows the level number and title in the centre. |
 | `TimerRing` | Big amber countdown with a circular progress arc, used on Focus. |
 | `MissionNode` | A diamond on a track path. Locked is dim, open is a glowing cyan outline, rewind is amber, cleared is green. |
@@ -153,6 +155,7 @@ Fonts are self-hosted from `frontend/public/fonts/`, so the game works offline.
 | `CodeEditor` | Python editor with a Run tests button and an output pane. |
 | `TopologyCanvas` | NetLab map with devices, cables, link lights and packet animation. |
 | `DeviceConsole` | A NetLab device CLI in a terminal, opened by clicking a device. |
+| `BadgeEmblem` | A hexagonal medal drawn in code with its own glyph for every badge, sharp at any size for the Rewards wall, toasts and share cards. Locked medals keep their shape in grey. |
 | `Badge`, `LadderRow`, `StatTile` | Rewards screen pieces. |
 
 ### 4.4 Motion and sound
@@ -167,8 +170,8 @@ Fonts are self-hosted from `frontend/public/fonts/`, so the game works offline.
 
 ### 4.5 Layout rules
 
-- **Desktop:** the HUD fills a floating frame with no page scroll, and only panels scroll. Text-heavy screens dim the scene, and the Deck shows it at full strength.
-- **Under 1040px:** the frame goes edge to edge, columns stack and the page scrolls over a fixed scene.
+- **Desktop:** the HUD fills the window with no page scroll, and only sections scroll. Reading screens sink the scene under one veil, and the Deck shows it at full strength.
+- **Under 1040px:** columns stack and the page scrolls over a fixed scene. Missions shows one track at a time, with buttons to switch.
 - **Under 400px:** everything still works, though NetLab shows a "best on a larger screen" note and allows pinch zoom.
 - **Readability:** body text is at least 14px, and contrast is at least 4.5:1.
 
@@ -253,6 +256,8 @@ Levels count **cleared** missions, so the ladder rewards finishing the rewind as
 
 The `peak` value remembers the highest count reached, so a new season never lowers your title.
 
+Until NetLab and Operations arrive, the game uses this ladder scaled to its 150 missions: 0, 8, 19, 34, 52, 71, 90, 109, 128, 150.
+
 ### 6.5 Rewind
 
 After a mission is solved, five tasks are generated for it:
@@ -302,12 +307,14 @@ The streak grows by 1 on each calendar day (in the player's time zone) with at l
 | Ten Hours, Hundred Hours | 600 and 6000 focus minutes |
 | Full Week, Iron Month, Centurion | 7, 30 and 100-day streaks |
 | First Clear | Clear one mission |
-| Shell, vi, Python, Go, Networking and NetLab Master | Clear the whole track |
-| Operator of Operations | Clear all Operations |
+| Shell, vi, Python, Go, Networking and NetLab Master | Clear the whole track (NetLab arrives with M6) |
+| Operator of Operations | Clear all Operations (arrives with M7) |
 | Par Hunter | 50 missions at or under par |
 | No Hints Needed | Clear a whole chapter without hints |
 | Night Shift | Finish 25 on-call incidents |
-| Archmage | Clear all 200 launch missions |
+| Archmage | Clear all launch missions (150 today, 200 at launch) |
+
+Every badge has its own medal (`BadgeEmblem`), designed to look good on its own when shared.
 
 ### 6.9 Seasons and on-call
 
@@ -342,7 +349,9 @@ Content packs (section 13) add missions to existing tracks or new tracks. Archma
 
 ## 8. Mission catalogue (200 at launch)
 
-Six tracks of 30, plus 20 Operations. Each track is ordered for understanding, top to bottom. IDs are permanent, and new missions get new IDs (renumbering only changes the order field).
+Six tracks of 30, plus 20 Operations. Each track starts from zero and is ordered for understanding, top to bottom, so nobody meets an idea before a lesson has taught it. IDs are permanent, and new missions get new IDs (renumbering only changes the order field).
+
+The five tracks below are built and playable (150 missions, [ADR 0004](adr/0004-thirty-missions-from-zero.md)). Their tables are generated from the catalogue. NetLab and Operations follow with M6 and M7.
 
 **Check types:**
 - `answer`: submit a value
@@ -359,140 +368,140 @@ Six tracks of 30, plus 20 Operations. Each track is ordered for understanding, t
 | ID | Chapter | Mission | You learn | Check |
 |---|---|---|---|---|
 | SH-01 | Getting around | Where am I? | `pwd`, `ls` | answer |
-| SH-02 | Getting around | Moving between folders | `cd`, `..`, `~`, relative vs absolute paths | answer |
+| SH-02 | Getting around | Moving between folders | `cd`, `..`, `~` | fs |
 | SH-03 | Getting around | Read the welcome file | `cat`, `head`, `tail` | answer |
-| SH-04 | Getting around | The file nobody can open | `ls -a`, quoting spaces, `./-name` | answer |
-| SH-05 | Files | Set up a workspace | `mkdir -p`, `touch` | fs |
+| SH-04 | Getting around | The file nobody can open | `ls`, `-a` | answer |
+| SH-05 | Files | Set up a workspace | `mkdir`, `-p`, `touch` | fs |
 | SH-06 | Files | Copy, move, rename | `cp`, `mv` | fs |
-| SH-07 | Files | Delete with care | `rm`, `rm -r`, why there's no undo | fs |
-| SH-08 | Counting and finding | How much traffic today? | `wc -l` | answer |
+| SH-07 | Files | Delete with care | `rm`, `-r` | fs |
+| SH-08 | Counting and finding | How much traffic today? | `wc`, `-l` | answer |
 | SH-09 | Counting and finding | Find the word | `grep`, `-i`, `-n` | answer |
-| SH-10 | Counting and finding | Count and ignore | `grep -c`, `grep -v` | answer |
-| SH-11 | Pipes | Your first pipe | `\|`, `head`, `tail` | answer |
-| SH-12 | Pipes | Save the output | `>`, `>>`, `2>/dev/null` | fs |
-| SH-13 | Columns | Take one column | `cut -d -f` | answer |
-| SH-14 | Columns | Sort it out | `sort`, `-n`, `-r`, `-k`, `-u` | answer |
-| SH-15 | Columns | The top-N counter | `sort \| uniq -c \| sort -rn \| head` | answer |
-| SH-16 | System | Who can run this? | `ls -l`, `chmod`, rwx bits | fs |
-| SH-17 | System | Search the tree | `find -name -type` | answer |
-| SH-18 | System | Find and act | `find -exec`, `xargs` | fs |
-| SH-19 | awk | Fields with awk | `$1`, `$NF`, `-F` | answer |
-| SH-20 | awk | Filter and total | patterns, `END`, sums, averages | answer |
-| SH-21 | awk | Group by | arrays, `for (k in a)` | answer |
-| SH-22 | sed | Find and replace | `s/old/new/g`, escaping dots | fs |
-| SH-23 | sed | Delete and print lines | `/re/d`, `-n 'Np'`, ranges | fs |
-| SH-24 | Patterns | Regex basics | `grep -E`, `^ $ [] + ?` | answer |
-| SH-25 | Patterns | Rearrange with groups | `sed -E` capture groups | fs |
-| SH-26 | Patterns | Clean up characters | `tr`, Windows line endings | fs |
-| SH-27 | Scripting | Variables and quoting | `VAR=`, `"$VAR"`, `$(cmd)` | answer |
-| SH-28 | Scripting | Loop over files | `for`, `${f%.TXT}` | fs |
-| SH-29 | Scripting | Read line by line, decide | `while read`, `if`, `&&`, `\|\|`, exit codes | fs |
-| SH-30 | Scripting | Capstone: the daily report script | shebang, `$1`, `chmod +x`, combine everything | fs |
+| SH-10 | Counting and finding | Ignore the health checks | `-v`, `-c` | answer |
+| SH-11 | Pipes | Your first pipe | `\|` | answer |
+| SH-12 | Pipes | Save the output | `>`, `>>` | fs |
+| SH-13 | Columns | The last request | `cut`, `-d`, `-f` | answer |
+| SH-14 | Columns | Sort it out | `sort`, `-k`, `-n` | answer |
+| SH-15 | Columns | The top-N counter | `uniq`, `-c`, `-r` | answer |
+| SH-16 | System | Who can run this? | `-l`, `chmod`, `+x` | fs |
+| SH-17 | System | Search the tree | `find`, `-name` | answer |
+| SH-18 | System | Find and act | `-exec`, `{}` | fs |
+| SH-19 | awk | Fields with awk | `awk`, `print` | answer |
+| SH-20 | awk | Filter and total | `END`, `printf` | answer |
+| SH-21 | awk | Group by | `-F`, `NR`, `for` | answer |
+| SH-22 | sed | Find and replace | `sed`, `s/` | fs |
+| SH-23 | sed | Delete and print lines | `/d`, `^`, `$` | fs |
+| SH-24 | Patterns | Regex basics | `-E` | answer |
+| SH-25 | Patterns | Rearrange with groups | `\1` | fs |
+| SH-26 | Patterns | Clean up characters | `tr`, `-d`, `<` | fs |
+| SH-27 | Scripting | Variables and quoting | `$(`, `echo`, `=` | answer |
+| SH-28 | Scripting | Loop over files | `do`, `done`, `${` | fs |
+| SH-29 | Scripting | Read line by line | `while`, `read`, `&&`, `\|\|` | fs |
+| SH-30 | Scripting | Capstone: the report script | `#!`, `$1` | fs |
 
 ### 8.2 vi (VI)
 
 | ID | Chapter | Mission | You learn | Check |
 |---|---|---|---|---|
-| VI-01 | Survival | Get in and out | `i`, `Esc`, `:wq`, `:q!` | vi |
-| VI-02 | Survival | Walk the cursor | `h j k l` | vi |
-| VI-03 | Survival | Jump by words | `w b e` | vi |
-| VI-04 | Survival | Line edges | `0 ^ $` | vi |
-| VI-05 | Survival | Top, bottom, line N | `gg G :N` | vi |
-| VI-06 | Inserting | Add text anywhere | `a A o O I` | vi |
+| VI-01 | Survival | Get in and out | `i`, `:wq`, `:q!` | vi |
+| VI-02 | Survival | Walk the cursor | `h`, `j`, `k`, `l` | vi |
+| VI-03 | Survival | Jump by words | `w`, `b`, `e` | vi |
+| VI-04 | Survival | Line edges | `0`, `^`, `$` | vi |
+| VI-05 | Survival | Top, bottom, line N | `gg`, `G`, `:N` | vi |
+| VI-06 | Inserting | Add text anywhere | `a`, A, `o`, `O`, `I` | vi |
 | VI-07 | Inserting | Fix one character | `x`, `r` | vi |
-| VI-08 | Inserting | Take it back | `u`, `Ctrl-r` | vi |
-| VI-09 | Operators | Delete smart | `dw dd D` | vi |
-| VI-10 | Operators | Do it N times | counts: `3dd 5j 2w` | vi |
-| VI-11 | Operators | Change in place | `cw cc C` | vi |
-| VI-12 | Finding | Jump to a character | `f t ; ,` | vi |
-| VI-13 | Finding | Search the file | `/ ? n N` | vi |
+| VI-08 | Inserting | Take it back | `u`, `C-r` | vi |
+| VI-09 | Operators | Delete smart | `d`, `D` | vi |
+| VI-10 | Operators | Do it N times | `3dd` | vi |
+| VI-11 | Operators | Change in place | `c`, `C` | vi |
+| VI-12 | Finding | Jump to a character | `f`, `t`, `;`, `,` | vi |
+| VI-13 | Finding | Search the file | `/`, `?`, `n`, `N` | vi |
 | VI-14 | Finding | Repeat the last change | `.` | vi |
-| VI-15 | Copying | Copy and paste | `yy p P` | vi |
-| VI-16 | Copying | Move a line | `dd` + `p` | vi |
+| VI-15 | Copying | Copy and paste | `y`, `p`, `P` | vi |
+| VI-16 | Copying | Move a line | `ddp` | vi |
 | VI-17 | Copying | Join wrapped lines | `J` | vi |
-| VI-18 | Copying | Fix the indent | `>> <<` | vi |
-| VI-19 | Ex commands | Replace on one line | `:s/a/b/` | vi |
-| VI-20 | Ex commands | Replace everywhere | `:%s/a/b/g` | vi |
-| VI-21 | Ex commands | Work on ranges | `:10,20d`, `:.,$s` | vi |
-| VI-22 | Precision | Text objects | `ciw di" da(` | vi |
-| VI-23 | Precision | Visual selection | `v V` | vi |
-| VI-24 | Precision | Column edits | `Ctrl-v` block insert | vi |
-| VI-25 | Power | Named registers | `"ayy "ap` | vi |
-| VI-26 | Power | Marks | `ma 'a` | vi |
-| VI-27 | Power | Record a macro | `qa ... q @a @@` | vi |
-| VI-28 | Power | Global commands | `:g/re/d`, `:v/re/d` | vi |
-| VI-29 | Power | Several files | `:e`, `:w name`, `:r file` | vi |
-| VI-30 | Capstone | Refactor the config under par | everything | vi |
+| VI-18 | Copying | Fix the indent | `>`, `<` | vi |
+| VI-19 | Ex commands | Replace on one line | `:s` | vi |
+| VI-20 | Ex commands | Replace everywhere | `%` | vi |
+| VI-21 | Ex commands | Work on ranges | `:d`, `.,$` | vi |
+| VI-22 | Precision | Text objects | `i"`, `i(`, `a(`, `iw` | vi |
+| VI-23 | Precision | Visual selection | `v`, `V` | vi |
+| VI-24 | Precision | Column edits | `C-v`, `I` | vi |
+| VI-25 | Power | Named registers | `"a` | vi |
+| VI-26 | Power | Marks | `m`, `'` | vi |
+| VI-27 | Power | Record a macro | `q`, `@` | vi |
+| VI-28 | Power | Global commands | `:g`, `:v` | vi |
+| VI-29 | Power | Several files | `:r`, `:w`, `:e` | vi |
+| VI-30 | Power | Capstone: refactor the config | everything so far | vi |
 
 ### 8.3 Python (PY)
 
 | ID | Chapter | Mission | You learn | Check |
 |---|---|---|---|---|
-| PY-01 | Basics | Hello, operator | `print`, strings, numbers | py |
-| PY-02 | Basics | Name things | variables, `int str float bool` | py |
-| PY-03 | Basics | Make a decision | `if elif else`, comparisons | py |
+| PY-01 | Basics | Hello, operator | `print` | py |
+| PY-02 | Basics | Name things | `=`, `int`, `str`, `float`, `bool`, `True`, `False` | py |
+| PY-03 | Basics | Make a decision | `if`, `elif`, `else`, `<`, `>=` | py |
 | PY-04 | Basics | Your first function | `def`, `return` | py |
-| PY-05 | Strings | Clean user input | `strip lower replace` | py |
-| PY-06 | Strings | Format a report line | f-strings, padding | py |
-| PY-07 | Lists | Lists and indexes | `[]`, `[i]`, `[a:b]`, `len` | py |
-| PY-08 | Lists | Loop over things | `for`, `range` | py |
-| PY-09 | Lists | Loop until done | `while`, `break` | py |
-| PY-10 | Dicts | Look things up | `{}`, keys, `in` | py |
-| PY-11 | Dicts | Count anything | `d.get(k, 0) + 1` | py |
-| PY-12 | Collections | Tuples and unpacking | `a, b = ...` | py |
-| PY-13 | Collections | Sets for "seen" | `set`, dedupe | py |
-| PY-14 | Collections | One-line lists | comprehensions | py |
-| PY-15 | Collections | Sort by anything | `sorted(key=, reverse=)` | py |
-| PY-16 | Functions | Flexible functions | defaults, keyword arguments | py |
-| PY-17 | Functions | When things go wrong | `try except`, raising | py |
-| PY-18 | Parsing | Split log lines | `split`, unpacking, `int()` | py |
-| PY-19 | Parsing | Read and write JSON | `json.loads/dumps` | py |
-| PY-20 | Parsing | Files the safe way | `with open` (virtual FS) | py |
-| PY-21 | Stdlib | Counter and defaultdict | `collections` | py |
-| PY-22 | Stdlib | Dates and times | `datetime`, `timedelta` | py |
-| PY-23 | Stdlib | Patterns in text | `re.findall`, groups | py |
-| PY-24 | Stdlib | Networks in code | `ipaddress` | py |
-| PY-25 | Objects | Your first class | `class`, `__init__`, methods | py |
-| PY-26 | Objects | Data classes | `@dataclass` | py |
-| PY-27 | Objects | Lazy sequences | generators, `yield` | py |
-| PY-28 | Quality | Test your code | `assert`, test functions | py |
-| PY-29 | Algorithms | Merge the windows | sort then sweep | py |
-| PY-30 | Capstone | The log analyser | parse, aggregate, percentile, report | py |
+| PY-05 | Strings | Clean user input | `strip`, `lower`, `replace` | py |
+| PY-06 | Strings | Format a report line | f-string | py |
+| PY-07 | Lists | Lists and indexes | `[]`, `[i]`, `len`, `[a:b]` | py |
+| PY-08 | Lists | Loop over things | `for`, `in`, `range`, `+=` | py |
+| PY-09 | Lists | Loop until done | `while`, `break`, `*=` | py |
+| PY-10 | Dicts | Look things up | `{}`, `in` | py |
+| PY-11 | Dicts | Count anything | `get`, `split` | py |
+| PY-12 | Collections | Tuples and unpacking | unpack, `+` | py |
+| PY-13 | Collections | Sets for "seen" | `set`, `add`, `not`, `append` | py |
+| PY-14 | Collections | One-line lists | comprehension, `**`, `min` | py |
+| PY-15 | Collections | Sort by anything | `sorted`, `key`, `reverse` | py |
+| PY-16 | Functions | Flexible functions | default, keyword | py |
+| PY-17 | Functions | When things go wrong | `try`, `except`, `raise`, `None`, `ValueError`, `int` | py |
+| PY-18 | Parsing | Split log lines | `split` | py |
+| PY-19 | Parsing | Read and write JSON | `import`, `json`, `loads`, `dumps` | py |
+| PY-20 | Parsing | Files the safe way | `with`, `open`, `as`, `startswith` | py |
+| PY-21 | Standard library | Counter and defaultdict | `from`, `Counter`, `most_common`, `defaultdict` | py |
+| PY-22 | Standard library | Dates and times | `datetime`, `timedelta`, `strftime` | py |
+| PY-23 | Standard library | Patterns in text | `re`, `findall` | py |
+| PY-24 | Standard library | Networks in code | `>>` | py |
+| PY-25 | Objects | Your first class | `class`, `__init__`, `self` | py |
+| PY-26 | Objects | Objects that remember | state | py |
+| PY-27 | Objects | Lazy sequences | `yield`, `list`, `sum` | py |
+| PY-28 | Quality | Test your code | `assert` | py |
+| PY-29 | Quality | Merge the windows | `max`, `and` | py |
+| PY-30 | Quality | Capstone: the log analyser | everything so far | py |
 
 ### 8.4 Go (GO)
 
 | ID | Chapter | Mission | You learn | Check |
 |---|---|---|---|---|
-| GO-01 | Basics | Hello, Whiteraven | `package main`, `func main`, `fmt.Println` | go-out |
-| GO-02 | Basics | Zero values | `var`, `:=`, defaults | go-out |
-| GO-03 | Basics | Types and conversion | `int`, `float64`, `string()`, `strconv` | go-out |
+| GO-01 | Basics | Hello, Whiteraven | `package`, `import`, `func`, `main`, `fmt`, `Println` | go-out |
+| GO-02 | Basics | Zero values | `var`, `int`, `string`, `bool`, `:=`, `Printf` | go-out |
+| GO-03 | Basics | Types and conversion | `float64`, `strconv`, `Itoa` | go-out |
 | GO-04 | Basics | Constants and iota | `const`, `iota` | go-out |
-| GO-05 | Flow | Decisions | `if` with init, `switch` without fallthrough | go-out |
-| GO-06 | Flow | The only loop | `for` in three forms, `range` | go-out |
-| GO-07 | Functions | Many returns | multiple results, named results | go-out |
-| GO-08 | Functions | Errors are values | `if err != nil` | go-fix |
-| GO-09 | Slices | Arrays vs slices | fixed vs dynamic | go-out |
-| GO-10 | Slices | Grow with append | `len`, `cap` | go-out |
-| GO-11 | Slices | The slice that changed by itself | shared backing arrays | go-out |
-| GO-12 | Slices | Copy safely | `copy`, full slice expressions | go-fix |
-| GO-13 | Maps | Look up with comma-ok | `v, ok := m[k]`, nil maps | go-out |
-| GO-14 | Text | Bytes and runes | UTF-8, `[]rune` | go-out |
-| GO-15 | Types | Structs | fields, literals | go-out |
-| GO-16 | Types | Value vs pointer receivers | methods | go-out |
-| GO-17 | Types | Interfaces | implicit satisfaction | go-out |
-| GO-18 | Types | The nil that isn't nil | interface holding a nil pointer | go-fix |
-| GO-19 | Cleanup | defer order and arguments | LIFO, evaluation time | go-out |
-| GO-20 | Cleanup | panic and recover | when and why | go-out |
-| GO-21 | Errors | Wrap and inspect | `%w`, `errors.Is/As` | go-out |
-| GO-22 | Packages | Exported names | capital letters, packages | go-fix |
-| GO-23 | Concurrency | Goroutines | `go f()`, why main exits early | go-out |
-| GO-24 | Concurrency | Channels | unbuffered vs buffered | go-out |
-| GO-25 | Concurrency | Close and drain | `close`, `range ch` | go-out |
-| GO-26 | Concurrency | Select and timeouts | `select`, `time.After`, `default` | go-out |
-| GO-27 | Concurrency | Share safely | `sync.WaitGroup`, `Mutex` | go-fix |
-| GO-28 | Concurrency | Cancel work | `context.WithTimeout` | go-out |
-| GO-29 | Quality | Table tests | `testing`, predict which cases fail | go-out |
-| GO-30 | Capstone | The worker pool | design, predict, fix a race | go-fix |
+| GO-05 | Flow | Decisions | `if`, `switch`, `case`, default, `Print` | go-out |
+| GO-06 | Flow | The only loop | `for`, `range`, `_`, `[]int`, `+=`, `++` | go-out |
+| GO-07 | Functions | Many returns | `return`, `%`, `/` | go-out |
+| GO-08 | Functions | Errors are values | `err`, `nil`, `Atoi`, `!=` | go-fix |
+| GO-09 | Slices | Arrays vs slices | `[2]int`, slice | go-out |
+| GO-10 | Slices | Grow with append | `append` | go-out |
+| GO-11 | Slices | The slice that changed by itself | `len`, `cap`, `[:` | go-out |
+| GO-12 | Slices | Copy safely | `make`, `copy` | go-out |
+| GO-13 | Maps and text | Look up with comma-ok | `map`, `ok` | go-out |
+| GO-14 | Maps and text | Bytes and runes | `rune`, `[]rune` | go-out |
+| GO-15 | Types | Structs | `type`, `struct` | go-out |
+| GO-16 | Types | Value vs pointer receivers | receiver, `*C` | go-out |
+| GO-17 | Types | Interfaces | `interface` | go-out |
+| GO-18 | Types | The nil that isn't nil | `error` | go-out |
+| GO-19 | Cleanup | defer order | `defer` | go-out |
+| GO-20 | Cleanup | panic and recover | `panic`, `recover` | go-out |
+| GO-21 | Errors and packages | Wrap and inspect | `Errorf`, `%w`, `errors`, `New`, `Is` | go-out |
+| GO-22 | Errors and packages | Exported names | `strings`, `ToUpper` | go-fix |
+| GO-23 | Concurrency | Goroutines | `go`, `time`, `Sleep`, `Millisecond`, `Second` | go-out |
+| GO-24 | Concurrency | Channels | `chan`, `<-` | go-out |
+| GO-25 | Concurrency | Close and drain | `close` | go-out |
+| GO-26 | Concurrency | Select and timeouts | `select` | go-out |
+| GO-27 | Concurrency | Share safely | `sync`, `Mutex`, `WaitGroup`, `Add`, `Done`, `Wait`, `Lock`, `Unlock` | go-out |
+| GO-28 | Concurrency | Cancel work | `context`, `WithTimeout`, `Background`, `After`, `Err` | go-out |
+| GO-29 | Quality | Table tests | table, `testing` | go-out |
+| GO-30 | Quality | Capstone: the worker pool | everything so far | go-fix |
 
 When the sandboxed runner ships (M9), `go-fix` missions upgrade to *write and run* missions with real `go test`.
 
@@ -500,36 +509,36 @@ When the sandboxed runner ships (M9), `go-fix` missions upgrade to *write and ru
 
 | ID | Chapter | Mission | You learn | Check |
 |---|---|---|---|---|
-| NET-01 | Addresses | What an IP really is | 32 bits, dotted decimal | answer |
-| NET-02 | Addresses | Binary to decimal | octet place values | answer |
-| NET-03 | Addresses | Prefix and mask | `/24` = `255.255.255.0` | answer |
-| NET-04 | Subnets | Hosts in a subnet | `2^h − 2`, /31 and /32 | answer |
-| NET-05 | Subnets | Network and broadcast | block size | answer |
-| NET-06 | Subnets | Size it right | smallest prefix for N hosts | answer |
-| NET-07 | Subnets | Private and special ranges | RFC 1918, CGNAT, loopback | answer |
-| NET-08 | Subnets | Carve one /24 | VLSM, largest first | answer |
-| NET-09 | Subnets | One route for four | summarisation | answer |
-| NET-10 | Local network | MACs and ARP | layer 2 vs 3 | answer |
-| NET-11 | Local network | Local or via the gateway? | the host's decision | answer |
-| NET-12 | Transport | Ports and sockets | IP plus port | answer |
-| NET-13 | Transport | The TCP handshake | SYN, SYN-ACK, ACK, states | answer |
-| NET-14 | Transport | TCP or UDP? | trade-offs | answer |
-| NET-15 | Transport | Ports you must know | 22, 53, 80, 443, 25, 3389 and more | answer |
-| NET-16 | Services | DNS records | A, AAAA, CNAME, MX, TXT, NS | answer |
-| NET-17 | Services | Follow a DNS lookup | `dig`, `resolv.conf` | fs |
-| NET-18 | Services | How DHCP hands out addresses | DORA | answer |
-| NET-19 | Routing | Read a routing table | longest prefix match | answer |
-| NET-20 | Routing | The PC with no internet | `ip addr`, `ip route`, netplan | fs |
+| NET-01 | Addresses | What an IP really is | IP, bits, octet | answer |
+| NET-02 | Addresses | Binary to decimal | binary | answer |
+| NET-03 | Addresses | Prefix and mask | prefix, mask, `/24` | answer |
+| NET-04 | Subnets | Hosts in a subnet | hosts | answer |
+| NET-05 | Subnets | Network and broadcast | block, network, broadcast | answer |
+| NET-06 | Subnets | Size it right | size | answer |
+| NET-07 | Subnets | Private and special ranges | RFC 1918, `127.0.0.1` | answer |
+| NET-08 | Subnets | Carve one /24 | VLSM | answer |
+| NET-09 | Subnets | One route for four | summarising | answer |
+| NET-10 | Local network | MACs and ARP | MAC, ARP | answer |
+| NET-11 | Local network | Local or via the gateway? | gateway | answer |
+| NET-12 | Transport | Ports and sockets | port, socket | answer |
+| NET-13 | Transport | The TCP handshake | SYN, SYN-ACK, ACK, TCP | answer |
+| NET-14 | Transport | TCP or UDP? | UDP | answer |
+| NET-15 | Transport | Ports you must know | `22`, `53`, `80` | answer |
+| NET-16 | Services | DNS records | DNS, A, CNAME, `grep`, `cat` | answer |
+| NET-17 | Services | Follow a DNS lookup | `dig`, `resolv.conf`, `sed`, `-i` | fs |
+| NET-18 | Services | How DHCP hands out addresses | DHCP, DORA | answer |
+| NET-19 | Routing | Read a routing table | longest prefix | answer |
+| NET-20 | Routing | The PC with no internet | `ip`, `netplan`, `ping`, `addr`, `route`, `-c` | fs |
 | NET-21 | Tools | Read ping | ICMP, TTL, loss | answer |
-| NET-22 | Tools | Read traceroute | where the delay starts | answer |
-| NET-23 | Tools | Who is listening? | `ss -tulpn` | answer |
-| NET-24 | Tools | Talk HTTP by hand | `curl -I`, status codes, headers | answer |
-| NET-25 | Edge | Read the NAT table | PAT mappings | answer |
-| NET-26 | Edge | First match wins | firewall rule order | answer |
-| NET-27 | Edge | TLS at a glance | certificates, expiry, `openssl s_client` | answer |
-| NET-28 | Modern | IPv6 basics | shortening, `/64`, link-local | answer |
-| NET-29 | Planning | How long will it take? | bits vs bytes, throughput | answer |
-| NET-30 | Capstone | The troubleshooting ladder | layered diagnosis across tools | multi |
+| NET-22 | Tools | Read traceroute | traceroute | answer |
+| NET-23 | Tools | Who is listening? | `ss`, `-t`, `-u`, `-l`, `-p`, `-n` | answer |
+| NET-24 | Tools | Talk HTTP by hand | `curl`, `-I` | answer |
+| NET-25 | Edge | Read the NAT table | NAT | answer |
+| NET-26 | Edge | First match wins | first match wins | answer |
+| NET-27 | Edge | TLS at a glance | TLS, certificate, `openssl` | answer |
+| NET-28 | Edge | IPv6 basics | IPv6, `::` | answer |
+| NET-29 | Putting it together | How long will it take? | Mbps | answer |
+| NET-30 | Putting it together | Capstone: the troubleshooting ladder | everything so far | answer |
 
 ### 8.6 NetLab (LAB): simulated devices
 
@@ -782,15 +791,15 @@ uptime-arcade/
 ├── content/                          the curriculum, as data
 │   ├── schema/mission.schema.json
 │   ├── tracks.yaml
-│   ├── legacy/                       the 100 legacy missions as JS, until M1 converts them (ADR 0002)
+│   ├── legacy/                       the 150 missions as JS, one file per track, until M1 converts them (ADR 0002, 0004)
 │   ├── missions/{shell,vi,python,go,networking,netlab,ops}/*.yaml
 │   ├── fixtures/fs/*.yaml            virtual files per mission or shared
 │   ├── topologies/*.yaml             NetLab labs
 │   └── packs/                        post-launch content packs
 ├── tools/
-│   ├── verify_content.mjs            runs every solution through the engines
-│   ├── check_taught_before_used.py   lesson order check (section 18)
-│   └── verify_go.sh                  runs every Go snippet with real `go run`
+│   ├── verify_content.mjs            runs every solution through the engines, python3, Skulpt and `go run`
+│   ├── check_taught_before_used.mjs  lesson order check (section 18)
+│   └── screenshots.mjs               every screen at 1400px and 400px
 ├── legacy/                           the original single-file game, for reference
 ├── docs/
 │   ├── DESIGN.md                     this document
@@ -851,9 +860,9 @@ rewind_overrides: {}             # optional hand-written tasks
 4. `check_taught_before_used.py` confirms every `uses` item was taught earlier in the track.
 5. On merge, deploy runs `manage.py import_content`, which upserts by `id`, bumps `content_version` and never deletes progress (removed missions are marked `retired`).
 
-### 13.3 Migrating the existing 100 missions
+### 13.3 Migrating the existing missions
 
-The legacy JS (`t_shell.js`, `t_rest.js`, `learn.js`) is converted to YAML by a one-off script, `tools/legacy_to_yaml.mjs`. Missions are then renumbered and gaps filled to reach the 200 in section 8. Legacy missions are mapped to their closest new IDs, which is recorded in `content/LEGACY_MAP.md`.
+The legacy JS (`t_shell.js`, `t_rest.js`, `learn.js`) is converted to YAML by a one-off script, `tools/legacy_to_yaml.mjs`. The five existing tracks already hold their final 30 missions with final IDs ([ADR 0004](adr/0004-thirty-missions-from-zero.md)), so conversion changes only the format. The map from old IDs is `OLD_IDS` in `content/legacy/index.mjs`.
 
 ---
 
@@ -995,13 +1004,13 @@ Each milestone is one or more pull requests and ends with `make check` passing a
 | # | Milestone | Scope | Acceptance criteria |
 |---|---|---|---|
 | M0 | Foundation | New repo from the template, rename, `legacy/` folder, `docs/DESIGN.md`, CI green | `make check` passes, and the health endpoint answers |
-| M1 | Content system | `content` app, YAML schema, `import_content`, legacy-to-YAML conversion of the existing 100 missions, admin views | 100 missions imported. Schema validation in CI. Answers absent from all public serializers (tested) |
+| M1 | Content system | `content` app, YAML schema, `import_content`, legacy-to-YAML conversion of the existing 150 missions, admin views | 150 missions imported. Schema validation in CI. Answers absent from all public serializers (tested) |
 | M2 | Player and economy | `game` and `focus` apps, ledgers, focus blocks, sessions, streaks, shields, rules config | Every rule in sections 6.1, 6.2 and 6.7 has tests. Server time enforced |
 | M3 | HUD shell | Design tokens, fonts, HUD kit, Deck, Focus, Missions, Briefing, Rewards, System screens on real API data | Screens match section 4 at 1400px and 400px. Keyboard accessible |
 | M4 | Play and engines | `engines/` package with fs, shell and vi ported, Python runner, Go reader, Play screen, submit, hints, debrief | All 100 legacy missions playable and passing in CI through engine scripts |
 | M5 | Rewind and progression | Server-side rewind generation, Rewind screen, unlocks, levels, badges, events and animations, Redis cache | Unlock-after-five works. Level-up and unlock animations play from API events |
 | M6 | NetLab v1 | Engine (L2, VLANs, trunks, routing, static routes, ACL, NAT, DHCP, DNS), CLI, canvas, simulation mode, goals | LAB-01 to LAB-23 playable. Golden reachability tests pass |
-| M7 | Curriculum to 200 | Write the missing missions to reach 30 per track, plus OPS-01 to OPS-20 with multi-stage play | All of section 8 is in YAML and verified in CI |
+| M7 | Curriculum to 200 | OPS-01 to OPS-20 with multi-stage play, and NetLab content from M6 and M8. The five other tracks reached 30 early (ADR 0004) | All of section 8 is in YAML and verified in CI |
 | M8 | NetLab v2 | OSPF, STP, port security, L3 switch, fault injection, Blackout capstone | LAB-24 to LAB-30 playable |
 | M9 | Runner | Celery, runner service, sandbox for Python and Go, server re-verification for `fs`, `vi` and `net` | Tampered client submissions are rejected (tested). Go missions upgrade to real code |
 | M10 | Launch | Deploy to the Contabo server per `DEPLOYMENT.md`, backups, uptime monitor, import from the offline game | Live over HTTPS, a backup is restored once, the offline save imports |

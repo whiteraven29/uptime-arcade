@@ -1,16 +1,28 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { HudPanel } from '../../ui/HudPanel.jsx';
 import { MissionNode } from '../../ui/MissionNode.jsx';
 import { CHAPTERS, S, TK, TRACKS, missionPath, oncallUnlocked, stateOf, toast, ui } from '../../api/localGame.js';
 
-function TrackColumn({ code, name, sub }) {
+function TrackColumn({ code, name, sub, selected }) {
   const navigate = useNavigate();
   const chapters = CHAPTERS[code];
+  const list = useRef(null);
+  const done = TK[code].filter((m) => S.rewDone[m.id]).length;
+  // Thirty missions don't fit on screen, so each column opens on the one you're up to.
+  useEffect(() => {
+    const box = list.current;
+    const now = box?.querySelector('.node.rewind, .node.open');
+    if (box && now) box.scrollTop = now.offsetTop - box.offsetTop - box.clientHeight / 3;
+  }, []);
   return (
-    <HudPanel className="tcol">
-      <h3 className="metal">{name}</h3>
+    <HudPanel className={`tcol${selected ? ' selected' : ''}`}>
+      <div className="tcol-head">
+        <h3 className="metal">{name}</h3>
+        <span className="tcol-count">{done}/{TK[code].length}</span>
+      </div>
       <div className="small">{sub}</div>
-      <div className="tcol-list">
+      <div className="tcol-list" ref={list}>
         {TK[code].map((m, i) => {
           const chapter = chapters.find((x) => x[1] === i);
           const st = stateOf(m);
@@ -34,16 +46,20 @@ function TrackColumn({ code, name, sub }) {
 }
 
 export function MissionsScreen() {
+  const [picked, setPicked] = useState(TRACKS[0][0]);
   return (
-    <section className="screen" aria-label="Missions">
+    <section className="screen flush missions" aria-label="Missions">
       {oncallUnlocked() && (
-        <HudPanel label="On-call unlocked" style={{ marginBottom: 12 }}>
+        <HudPanel label="On-call unlocked">
           <p className="small">Endless random incidents. Resolved {S.ocTotal}, best first-try streak {S.ocBest}.</p>
           <Link className="btn go" to="/oncall">Start shift</Link>
         </HudPanel>
       )}
+      <div className="track-tabs" role="group" aria-label="Choose a track">
+        {TRACKS.map(([k, l]) => <button key={k} type="button" className="btn" aria-pressed={picked === k} onClick={() => setPicked(k)}>{l}</button>)}
+      </div>
       <div className="tracks">
-        {TRACKS.map(([k, l, sub]) => <TrackColumn key={k} code={k} name={l} sub={sub} />)}
+        {TRACKS.map(([k, l, sub]) => <TrackColumn key={k} code={k} name={l} sub={sub} selected={picked === k} />)}
         <HudPanel className="tcol planned" label="Coming next">
           <h3 className="metal">NetLab</h3>
           <div className="small">Simulated routers and switches arrive in M6.</div>

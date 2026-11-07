@@ -8,7 +8,13 @@ export function RewardsScreen() {
   const cur = levelIdx();
   return (
     <section className="screen" aria-label="Rewards">
-      <div className="grid2">
+      <div className="rewards">
+        <HudPanel className="rewards-badges" label={`Badges ${Object.keys(S.badges).length}/${BADGES.length}`}>
+          <div className="badges">
+            {BADGES.map(([id, name, desc]) => <Badge key={id} id={id} name={name} description={desc} earned={S.badges[id]} />)}
+          </div>
+        </HudPanel>
+        <div className="rewards-side">
         <HudPanel label="Day streak rewards">
           <p className="small">Finish one focus block a day to keep the streak. Best {S.bestStreak} days. Shields {S.shields}. XP bonus +{Math.round((mult() - 1) * 100)}%, up to +50%.</p>
           <div className="lad">
@@ -23,11 +29,7 @@ export function RewardsScreen() {
             {LEVELS.map((v, i) => <LadderRow key={v[1]} state={i < cur ? 'on' : i === cur ? 'next' : ''} cells={[String(i + 1), v[1], `${v[0]} missions`]} />)}
           </div>
         </HudPanel>
-        <HudPanel className="span-all" label={`Badges ${Object.keys(S.badges).length}/${BADGES.length}`}>
-          <div className="badges">
-            {BADGES.map(([id, name, desc]) => <Badge key={id} name={name} description={desc} earned={S.badges[id]} />)}
-          </div>
-        </HudPanel>
+        </div>
       </div>
     </section>
   );

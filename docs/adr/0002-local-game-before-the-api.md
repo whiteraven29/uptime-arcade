@@ -12,7 +12,7 @@ Do M0, the look from M3 and the engine port from M4 first, without M1 and M2:
 
 - `frontend/src/api/localGame.js` holds the rules and state, ported from the legacy `ui.js`, and keeps the same save format. Screens call this module only, so moving rules to the server later replaces one module rather than the screens.
 - Missions stay as JavaScript in `content/legacy/`, because some have `check()` functions that YAML can't express until the M1 `expect` rules exist.
-- Level thresholds stay on the legacy 100-mission ladder, because Archmage at 200 would be unreachable with today's catalogue. Section 6.4's ladder takes over in M7.
+- Level thresholds stay below section 6.4's, because Archmage at 200 would be unreachable with today's catalogue. Section 6.4's ladder takes over in M7. (ADR 0004 moved the interim ladder to 150.)
 - Screens without content yet (`/ops`, `/profile`) show an honest "arrives in milestone" panel.
 
 ## Consequences

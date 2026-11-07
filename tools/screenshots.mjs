@@ -28,7 +28,7 @@ for (const [width, height] of [[1400, 880], [400, 860]]) {
     if (m.type() === 'error') problems.push(`${width}: console: ${m.text()}`);
   });
   await page.addInitScript((s) => {
-    if (!localStorage.getItem('uptime-arcade-v3')) localStorage.setItem('uptime-arcade-v3', JSON.stringify({ ...s, day: new Date().toDateString() }));
+    if (!localStorage.getItem('uptime-arcade-v4')) localStorage.setItem('uptime-arcade-v4', JSON.stringify({ ...s, day: new Date().toDateString() }));
   }, SAVE);
 
   const shot = async (name, after) => {
@@ -40,10 +40,10 @@ for (const [width, height] of [[1400, 880], [400, 860]]) {
   };
   const open = (path) => page.goto(base + path, { waitUntil: 'load' });
   const sessionOpen = () => page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('uptime-arcade-v3'));
+    const s = JSON.parse(localStorage.getItem('uptime-arcade-v4'));
     s.bank = 0;
     s.sessionEndsAt = Date.now() + 36e5;
-    localStorage.setItem('uptime-arcade-v3', JSON.stringify(s));
+    localStorage.setItem('uptime-arcade-v4', JSON.stringify(s));
   });
 
   // The first mission of every track is open on a new save.
@@ -101,10 +101,10 @@ for (const [width, height] of [[1400, 880], [400, 860]]) {
 
   // Timer running.
   await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('uptime-arcade-v3'));
+    const s = JSON.parse(localStorage.getItem('uptime-arcade-v4'));
     s.sessionEndsAt = null;
     s.focus = { goal: 'Fix the login endpoint bug', len: 25, startedAt: Date.now() - 9 * 60000, endsAt: Date.now() + 16 * 60000, drifts: 0 };
-    localStorage.setItem('uptime-arcade-v3', JSON.stringify(s));
+    localStorage.setItem('uptime-arcade-v4', JSON.stringify(s));
   });
   await open('/focus');
   await shot('focus-running');

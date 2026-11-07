@@ -28,7 +28,7 @@ export function CoreRing({ level, title, sub, progress }) {
       </svg>
       <div className="core-text">
         <div className="lv">{level}</div>
-        <div className="name metal">{title}</div>
+        <div className={`name metal${title.length > 10 ? ' longest' : title.length > 7 ? ' long' : ''}`}>{title}</div>
         <div className="sub">{sub}</div>
       </div>
     </div>

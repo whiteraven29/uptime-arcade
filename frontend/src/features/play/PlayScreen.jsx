@@ -16,7 +16,7 @@ export function PlayScreen() {
   if (st === 'rewind' && ui.debrief !== m.id) return <Navigate to={`/missions/${m.id}/rewind`} replace />;
   setCurrent(m.id);
   return (
-    <section className="screen" aria-label="Mission">
+    <section className="screen flush" aria-label="Mission">
       <PlayArea t={m} />
     </section>
   );

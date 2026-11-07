@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { host, replaceState, S } from '../host.js';
-import { fs, HOME, norm } from '../fs/index.js';
+import { F, fs, HOME, norm } from '../fs/index.js';
 import { runLine, sh } from '../shell/index.js';
 import { VI, viKey } from '../vi/index.js';
 import { rewindTasks } from '../rewind-preview/index.js';
@@ -18,7 +18,7 @@ const run = (line) => {
 };
 
 beforeEach(() => {
-  replaceState({ cwd: HOME, overlay: {}, hist: [], viKeys: {}, net: { gw: '10.40.3.1' }, ranScript: false });
+  replaceState({ cwd: HOME, overlay: {}, hist: [], viKeys: {}, viUsed: {}, net: { gw: '10.40.3.1' }, ranScript: false });
   fs.reset({});
   VI.on = false;
 });
@@ -108,7 +108,7 @@ describe('vi', () => {
 
 describe('rewind generation, for every mission', () => {
   it('has a lesson and five well-formed tasks', () => {
-    expect(TICKETS).toHaveLength(100);
+    expect(TICKETS).toHaveLength(150);
     for (const t of TICKETS) {
       expect(t.learn?.[0], `${t.id} lesson`).toBeTruthy();
       const tasks = rewindTasks(t, TK);
@@ -128,5 +128,78 @@ describe('rewind generation, for every mission', () => {
   it('is deterministic per mission', () => {
     const t = TICKETS[10];
     expect(rewindTasks(t, TK)).toEqual(rewindTasks(t, TK));
+  });
+});
+
+describe('vi: the full track', () => {
+  const edit = (start, keys) => {
+    F(`${HOME}/t.txt`, start);
+    fs.reset({});
+    runLine(`vi ${HOME}/t.txt`);
+    for (const k of keys.match(/<CR>|<Esc>|<C-.>|[\s\S]/g)) {
+      if (k.startsWith('<C-')) viKey(k[3], true);
+      else viKey(k === '<CR>' ? 'Enter' : k === '<Esc>' ? 'Escape' : k, false);
+    }
+    viKey(':', false);
+    for (const k of 'wq') viKey(k, false);
+    viKey('Enter', false);
+    return fs.get(`${HOME}/t.txt`).c;
+  };
+  it('redoes what undo took back', () => {
+    expect(edit('abc\n', 'xxuu<C-r>')).toBe('bc\n');
+  });
+  it('changes inside quotes and deletes inside brackets', () => {
+    expect(edit('a = "old" + f(1, 2)\n', 'ci"new<Esc>')).toBe('a = "new" + f(1, 2)\n');
+    expect(edit('f(1, 2)\n', 'ldi(')).toBe('f()\n');
+    expect(edit('f(1, 2) z\n', 'lda(')).toBe('f z\n');
+    expect(edit('one two\n', 'wciwTHREE<Esc>')).toBe('one THREE\n');
+  });
+  it('stops short with t and goes back with ,', () => {
+    expect(edit('a,b,c\n', 'dt,')).toBe(',b,c\n');
+    expect(edit('a,b,c\n', 'f,;,x')).toBe('ab,c\n');
+  });
+  it('deletes a visual selection, by character and by line', () => {
+    expect(edit('abcdef\n', 'lvld')).toBe('adef\n');
+    expect(edit('a\nb\nc\n', 'Vjd')).toBe('c\n');
+    expect(edit('ab\ncd\nef\n', 'lvjd')).toBe('a\nef\n');
+  });
+  it('inserts on every row of a block', () => {
+    expect(edit('a\nb\nc\n', '<C-v>2jI# <Esc>')).toBe('# a\n# b\n# c\n');
+  });
+  it('keeps named registers apart', () => {
+    expect(edit('one\ntwo\n', '"ayyj"byyG"ap"bp')).toBe('one\ntwo\none\ntwo\n');
+  });
+  it('jumps to and deletes to a mark', () => {
+    expect(edit('a\nb\nc\nd\n', "jmaGd'a")).toBe('a\n');
+  });
+  it('records a macro and replays it with a count', () => {
+    expect(edit('a\nb\nc\n', 'qaI- <Esc>jq2@a')).toBe('- a\n- b\n- c\n');
+  });
+  it('runs ex commands over ranges', () => {
+    expect(edit('a\nb\nc\nd\n', ':2,3d<CR>')).toBe('a\nd\n');
+    expect(edit('x\nx\nx\n', ':2,$s/x/y/<CR>')).toBe('x\ny\ny\n');
+    expect(edit('#c\na=1\nnope\n', ':g/^#/d<CR>:v/=/d<CR>')).toBe('a=1\n');
+  });
+  it('reads in another file and writes a copy', () => {
+    F(`${HOME}/foot.txt`, 'end\n');
+    expect(edit('top\n', `:r ${HOME}/foot.txt<CR>:w ${HOME}/copy.txt<CR>`)).toBe('top\nend\n');
+    expect(fs.get(`${HOME}/copy.txt`).c).toBe('top\nend\n');
+  });
+  it("doesn't double count keys when you save twice", () => {
+    edit('a\n', ':w<CR>');
+    expect(S.viKeys[`${HOME}/t.txt`]).toBe(7);
+  });
+});
+
+describe('shell: scripts take arguments', () => {
+  it('passes words to $1 when a script runs by path', () => {
+    F(`${HOME}/s.sh`, 'echo "hi $1"\n', 0o755);
+    fs.reset({});
+    const buf = [];
+    sh.sink = buf;
+    runLine(`${HOME}/s.sh amina`);
+    sh.sink = null;
+    expect(buf.join('')).toContain('hi amina');
+    expect(S.ranScript).toBe(`${HOME}/s.sh`);
   });
 });

@@ -45,7 +45,6 @@ export function App() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const frame = useRef(null);
-  const outer = useRef(null);
 
   useEffect(() => {
     setNavigator(navigate);
@@ -62,12 +61,10 @@ export function App() {
 
   return (
     <div onPointerDown={ensureAudio}>
-      <canvas ref={outer} className="scene-outer" aria-hidden="true" />
       <div className="frame" ref={frame} data-screen={pathname === '/' ? 'deck' : 'other'}>
-        <SceneBackdrop frameRef={frame} outerRef={outer} />
+        <SceneBackdrop frameRef={frame} />
         <div className="scene-veil" />
         <div className="frame-scan" />
-        <div className="frame-edge" />
         <TopBar />
         <main>
           <Routes>
@@ -87,7 +84,7 @@ export function App() {
         </main>
       </div>
       <Overlays />
-      <Toast text={ui.toast} />
+      <Toast text={ui.toast} badge={ui.toastBadge} />
     </div>
   );
 }

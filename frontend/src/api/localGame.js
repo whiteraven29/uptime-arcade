@@ -6,16 +6,16 @@ import { S, host, replaceState } from '../../../engines/host.js';
 import { fs, HOME, HOST, norm, pad } from '../../../engines/fs/index.js';
 import { sh, runLine } from '../../../engines/shell/index.js';
 import { COMMANDS, MAN } from '../../../engines/shell/commands.js';
-import { VI, viKey } from '../../../engines/vi/index.js';
+import { VI, viKey, viSelection } from '../../../engines/vi/index.js';
 import { rewindTasks, normA } from '../../../engines/rewind-preview/index.js';
-import { TK, TRACKS, CHAPTERS, TICKETS } from '../../../content/legacy/index.mjs';
+import { TK, TRACKS, CHAPTERS, TICKETS, OLD_IDS } from '../../../content/legacy/index.mjs';
 import { genOncall } from './oncallGen.js';
 import { ensureAudio, playLevelUp, playTimerEnd, playUnlock, setMuted } from '../sound/cues.js';
 
-export { S, VI, TK, TRACKS, CHAPTERS, TICKETS };
+export { S, VI, viSelection, TK, TRACKS, CHAPTERS, TICKETS };
 
-/* ---------- rules (section 6; thresholds stay on the 100-mission ladder until M7) ---------- */
-const KEY = 'uptime-arcade-v3';
+/* ---------- rules (section 6; the ladder is section 6.4 scaled to 150 missions, see ADR 0004) ---------- */
+const KEY = 'uptime-arcade-v4';
 export const BANK_CAP = 30 * 60;
 const BONUS_CAP = 60 * 60;
 const STARTER = 5 * 60;
@@ -25,8 +25,15 @@ const PAR_BONUS = 20;
 const REW_XP = 15;
 const REW_FIRST = 5;
 export const EARN = { 15: 5, 25: 8, 45: 15 };
-export const LEVELS = [[0, 'Noob'], [5, 'Initiate'], [12, 'Apprentice'], [22, 'Operator'], [34, 'Adept'], [46, 'Specialist'], [58, 'Technomancer'], [70, 'Sorcerer'], [85, 'Sage'], [100, 'Archmage']];
+export const LEVELS = [[0, 'Noob'], [8, 'Initiate'], [19, 'Apprentice'], [34, 'Operator'], [52, 'Adept'], [71, 'Specialist'], [90, 'Technomancer'], [109, 'Sorcerer'], [128, 'Sage'], [150, 'Archmage']];
 export const STREAKS = [[3, 5, 50, 0], [7, 10, 150, 1], [14, 15, 300, 0], [21, 15, 500, 1], [30, 20, 1000, 0], [60, 30, 2000, 1], [100, 30, 5000, 1]];
+const parCount = () => Object.values(S.done).filter((d) => d.bonus > 0).length;
+/* Every mission in a chapter solved, with no hints used on any of them. */
+const cleanChapter = () => TRACKS.some(([k]) => CHAPTERS[k].some(([, start], i) => {
+  const end = CHAPTERS[k][i + 1] ? CHAPTERS[k][i + 1][1] : TK[k].length;
+  return TK[k].slice(start, end).every((m) => S.done[m.id] && !S.done[m.id].hints);
+}));
+/* Section 6.8. NetLab Master and Operator of Operations arrive with their content. */
 export const BADGES = [
   ['firstblock', 'First Block', 'Finish a focus block', () => S.blocks >= 1],
   ['clean10', 'Clean Ten', '10 blocks with no drifts', () => S.cleanBlocks >= 10],
@@ -34,8 +41,12 @@ export const BADGES = [
   ['hours100', 'Hundred Hours', '100 hours of focus', () => S.focusMin >= 6000],
   ['week', 'Full Week', '7 day streak', () => S.bestStreak >= 7],
   ['month', 'Iron Month', '30 day streak', () => S.bestStreak >= 30],
+  ['centurion', 'Centurion', '100 day streak', () => S.bestStreak >= 100],
   ['first', 'First Clear', 'Clear one mission', () => cleared() >= 1],
   ...TRACKS.map(([k, l]) => ['t' + k, l + ' Master', 'Clear the ' + l + ' path', () => TK[k].every((m) => S.rewDone[m.id])]),
+  ['par50', 'Par Hunter', '50 missions at or under par', () => parCount() >= 50],
+  ['nohints', 'No Hints Needed', 'Clear a whole chapter without hints', cleanChapter],
+  ['night', 'Night Shift', 'Finish 25 on-call incidents', () => S.ocTotal >= 25],
   ['arch', 'Archmage', `Clear all ${TICKETS.length} missions`, () => S.peak >= TICKETS.length],
 ];
 
@@ -54,9 +65,9 @@ const dayGap = (a, b) => {
 };
 
 const fresh = () => ({
-  v: 3, updatedAt: 0, xp: 0, focusMin: 0, blocks: 0, cleanBlocks: 0, streak: 0, bestStreak: 0, shields: 0, lastDay: null,
+  v: 4, updatedAt: 0, xp: 0, focusMin: 0, blocks: 0, cleanBlocks: 0, streak: 0, bestStreak: 0, shields: 0, lastDay: null,
   day: dayKey(), todayMin: 0, todayDrifts: 0, bank: STARTER, sessionEndsAt: null, focus: null, claim: null, len: 25,
-  cur: null, done: {}, rew: {}, rewDone: {}, hints: {}, cmds: {}, tries: {}, code: {}, viKeys: {}, overlay: {}, cwd: HOME, hist: [],
+  cur: null, done: {}, rew: {}, rewDone: {}, hints: {}, cmds: {}, tries: {}, code: {}, viKeys: {}, viUsed: {}, overlay: {}, cwd: HOME, hist: [],
   net: { gw: '10.40.3.1' }, season: 1, peak: 0, ended: false, claimed: {}, badges: {}, oc: null, ocShift: 0, ocStreak: 0, ocBest: 0, ocTotal: 0,
   ranScript: false, muted: false,
 });
@@ -66,6 +77,7 @@ export const ui = {
   term: [],
   termVersion: 0,
   toast: null,
+  toastBadge: null,
   debrief: null,
   overlay: null, // {kind:'level', i} or {kind:'finale'}
   flash: null, // mission id that just unlocked
@@ -93,11 +105,13 @@ export const setNavigator = (fn) => {
 };
 export const go = (path) => navigate(path);
 
-export function toast(text) {
+export function toast(text, badge = null) {
   ui.toast = text;
+  ui.toastBadge = badge;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     ui.toast = null;
+    ui.toastBadge = null;
     bump();
   }, 3500);
   bump();
@@ -146,8 +160,19 @@ export const missionPath = (m) => {
 export const oncallUnlocked = () => cleared() >= TICKETS.length;
 
 /* ---------- saving ---------- */
+/* v3 saves used the old numbered ids. Progress on missions that survived moves across, and missions
+   that were retired fall away. peak stays, so nobody loses a title. */
+function fromV3(o) {
+  const mapped = {};
+  for (const key of ['done', 'rew', 'rewDone', 'hints', 'cmds', 'tries', 'code']) {
+    mapped[key] = {};
+    for (const [id, value] of Object.entries(o[key] || {})) if (OLD_IDS[id]) mapped[key][OLD_IDS[id]] = value;
+  }
+  return { ...o, ...mapped, v: 4, cur: null };
+}
 function migrate(o) {
-  if (o && o.v === 3) return o;
+  if (o && o.v === 4) return o;
+  if (o && o.v === 3) return fromV3(o);
   if (!o) return null;
   const n = fresh();
   for (const k of ['xp', 'focusMin', 'blocks', 'streak', 'lastDay', 'bank']) if (o[k] !== undefined) n[k] = o[k];
@@ -156,7 +181,7 @@ function migrate(o) {
 }
 function loadLocal() {
   try {
-    for (const k of [KEY, 'uptime-arcade-v2']) {
+    for (const k of [KEY, 'uptime-arcade-v3', 'uptime-arcade-v2']) {
       const r = localStorage.getItem(k);
       if (r) return migrate(JSON.parse(r));
     }
@@ -207,9 +232,9 @@ export function clearTerm() {
 /* ---------- commands and missions ---------- */
 export const META = new Set(['help', 'man', 'clear', 'brief', 'hint', 'submit', 'status', 'exit']);
 const HELP = `Tools: ls cd pwd cat head tail wc grep sort uniq cut tr sed awk find
-       mv cp rm mkdir touch tee seq xargs echo paste diff tac rev nl
+       mv cp rm mkdir touch chmod tee seq xargs echo paste diff tac rev nl
        for and while loops, if, pipes, >, >>, bash scripts
-       vi ip ping dig netplan
+       vi ip ping dig netplan ss curl
 Game:  brief        show the mission again
        hint         reveal a hint (costs ${HINT_COST} XP)
        submit X     answer the mission
@@ -606,7 +631,7 @@ function checkBadges() {
   for (const [id, name, , test] of BADGES) {
     if (!S.badges[id] && test()) {
       S.badges[id] = true;
-      toast('Badge earned: ' + name);
+      toast('Badge earned: ' + name, id);
     }
   }
 }
@@ -640,7 +665,7 @@ export function tick() {
 /* ---------- system ---------- */
 export function newSeason() {
   Object.assign(S, {
-    cur: null, done: {}, rew: {}, rewDone: {}, hints: {}, cmds: {}, tries: {}, code: {}, viKeys: {}, overlay: {}, cwd: HOME,
+    cur: null, done: {}, rew: {}, rewDone: {}, hints: {}, cmds: {}, tries: {}, code: {}, viKeys: {}, viUsed: {}, overlay: {}, cwd: HOME,
     net: { gw: '10.40.3.1' }, oc: null, ended: false, ranScript: false, season: S.season + 1,
   });
   fs.reset({});
@@ -674,10 +699,26 @@ export function toggleMute() {
   save();
   bump();
 }
+/* Each mission starts from home, with any files it needs put back if a past attempt removed them. */
+function restoreFixtures(t) {
+  for (const [rel, content] of Object.entries(t?.fixtures || {})) {
+    const p = `${HOME}/${rel}`;
+    if (fs.get(p)) continue;
+    const parts = p.split('/');
+    for (let i = 2; i < parts.length; i++) {
+      const dir = parts.slice(0, i).join('/');
+      if (!fs.get(dir)) fs.put(dir, { t: 'd', m: 0o755, mt: 'Nov  6 09:00' });
+    }
+    fs.put(p, { t: 'f', c: content, m: 0o644, mt: 'Nov  6 09:00' });
+  }
+}
 export function setCurrent(id) {
   if (S.cur !== id) {
     S.cur = id;
     S.oc = null;
+    S.cwd = HOME;
+    const t = byId(id);
+    if (t && !S.done[id]) restoreFixtures(t);
   }
 }
 export function saveCode(t, src) {

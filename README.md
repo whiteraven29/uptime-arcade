@@ -20,7 +20,7 @@ The game currently saves to your browser, so the backend is optional for playing
 make check
 ```
 
-This runs the backend, engine and rules tests, plays all 100 missions through the real engines, and builds the frontend. Python and Go answers are also checked with real `python3` and `go run` when those are installed.
+This runs the backend, engine and rules tests, checks that no mission uses anything it hasn't taught, plays all 150 missions through the real engines, and builds the frontend. Python solutions are also run under real `python3` and under Skulpt, and Go programs under real `go run`, when those are installed.
 
 ## Layout
 

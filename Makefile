@@ -23,6 +23,7 @@ test-frontend:
 	cd frontend && npx vitest run
 
 verify-content:
+	node tools/check_taught_before_used.mjs
 	node tools/verify_content.mjs
 
 build:

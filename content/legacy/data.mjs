@@ -82,6 +82,29 @@ F("/etc/netplan/01-office.yaml",`network:
 F("/etc/resolv.conf","# managed by platform team\nnameserver 10.40.10.99\n");
 F("/etc/hostname",HOST+"\n");
 F(HOME+"/oncall/README","Shift logs land here.\n");
+F(HOME+"/tools/backup.sh","echo backup done\n");
+F(HOME+"/net/ping.txt",`PING 10.40.10.80 56(84) bytes of data.
+64 bytes from 10.40.10.80: icmp_seq=1 ttl=62 time=3.1 ms
+64 bytes from 10.40.10.80: icmp_seq=2 ttl=62 time=3.4 ms
+64 bytes from 10.40.10.80: icmp_seq=4 ttl=62 time=210.7 ms
+
+--- 10.40.10.80 ping statistics ---
+4 packets transmitted, 3 received, 25% packet loss
+`);
+F(HOME+"/net/cert.txt",`$ openssl s_client -connect app.whiteraven.example:443
+subject=CN = app.whiteraven.example
+issuer=CN = Whiteraven Internal CA
+notBefore=Nov  1 00:00:00 2025 GMT
+notAfter=Dec 14 23:59:59 2026 GMT
+Verification: OK
+`);
+F(HOME+"/net/incident.txt",`# Sara's checks from the laptop that "has no internet"
+$ ip addr            eth0 has 10.40.30.77/24, state UP
+$ ping 10.40.30.1    4 received, 0% loss
+$ ping 1.1.1.1       4 received, 0% loss
+$ dig app.whiteraven.example    connection timed out; no servers could be reached
+$ curl -I https://1.1.1.1       HTTP/1.1 301 Moved
+`);
 F(HOME+"/net/servers.txt","DHCP    10.40.10.52\nDNS     10.40.10.53\nNTP     10.40.10.54\nApp     10.40.10.80\n");
 F(HOME+"/net/routes.txt",`default via 10.40.0.1 dev eth0
 10.40.0.0/16 via 10.40.0.2 dev eth1

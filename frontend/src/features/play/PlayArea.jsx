@@ -23,7 +23,7 @@ function SidePanel({ t, pyFallback }) {
   return (
     <HudPanel className="side" label={t.oc ? `On-call ${S.ocShift + 1} of 5` : trackName(t.track)}>
       <h3>{t.title}</h3>
-      <p>{pyFallback ? `The Python runner couldn't start, so read this code and work out what ${t.tests[0][0]} returns.` : t.brief}</p>
+      <p>{pyFallback ? `The Python runner couldn't start, so read this code and work out the result of: ${t.tests[0][2] || t.tests[0][0]}.` : t.brief}</p>
       {pyFallback ? <pre>{t.sol}</pre> : t.code && t.track !== 'GO' ? <pre>{t.code}</pre> : null}
       <p className="obj">{pyFallback ? 'Run: submit <the value, written as Python>' : t.goal}</p>
       {Array.from({ length: S.hints[t.id] || 0 }, (_, i) => <p key={i} className="hint-line">Hint {i + 1}: {t.hints[i]}</p>)}
@@ -58,7 +58,7 @@ export function PlayArea({ t }) {
       <HudPanel className="work">
         <div className="work-bar"><span>{workspace === 'python' ? 'Python' : workspace === 'go' ? 'Go reader' : 'Terminal'}</span><b>wr-dev01</b></div>
         {workspace === 'python' && <PythonWorkspace mission={t} />}
-        {workspace === 'go' && <GoReader code={t.code} />}
+        {workspace === 'go' && <GoReader code={t.program || t.code} />}
         {workspace === 'terminal' && <TerminalWorkspace />}
         {!on && <Lock />}
         {VI.on && <ViWorkspace />}

@@ -4,12 +4,9 @@ import { CoreRing } from '../../ui/CoreRing.jsx';
 import { OperatorFigure } from '../../ui/OperatorFigure.jsx';
 import { StatTile } from '../../ui/StatTile.jsx';
 import { Meter } from '../../ui/Meter.jsx';
-import { SceneThumb } from '../../ui/SceneBackdrop.jsx';
 import { PlayIcon, TimerIcon } from '../../ui/icons.jsx';
 import { pad } from '../../../../engines/fs/index.js';
 import { EARN, LEVELS, S, STREAKS, TK, TRACKS, cleared, level, levelIdx, missionPath, mmss, mult, nextUp, sessionOn, stateOf, trackName } from '../../api/localGame.js';
-
-const DUSK_FOCUS = [0.5, 0.84];
 
 function nextAction() {
   if (S.focus) return { label: 'Back to Focus', to: '/focus', title: 'A focus block is running', sub: 'Missions stay locked until it ends' };
@@ -32,12 +29,10 @@ export function DeckScreen() {
   const action = nextAction();
 
   return (
-    <section className="screen" aria-label="Deck">
+    <section className="screen flush" aria-label="Deck">
       <div className="deck">
         <div className="deck-col">
           <Link className="hud card" to="/focus">
-            <span className="hud-edge" aria-hidden="true" />
-            <SceneThumb palette="dusk" seed={77} focus={DUSK_FOCUS} lava={0.8} />
             <div className="card-body">
               <span className="card-icon"><TimerIcon /></span>
               <span>
@@ -48,7 +43,7 @@ export function DeckScreen() {
           </Link>
           <StatTile label="Day streak" value={S.streak} amber sub={`${nx ? `Next reward at ${nx[0]} days. ` : ''}XP +${Math.round((mult() - 1) * 100)}%. Shields ${S.shields}.`} />
           <StatTile label="Today" value={`${S.todayMin}m`} sub={`${S.todayDrifts} drifts logged`} />
-          <StatTile label="Lifetime focus" value={`${Math.floor(S.focusMin / 60)}h ${pad(S.focusMin % 60)}m`} sub={`${S.blocks} blocks finished`} />
+          <StatTile label="Lifetime focus" value={`${Math.floor(S.focusMin / 60)}h ${pad(S.focusMin % 60)}m`} sub={`${S.blocks} block${S.blocks === 1 ? '' : 's'} finished`} />
         </div>
 
         <div className="deck-hero">
@@ -68,10 +63,8 @@ export function DeckScreen() {
           </div>
         </div>
 
-        <div className="deck-col">
+        <div className="deck-col right">
           <Link className="hud card" to={action.to}>
-            <span className="hud-edge" aria-hidden="true" />
-            <SceneThumb palette="frost" seed={412} />
             <div className="card-body">
               <span className="card-icon"><PlayIcon /></span>
               <span>

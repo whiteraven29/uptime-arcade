@@ -206,7 +206,7 @@ describe('missions and rewinds', () => {
   });
   it('raises a level-up when the clear count crosses a threshold', () => {
     S.peak = 0;
-    const clearTrack = TK.NET.slice(0, 5);
+    const clearTrack = TK.NET.slice(0, 8);
     clearTrack.forEach((m) => {
       solve(m);
       g.closeDebrief();
@@ -246,5 +246,58 @@ describe('saves', () => {
   it('refuses a file that is not a save', () => {
     expect(() => g.importSave('{"hello":1}')).toThrow();
     expect(() => g.importSave('not json')).toThrow();
+  });
+});
+
+describe('the catalogue', () => {
+  it('has 30 missions in every track, starting from zero', () => {
+    for (const [k] of g.TRACKS) expect(TK[k]).toHaveLength(30);
+    expect(TK.SH[0].title).toBe('Where am I?');
+    expect(TK.PY[0].sol).toBe('print("Hello, operator")');
+    expect(TK.PY.slice(0, 3).some((m) => m.sol.includes('def '))).toBe(false);
+  });
+  it('gives every mission a permanent id in play order', () => {
+    expect(TK.SH[0].id).toBe('sh-01');
+    expect(TK.NET[29].id).toBe('net-30');
+    expect(new Set(g.TICKETS.map((m) => m.id)).size).toBe(150);
+  });
+  it('tops out the ladder exactly at the last mission', () => {
+    expect(g.LEVELS[g.LEVELS.length - 1][0]).toBe(g.TICKETS.length);
+  });
+});
+
+describe('older saves', () => {
+  it('moves progress to the new ids and drops retired missions', () => {
+    const old = { v: 3, xp: 500, done: { 'sh-1': { xp: 100, hints: 0 }, 'sh-3': { xp: 100, hints: 0 } }, rewDone: { 'sh-1': true, 'sh-3': true }, hints: {}, rew: {}, cmds: {}, tries: {}, code: {}, peak: 2 };
+    g.importSave(JSON.stringify(old));
+    expect(S.v).toBe(4);
+    expect(S.xp).toBe(500);
+    expect(S.rewDone).toEqual({ 'sh-04': true });
+    expect(S.done['sh-04']).toBeDefined();
+    expect(S.peak).toBe(2);
+  });
+});
+
+describe('badges', () => {
+  const earned = (id) => {
+    const b = g.BADGES.find((x) => x[0] === id);
+    return b[3]();
+  };
+  it('has an emblem family for every badge in the set', () => {
+    expect(g.BADGES.map((b) => b[0])).toEqual(expect.arrayContaining(['firstblock', 'hours10', 'centurion', 'par50', 'nohints', 'night', 'arch']));
+  });
+  it('awards Par Hunter at 50 missions under par', () => {
+    S.done = Object.fromEntries(Array.from({ length: 50 }, (_, i) => [`x${i}`, { bonus: 20, hints: 0 }]));
+    expect(earned('par50')).toBe(true);
+    delete S.done.x0;
+    expect(earned('par50')).toBe(false);
+  });
+  it('awards No Hints Needed only for a whole chapter with no hints', () => {
+    const [first, second] = g.CHAPTERS.SH;
+    const chapter = TK.SH.slice(first[1], second[1]);
+    chapter.forEach((m) => { S.done[m.id] = { hints: 0, bonus: 0 }; });
+    expect(earned('nohints')).toBe(true);
+    S.done[chapter[0].id].hints = 1;
+    expect(earned('nohints')).toBe(false);
   });
 });

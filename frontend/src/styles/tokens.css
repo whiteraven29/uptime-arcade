@@ -15,6 +15,12 @@
   --glass-strong: rgba(3, 12, 24, 0.86);
   --glass-sheen: rgba(150, 214, 255, 0.07);
 
+  /* how the HUD sinks into the scene */
+  --veil: rgba(2, 8, 16, 0.78);
+  --veil-top: rgba(2, 8, 16, 0.5);
+  --rail: rgba(2, 8, 16, 0.84);
+  --pane: rgba(2, 9, 18, 0.93);
+
   /* hologram */
   --line: rgba(96, 214, 255, 0.34);
   --line-soft: rgba(170, 214, 255, 0.16);
@@ -32,6 +38,19 @@
   --amber: #ffb340;
   --lava: #ff6a1f;
   --lava-deep: #d22f08;
+
+  /* emblems: each badge family has its own metal */
+  --ember-hi: #ffd27a;
+  --ember-lo: #d22f08;
+  --holo-hi: #d6f6ff;
+  --holo-lo: #2b7fd0;
+  --jade-hi: #c8ffe6;
+  --jade-lo: #12946a;
+  --violet-hi: #efc9ff;
+  --violet-lo: #6f5bff;
+  --gold-hi: #fff3c4;
+  --gold-lo: #c98a12;
+  --emblem-core: #06121f;
 
   /* state */
   --ok: #6bf0b2;
