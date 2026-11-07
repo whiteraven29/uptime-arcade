@@ -1,8 +1,12 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { HudPanel } from '../../ui/HudPanel.jsx';
 import { Avatar, SystemAvatar } from '../../ui/Avatar.jsx';
 import { pad } from '../../../../engines/fs/index.js';
-import { BADGES, S, chooseAvatar, level, removeAvatar, ui, uploadAvatar } from '../../api/game.js';
+import { GoalMeters } from '../../ui/GoalMeters.jsx';
+import { BADGES, S, chooseAvatar, level, loadHistory, removeAvatar, ui, uploadAvatar } from '../../api/game.js';
+import { ColumnChart } from './ColumnChart.jsx';
+import { FocusMap } from './FocusMap.jsx';
+import { lastDays, longDay, shortDay } from './history.js';
 
 const SYSTEM_AVATARS = 16;
 const LONGEST_SIDE = 512;
@@ -22,6 +26,57 @@ async function shrink(file) {
   } catch {
     return file; // the server decides whether it's really a picture
   }
+}
+
+const OUTCOMES = { done: 'Finished', not_done: 'Not finished', abandoned: 'Ended early', missed: 'Missed the check-in', expired: 'Not claimed', open: 'In progress' };
+const KINDS = { plan: 'On plan', makeup: 'Make-up', free: 'Extra' };
+const DAYS_CHARTED = 30;
+
+function Recent({ blocks }) {
+  if (!blocks.length) return <p className="small" style={{ margin: 0 }}>Nothing yet. What you finish will be written down here.</p>;
+  return (
+    <ul className="recent">
+      {blocks.map((b) => (
+        <li key={b.id}>
+          <div className="wrap-any"><b>{b.goal}</b>{b.note && <span className="small"> {b.note}</span>}</div>
+          <span className="small recent-meta">{b.minutes} min, {KINDS[b.kind]}, {OUTCOMES[b.outcome]}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function History() {
+  const [data, setData] = useState(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let live = true;
+    loadHistory().then((d) => { if (live) setData(d); }).catch(() => { if (live) setFailed(true); });
+    return () => { live = false; };
+  }, []);
+  if (failed) return <HudPanel label="Your history"><p className="small" role="status">Your history couldn't load just now. Try again in a moment.</p></HudPanel>;
+  if (!data) return <HudPanel label="Your history"><p className="small" role="status">Loading your history.</p></HudPanel>;
+  const days = lastDays(data.today, data.days, DAYS_CHARTED).map((d) => ({ key: d.date, value: d.minutes, label: shortDay(d.date), detail: longDay(d.date) }));
+  const weeks = data.weeks.map((w) => ({ key: w.start, value: w.xp, label: shortDay(w.start), detail: `Week of ${shortDay(w.start)}` }));
+  return (
+    <>
+      <HudPanel label="Focus map" id="focusMap">
+        <FocusMap today={data.today} days={data.days} />
+      </HudPanel>
+      {ui.plan?.targets && <HudPanel label="Goals from your plan"><GoalMeters targets={ui.plan.targets} /></HudPanel>}
+      <div className="grid2 history-charts">
+        <HudPanel label={`Focus minutes a day, last ${DAYS_CHARTED} days`} id="chartFocus">
+          <ColumnChart title={`Focus minutes a day, last ${DAYS_CHARTED} days`} unit="min" data={days} tone="focus" fallback={60} tickUnit={10} labelEvery={7} firstColumn={2} />
+        </HudPanel>
+        <HudPanel label="XP a week, last 12 weeks" id="chartXp">
+          <ColumnChart title="XP a week, last 12 weeks" unit="XP" data={weeks} tone="xp" fallback={100} tickUnit={10} labelEvery={3} firstColumn={0} />
+        </HudPanel>
+      </div>
+      <HudPanel label="Recent blocks" id="recentBlocks">
+        <Recent blocks={data.recent} />
+      </HudPanel>
+    </>
+  );
 }
 
 export function ProfileScreen() {
@@ -84,9 +139,9 @@ export function ProfileScreen() {
             <div><b className="num">{S.blocks}</b><span className="small">Blocks</span></div>
             <div><b className="num">{Object.keys(S.badges || {}).length}/{BADGES.length}</b><span className="small">Badges</span></div>
           </div>
-          <p className="small" style={{ margin: 0 }}>History charts arrive in milestone M11.</p>
         </HudPanel>
       </div>
+      <History />
     </section>
   );
 }

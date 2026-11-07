@@ -12,6 +12,8 @@ Real focus earns play time, and play time teaches real technical skills. `docs/D
 
 **Where the build stands:** missions live only in `content/missions/*.yaml`, and each track runs from zero (`docs/adr/0004-thirty-missions-from-zero.md`). The server owns the rules, time, XP and answers (`docs/adr/0005-yaml-and-server-rules.md`), and screens get everything through `frontend/src/api/game.js` (`docs/adr/0007-the-game-runs-on-the-server.md`).
 
-**Security:** never add a server-only field to a public serializer, list fields one by one, and never read a time from the client. Nothing in `frontend/` may import `content/`, and `tools/check_bundle.mjs` enforces it. Never reveal whether an email is in use.
+**Focus:** a block earns only by keeping a study plan set in advance, and paid minutes in a week can never pass what was planned (`docs/adr/0010-study-plans.md`).
+
+**Security:** never add a server-only field to a public serializer, list fields one by one, and never read a time from the client. A block's `check_at` stays server-only until it's due. Nothing in `frontend/` may import `content/`, and `tools/check_bundle.mjs` enforces it. Never reveal whether an email is in use.
 
 **Curriculum rule:** a solution may only use what its own or an earlier lesson in that track teaches. List new ideas under `teaches`; `tools/check_taught_before_used.mjs` enforces it.

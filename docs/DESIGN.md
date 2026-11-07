@@ -126,6 +126,7 @@ These are carried over from the current game and defined once in `frontend/src/s
 | `--scene-*`, `--coat-*` | dark violets | The room and the operator |
 | `--ember-*`, `--jade-*`, `--holo-*`, `--violet-*`, `--gold-*`, `--rank-*`, `--blood-*` | two stops each | The metal of each badge family |
 | `--diff-*` | green, cyan, gold, orange, red | Difficulty levels |
+| `--heat-*`, `--chart-*` | a green ramp, plus green and gold marks | The focus map and charts. Each measure keeps its colour, and they're checked with a palette validator |
 
 | Role | Font | Fallback |
 |---|---|---|
@@ -182,7 +183,7 @@ Each screen is its own route, and the top bar shows the logo, navigation, level,
 | Route | Screen | Purpose |
 |---|---|---|
 | `/` | **Deck** | The core ring with your level and clock, tiles for streak and focus, skill paths with their medals, and a strip with the next mission, level progress and badges |
-| `/focus` | **Focus** | Set a goal and length, check off "phone out of reach", see the running timer ring, log drifts, and claim when done |
+| `/focus` | **Focus** | Set your study plan first. Then set a goal and length, see what the block will earn, check off "phone out of reach", watch the timer ring, answer its one check-in, log drifts, and claim with a line on what you did. Weekly and monthly goals sit beside it |
 | `/missions` | **Missions** | A card per category with progress, difficulty mix and its chapters cycling. Opening one reveals chapter dropdowns. Tracks on the way show what opens them |
 | `/missions/:slug` | **Briefing** | Lesson and example, mission brief, sender, worth and par, plus the Launch button |
 | `/missions/:slug/play` | **Play** | Mission panel on the left, workspace on the right (terminal, vi, Python, Go reader or NetLab) |
@@ -190,7 +191,7 @@ Each screen is its own route, and the top bar shows the logo, navigation, level,
 | `/ops` | **Operations** | Multi-skill missions with their prerequisites shown as linked track icons |
 | `/oncall` | **On-call** | Endless incident shifts, unlocked after all track missions are cleared. Arrives in M11 ([ADR 0007](adr/0007-the-game-runs-on-the-server.md)) |
 | `/rewards` | **Rewards** | Streak ladder, level ladder and badge grid |
-| `/profile` | **Profile** | Your picture (sixteen operators, or upload your own) and stats. History charts arrive in M11. Your username and picture stay at the top right of every screen |
+| `/profile` | **Profile** | Your picture (sixteen operators, or upload your own), stats, a year's focus map, goals, focus minutes a day, XP a week, and recent blocks. Your username and picture stay at the top right of every screen |
 | `/system` | **System** | Account, time zone, sound, close session, logout, delete account |
 | `/login`, `/register` | Auth | Styled in the HUD. Log in with a username, which shows available or taken as you type. Email stays private |
 
@@ -217,6 +218,28 @@ All numbers live in one config file, `backend/apps/game/rules.py`, so balancing 
 - **Ending early:** earns nothing.
 - **Drifts:** logging one is free. A block with zero drifts counts as a clean block.
 - **Server time:** the server records `started_at` and `ends_at`, and a claim before `ends_at` on the server clock is rejected.
+
+**What makes a block earn ([ADR 0010](adr/0010-study-plans.md)).** Nothing can prove someone studied, so the aim is to make idling pointless.
+
+- **Study plan:** before their first block, a player sets their days, blocks a day, block length and up to three study times, in their own time zone. Blocks a day times length is their daily amount.
+- **Limits on a plan:** study times need at least 30 minutes each, must add up to the daily amount, and can't pass the larger of 4 hours or three times the daily amount, because a plan covering all day isn't a plan.
+- **Changing it:** the first plan starts today and can be corrected until a block has started. After that it can change once every 7 days, and a change starts tomorrow, so a plan can't be moved to wherever you are now. Moving your time zone also takes effect tomorrow and doesn't use up the weekly change.
+- **Each block is one of three kinds, decided when it starts:**
+  - **Plan:** a study day, inside a study time (only the start has to be), fitting what's left of the daily amount. Pays in full.
+  - **Make-up:** outside that, covering planned minutes not yet earned this week. Pays in full. Two a week. Unused minutes don't carry into the next week.
+  - **Extra:** everything else. Goes on the map and counts towards totals and focus badges, but pays no play time or XP and doesn't touch the streak.
+- **The ceiling:** minutes paid in a week can never pass the minutes planned up to that day, whatever mix of blocks someone tries.
+- **Check-in:** each block asks once if you're still there, at a random moment from a quarter of the way through, with 3:00 to answer. The moment stays on the server until it's due. Missing it voids the block: no pay, not on the map, and the day's amount is free again.
+- **Claiming:** needs a line of 5 to 140 characters on what you actually did, within 15:00 of the block ending. After that the block earns nothing.
+
+**Goals** are worked out from the plan, and count minutes that earned:
+
+| Goal | Target | Reward | Cap |
+|---|---|---|---|
+| Week (Monday to Sunday) | 80% of planned minutes | 6 s of play and 1 XP per target minute | 20:00 of play |
+| Month | 75% of planned minutes | 3 s of play and 1 XP per target minute | 45:00 of play |
+
+Targets round up to the next 5 minutes and count only days from when the plan started. Each pays once, and rewards can raise the bank to the same 60:00 as streak rewards.
 
 ### 6.2 Sessions
 
@@ -286,7 +309,7 @@ After a mission is solved, the player answers five questions about it, easiest f
 
 ### 6.7 Daily streaks
 
-The streak grows by 1 on each calendar day (in the player's time zone) with at least one claimed focus block.
+The streak grows by 1 on each calendar day (in the player's time zone) with at least one claimed block that earned. Days off in your plan don't break it.
 
 | Milestone | Play time | XP | Shield |
 |---|---|---|---|
@@ -299,7 +322,7 @@ The streak grows by 1 on each calendar day (in the player's time zone) with at l
 | 100 days | +30 min | +5000 | +1 |
 
 - **Rewards:** each milestone pays once per account.
-- **Shields:** a shield covers one missed day and is used automatically. If more days were missed than shields held, the streak resets to 1 and the shields are kept.
+- **Shields:** a shield covers one missed study day and is used automatically. If more study days were missed than shields held, the streak resets to 1 and the shields are kept.
 
 ### 6.8 Badges (launch set)
 
@@ -995,6 +1018,8 @@ erDiagram
   MISSION ||--o{ MISSION_PROGRESS : for
   MISSION_PROGRESS ||--o{ SUBMISSION : records
   MISSION_PROGRESS ||--o| REWIND_PROGRESS : has
+  USER ||--o{ STUDY_PLAN : sets
+  USER ||--o{ TARGET_REWARD : earns
   USER ||--o{ FOCUS_BLOCK : runs
   USER ||--o{ PLAY_SESSION : opens
   USER ||--o{ TIME_LEDGER : earns_spends
@@ -1018,9 +1043,11 @@ erDiagram
 | `MissionProgress` | player, mission, season, state (open, solved, cleared), tries, hints_used, commands, keys, par_bonus, worth, xp_awarded, solved_at, cleared_at. Unique on (player, mission, season) |
 | `Submission` | progress, payload (JSON), result, created_at |
 | `RewindProgress` | progress (1:1), queue (JSON), correct, misses (JSON) |
-| `FocusBlock` | user, goal, minutes, started_at, ends_at, claimed_at, outcome (done, not_done, abandoned), drifts |
+| `FocusBlock` | user, goal, note, minutes, kind (plan, makeup, free), started_at, ends_at, claimed_at, checked_at, outcome (done, not_done, abandoned, missed, expired), drifts. Server-only until due: check_at |
+| `StudyPlan` | user, days (JSON), blocks_per_day, block_minutes, windows (JSON), time_zone, effective_from, by_player, created_at. Unique on (user, effective_from). A change is a new row from a later date |
+| `TargetReward` | user, period (week, month), starts_on, target_minutes, reached_at. Unique on (user, period, starts_on) |
 | `PlaySession` | user, opened_at, expires_at, closed_at, returned_seconds |
-| `TimeLedger` | user, delta_seconds, reason (focus, goal_bonus, streak, session_open, session_return, starter), ref_type, ref_id, created_at. **Bank = sum** |
+| `TimeLedger` | user, delta_seconds, reason (focus, goal_bonus, streak, target, session_open, session_return, starter), ref_type, ref_id, created_at. **Bank = sum** |
 | `XPLedger` | user, delta, reason, multiplier, ref_type, ref_id, created_at. **XP = sum**, cached on Player |
 | `AvatarImage` | player (1:1), token, data, updated_at. Always our own re-encoded WebP |
 | `StreakDay` | user, date. Unique together |
@@ -1054,11 +1081,15 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 | GET | `missions/{code}/debrief/` | Why, solution, job. Only after it's solved |
 | GET | `missions/{code}/rewind/` | Current task (without its answer), progress, and a hint or answer once earned |
 | POST | `missions/{code}/rewind/answer/` | `{value}` returns correct and the next task. The last one pays the XP and returns unlock, level and badge events. **Session** |
-| POST | `focus/blocks/` | Start a block `{goal, minutes}` |
+| GET, PUT | `focus/plan/` | The plan, any change waiting to start, today against it, what each length would earn, and the goals. PUT sets it `{days, blocks_per_day, block_minutes, windows}`. Start dates and zones from a client are ignored |
+| GET | `focus/history/` | Focus minutes per day for a year, XP per week for 12 weeks and the last 15 blocks, in the player's own dates |
+| POST | `focus/blocks/` | Start a block `{goal, minutes}`. Needs a plan. The server decides what kind it is |
+| GET | `focus/blocks/{id}/` | The block, including whether its check is waiting, due, answered or missed, and never when it will come |
+| POST | `focus/blocks/{id}/presence/` | Answer the check. Refused before it's due and after it has passed |
 | POST | `focus/blocks/{id}/drift/` | Log a drift |
 | POST | `focus/blocks/{id}/abandon/` | End early |
-| POST | `focus/blocks/{id}/claim/` | `{done: bool}`, allowed after `ends_at`. Returns time earned, XP, streak events, badges |
-| GET | `focus/blocks/?range=30d` | History for Profile charts |
+| POST | `focus/blocks/{id}/claim/` | `{done: bool, note}`, allowed after `ends_at`. Returns `result` (plan, makeup, free, missed, expired), time earned, XP, and streak, goal and badge events |
+| GET | `focus/blocks/` | Your blocks from the last 30 days |
 | POST | `sessions/open/` | Opens with the full bank |
 | POST | `sessions/close/` | Returns unused seconds |
 | GET | `rewards/` | Streak ladder, levels and badges with the player's status |
@@ -1122,7 +1153,7 @@ Each milestone is one or more pull requests and ends with `make check` passing a
 | M8 | NetLab v2 | OSPF, STP, port security, L3 switch, fault injection, Blackout capstone | LAB-24 to LAB-30 playable |
 | M9 | Runner | Celery, runner service, sandbox for Python and Go, server re-verification for `fs`, `vi` and `net` | Tampered client submissions are rejected (tested). Go missions upgrade to real code |
 | M10 | Launch | Deploy to the Contabo server per `DEPLOYMENT.md`, backups, uptime monitor, import from the offline game | Live over HTTPS, a backup is restored once, the offline save imports |
-| M11 | Polish | PWA offline shell, sound pack, profile charts, on-call, seasons, sandbox lab | Lighthouse 90+ on performance and accessibility |
+| M11 | Polish | PWA offline shell, sound pack, on-call, sandbox lab. Profile charts and seasons came early (ADR 0009, ADR 0010) | Lighthouse 90+ on performance and accessibility |
 
 ---
 

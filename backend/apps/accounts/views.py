@@ -27,6 +27,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.core import clock
 from apps.core.exceptions import GameError
+from apps.focus import plan as study_plan
 from apps.game import rules
 from apps.game.models import AvatarImage
 from apps.game.services import avatar_summary, locked_player
@@ -211,6 +212,8 @@ def me(request):
                 setattr(player, field, value)
             if changes:
                 player.save(update_fields=list(changes))
+            if "time_zone" in changes:
+                study_plan.follow_time_zone(player)
             if "avatar_index" in changes:
                 AvatarImage.objects.filter(player=player).delete()  # choosing a system avatar replaces a picture
         user.player = player

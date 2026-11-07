@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -7,6 +7,7 @@ from rest_framework.test import APIClient
 
 from apps.content.loader import load
 from apps.content.management.commands.import_content import run_import
+from apps.focus.models import StudyPlan
 
 
 @pytest.fixture(scope="session")
@@ -62,14 +63,39 @@ class PlayerClient(APIClient):
         return super().request(**kwargs)
 
 
+def any_time_plan(user):
+    """Goes straight to the table, because a real plan can't be this wide. It lets tests that aren't about the
+    plan run at any hour, and its goals are too big to pay out by accident."""
+    return StudyPlan.objects.create(
+        player=user.player,
+        days=list(range(7)),
+        blocks_per_day=40,
+        block_minutes=45,
+        windows=[[0, 1440]],
+        time_zone=user.player.time_zone,
+        effective_from=date(2000, 1, 1),
+        by_player=False,
+        created_at=datetime(2000, 1, 1, tzinfo=timezone.utc),
+    )
+
+
 @pytest.fixture
 def api(user):
+    any_time_plan(user)
     return PlayerClient(user)
 
 
 @pytest.fixture
 def other_api():
-    return PlayerClient(make_user("joel"))
+    other = make_user("joel")
+    any_time_plan(other)
+    return PlayerClient(other)
+
+
+@pytest.fixture
+def newcomer():
+    """A player who hasn't set a plan yet."""
+    return PlayerClient(make_user("nora"))
 
 
 @pytest.fixture

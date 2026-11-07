@@ -86,7 +86,7 @@ main { grid-row: 2; min-height: 0; } /* row 1 is the top bar, even on screens wi
 .btn.cta::before { display: none; }
 .btn.cta:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 
-input[type='text'] { width: 100%; background: var(--glass-strong); border: 1px solid var(--line); padding: 10px 14px; border-radius: 10px; }
+input[type='text'], input[type='time'], input[type='number'] { width: 100%; background: var(--glass-strong); border: 1px solid var(--line); padding: 10px 14px; border-radius: 10px; }
 input::placeholder { color: var(--dim); }
 .check { display: flex; gap: 9px; align-items: center; cursor: pointer; }
 .check input { accent-color: var(--holo); width: 16px; height: 16px; }
@@ -194,6 +194,71 @@ pre { tab-size: 4; font-family: var(--font-mono); font-size: 13.5px; line-height
 .ring-in { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; padding: 10%; }
 .clock { font-weight: 800; font-size: clamp(42px, min(11vh, 15vw), 84px); line-height: 1; color: var(--amber); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; text-shadow: 0 0 26px rgba(255, 150, 50, 0.65); }
 .focus-card { width: min(540px, 100%); }
+.focus-plan { display: grid; grid-template-columns: minmax(0, 540px) minmax(0, 460px); gap: 0 clamp(24px, 4vw, 64px); align-items: start; justify-content: center; width: 100%; }
+.focus-plan > .hud + .hud { border-top: 0; }
+.plan-label { display: block; margin-bottom: 6px; }
+.plan-day { min-width: 58px; }
+.plan-amount { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 16px; }
+.plan-window { flex-wrap: nowrap; }
+.plan-window input { min-width: 0; flex: 1 1 110px; }
+.plan-error { color: var(--term-error); }
+.running { display: grid; justify-items: center; gap: 14px; width: 100%; }
+.check-in { width: min(420px, 100%); padding: 12px 16px; border: 1px solid var(--line-gold); border-radius: var(--radius); background: var(--glass-strong); text-align: center; }
+.check-in .btn { align-self: center; }
+
+/* ---------- goals, as meters: the track is the fill's own hue, turned down ---------- */
+.goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px 24px; }
+.goal { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.goal-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.goal-meter { height: 8px; border-radius: 8px; background: var(--chart-track); overflow: hidden; }
+.goal-meter i { display: block; height: 100%; border-radius: 8px; background: var(--chart-focus); }
+
+/* ---------- the focus map and charts: the data is the only loud thing here ---------- */
+.map-box, .chart { position: relative; min-width: 0; }
+/* The container takes its width from the page, never from the 53 weeks inside it, so a phone scrolls the map and
+   not the page. On a wide screen the squares grow to use the room. */
+.map-box { container-type: inline-size; --gap: 3px; --cell: clamp(12px, calc((100cqw - 42px) / 53 - var(--gap)), 20px); display: flex; gap: 8px; align-items: flex-start; }
+.map-days { display: grid; grid-template-rows: repeat(7, var(--cell)); gap: var(--gap); margin-top: 21px; flex: none; font-size: 11px; line-height: var(--cell); color: var(--dim); }
+.map-scroll { flex: 1 1 0; min-width: 0; overflow-x: auto; padding: 0 2px 6px; }
+.map-months { display: grid; grid-template-columns: repeat(var(--weeks), var(--cell)); gap: var(--gap); height: 18px; margin-bottom: 3px; font-size: 11px; line-height: 16px; color: var(--dim); }
+.map-months span { white-space: nowrap; overflow: visible; }
+.map-grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, var(--cell)); grid-auto-columns: var(--cell); gap: var(--gap); width: max-content; }
+.map-cell { display: block; width: var(--cell, 12px); height: var(--cell, 12px); padding: 0; border: 0; border-radius: 3px; cursor: default; }
+button.map-cell:hover, button.map-cell:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+.heat-0 { background: var(--heat-0); }
+.heat-1 { background: var(--heat-1); }
+.heat-2 { background: var(--heat-2); }
+.heat-3 { background: var(--heat-3); }
+.heat-4 { background: var(--heat-4); }
+.map-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--dim); }
+.map-key { display: inline-flex; align-items: center; gap: 6px; }
+.chart-tip { position: absolute; z-index: 5; transform: translate(-50%, calc(-100% - 8px)); display: flex; flex-direction: column; width: max-content; max-width: 180px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--pane); font-size: 12px; color: var(--dim); text-align: center; pointer-events: none; }
+.chart-tip b { color: var(--text); font-size: 13px; }
+.chart-plot { position: relative; height: 150px; margin-left: 34px; border-bottom: 1px solid var(--chart-grid); }
+.chart-tick { position: absolute; left: 0; right: 0; height: 0; border-top: 1px solid var(--chart-grid); }
+.chart-tick span { position: absolute; right: 100%; bottom: -7px; padding-right: 6px; font-size: 11px; line-height: 14px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.chart-bars { position: absolute; inset: 0; display: grid; gap: 2px; }
+.chart-col { display: flex; align-items: flex-end; justify-content: center; height: 100%; min-width: 0; padding: 0; border: 0; background: transparent; cursor: default; }
+.chart-col:hover, .chart-col:focus-visible { background: var(--chart-grid); outline: 0; }
+.chart-col i { display: block; width: 100%; max-width: 24px; min-height: 2px; border-radius: 4px 4px 0 0; }
+.tone-focus .chart-col i { background: var(--chart-focus); }
+.tone-xp .chart-col i { background: var(--chart-xp); }
+.chart-x { display: grid; gap: 2px; margin: 5px 0 0 34px; font-size: 11px; line-height: 14px; color: var(--dim); }
+.chart-x span { justify-self: end; white-space: nowrap; }
+.chart-table summary { cursor: pointer; font-size: 13px; color: var(--holo-soft); }
+.chart-table summary:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.chart-table-scroll { max-height: 220px; overflow: auto; margin-top: 6px; }
+.chart-table table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.chart-table th { text-align: left; font-weight: 600; color: var(--dim); }
+.chart-table th, .chart-table td { padding: 3px 8px 3px 0; border-bottom: 1px solid var(--chart-grid); }
+.recent { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.recent li { display: flex; justify-content: space-between; gap: 4px 18px; flex-wrap: wrap; padding: 7px 0; border-bottom: 1px solid var(--chart-grid); }
+.recent li > div { flex: 1 1 280px; min-width: 0; }
+.recent-meta { white-space: nowrap; }
+.history-charts > .hud { min-width: 0; }
+@media (forced-colors: active) {
+  .heat-1, .heat-2, .heat-3, .heat-4, .chart-col i, .goal-meter i { background: CanvasText; forced-color-adjust: none; }
+}
 
 /* ---------- missions: a card per category, opening into its chapters ---------- */
 .missions-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin-bottom: 10px; }
@@ -468,6 +533,8 @@ input[type='email'], input[type='password'] { width: 100%; background: var(--gla
   .chips { margin-left: 0; }
   .nav { margin-inline: 0; }
   .grid2 { grid-template-columns: minmax(0, 1fr); }
+  .focus-plan { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .focus-plan > .hud + .hud { border-top: 1px solid var(--line-soft); }
   .scene-veil { position: fixed; }
 }
 @media (max-width: 400px) {

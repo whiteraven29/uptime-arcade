@@ -34,6 +34,7 @@ class TimeLedger(models.Model):
         FOCUS = "focus"
         GOAL_BONUS = "goal_bonus"
         STREAK = "streak"
+        TARGET = "target"
         SESSION_OPEN = "session_open"
         SESSION_RETURN = "session_return"
 
@@ -53,6 +54,7 @@ class XPLedger(models.Model):
         MISSION = "mission"
         FOCUS = "focus"
         STREAK = "streak"
+        TARGET = "target"
         ONCALL = "oncall"
 
     player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="xp_entries")

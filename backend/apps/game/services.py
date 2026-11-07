@@ -1,6 +1,7 @@
 """The rules that change a player. Everything runs inside a transaction holding the player's row lock,
 so two requests at once can't spend the same bank or be paid twice."""
 import hashlib
+from datetime import timedelta
 from zoneinfo import ZoneInfo
 
 from django.db import transaction
@@ -46,6 +47,15 @@ def local_date(player, moment=None):
     return (moment or clock.now()).astimezone(ZoneInfo(player.time_zone)).date()
 
 
+def _missed_study_days(player, today):
+    """The days since the last streak day that should have had study. A planned day off isn't a missed day."""
+    from apps.focus import plan
+
+    if not player.last_streak_day:
+        return 0
+    return plan.study_days_between(player, player.last_streak_day + timedelta(days=1), today - timedelta(days=1))
+
+
 def record_streak_day(player):
     """Section 6.7. Returns events. Called once per claimed block, and only the first each day counts."""
     today = local_date(player)
@@ -54,14 +64,13 @@ def record_streak_day(player):
     if player.last_streak_day and today <= player.last_streak_day:
         return []
     events = []
-    gap = (today - player.last_streak_day).days if player.last_streak_day else 1
-    if gap == 1:
+    missed = _missed_study_days(player, today)
+    if missed == 0:
         player.streak += 1
-    elif gap > 1 and player.shields >= gap - 1:
-        used = gap - 1
-        player.shields -= used
+    elif player.shields >= missed:
+        player.shields -= missed
         player.streak += 1
-        events.append({"type": "shield_used", "days": used})
+        events.append({"type": "shield_used", "days": missed})
     else:
         player.streak = 1  # shields are kept, as section 6.7 says
     player.last_streak_day = today

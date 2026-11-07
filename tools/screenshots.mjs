@@ -28,6 +28,12 @@ for (const [width, height] of [[1400, 880], [400, 860]]) {
     await page.screenshot({ path: `${outDir}/${name}-${width}.png` });
   };
   const open = (path) => page.goto(base + path, { waitUntil: 'load' });
+  /* A tall window, for a screen that's meant to scroll. */
+  const shotWhole = async (name, tall) => {
+    await page.setViewportSize({ width, height: tall });
+    await shot(name);
+    await page.setViewportSize({ width, height });
+  };
 
   await open('/login');
   await page.waitForSelector('#loginBtn');
@@ -42,10 +48,33 @@ for (const [width, height] of [[1400, 880], [400, 860]]) {
   const made = await ctx.request.post(`${base}/api/v1/auth/register/`, { data: { username: `shots_${width}`, email: 'shots@example.test', password: 'correct horse battery' } });
   const auth = { Authorization: `Bearer ${(await made.json()).access}` };
   const call = (path, data = {}) => ctx.request.post(`${base}/api/v1${path}`, { headers: auth, data });
+  // The screens with history are only worth checking with a year of it behind them.
+  const seedHistory = () => stack.manage('shell', '-c', `
+import random
+from datetime import timedelta
+from django.utils import timezone
+from apps.focus.models import FocusBlock
+from apps.game.models import Player, XPLedger
+player = Player.objects.get(user__username='shots_${width}')
+chooser = random.Random(3)
+now = timezone.now()
+for back in range(1, 340):
+    moment = now - timedelta(days=back)
+    if moment.weekday() > 4 or chooser.random() < 0.3:
+        continue
+    for _ in range(chooser.randint(1, 4)):
+        minutes = chooser.choice([15, 25, 45])
+        block = FocusBlock.objects.create(player=player, goal='Worked through the backlog', note='Closed two tickets and wrote up the third', minutes=minutes, kind='plan', started_at=moment, ends_at=moment + timedelta(minutes=minutes), claimed_at=moment + timedelta(minutes=minutes), checked_at=moment, outcome='done')
+        XPLedger.objects.create(player=player, delta=minutes + 10, reason='focus', multiplier=1, ref_type='block', ref_id=str(block.pk), created_at=moment)
+`);
 
   await open('/');
   await page.waitForSelector('.deck');
   await shot('deck');
+  await open('/focus');
+  await page.waitForSelector('#planForm');
+  await shot('focus-plan');
+  await ctx.request.put(`${base}/api/v1/focus/plan/`, { headers: auth, data: { days: [0, 1, 2, 3, 4], blocks_per_day: 3, block_minutes: 25, windows: [{ start: '07:00', end: '09:00' }, { start: '18:00', end: '20:00' }] } });
   await open('/focus');
   await page.waitForSelector('#goal');
   await shot('focus');
@@ -56,8 +85,14 @@ for (const [width, height] of [[1400, 880], [400, 860]]) {
   await page.waitForSelector('.chapter');
   await shot('missions-open');
   await open('/profile');
-  await page.waitForSelector('.avatar-grid');
+  await page.waitForSelector('.map-grid');
   await shot('profile');
+  await shotWhole('profile-empty', 1700);
+  seedHistory();
+  await open('/profile');
+  await page.waitForSelector('.map-grid');
+  await page.locator('button.map-cell[data-level="4"]').last().hover({ force: true });
+  await shotWhole('profile-history', 1700);
   await open('/missions/sh-01');
   await page.waitForSelector('#launch');
   await shot('briefing');
@@ -103,6 +138,15 @@ for (const [width, height] of [[1400, 880], [400, 860]]) {
   await open('/focus');
   await page.waitForSelector('#clock');
   await shot('focus-running');
+  stack.manage('shell', '-c', `from django.utils import timezone; from apps.focus.models import FocusBlock; FocusBlock.objects.filter(player__user__username='shots_${width}', outcome='').update(check_at=timezone.now())`);
+  await open('/focus');
+  await page.waitForSelector('#presenceYes');
+  await shot('focus-check');
+  await page.click('#presenceYes');
+  stack.manage('shell', '-c', `from django.utils import timezone; from datetime import timedelta; from apps.focus.models import FocusBlock; FocusBlock.objects.filter(player__user__username='shots_${width}', outcome='').update(ends_at=timezone.now() - timedelta(seconds=1))`);
+  await open('/focus');
+  await page.waitForSelector('#claimNote');
+  await shot('focus-claim');
   await ctx.close();
 }
 await browser.close();

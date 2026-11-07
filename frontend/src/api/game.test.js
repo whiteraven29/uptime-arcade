@@ -21,6 +21,7 @@ const TRACKS = (first = 'open') => ({
     { code: 'BX', name: 'Beyond', subtitle: 'b', after_archmage: true, missions: [card('bx-01', 1, 'locked')] },
   ],
 });
+const PLAN_STATUS = { plan: { days: [0], blocks_per_day: 2, block_minutes: 25, daily_minutes: 50, windows: [{ start: '08:00', end: '10:00' }], time_zone: 'Africa/Nairobi', effective_from: '2026-11-02' }, pending: null, changes_open_on: null, today: {}, outlook: { 15: 'plan', 25: 'plan', 45: 'free' }, targets: {}, limits: {} };
 const REWARDS = { config: { earn_seconds: { 15: 300, 25: 480, 45: 900 }, goal_bonus_seconds: 120, bank_cap: 1800, hint_cost: 15, rewind_reveal_after: 3 }, streak: [{ days: 3, seconds: 300, xp: 50, shields: 0, claimed: false }], levels: [{ index: 1, title: 'Noob', cleared: 0, reached: true }, { index: 2, title: 'Initiate', cleared: 8, reached: false }, { index: 3, title: 'Apprentice', cleared: 19, reached: false }], badges: [{ code: 'first', name: 'First Clear', description: 'x', earned_at: null }] };
 const BRIEF = (code, check = 'answer') => ({ state: 'open', code, track: 'NET', skill: 'networking', title: 'T', from_dept: 'N', difficulty: 'easy', xp: 100, check_type: check, par_kind: check === 'fs' ? 'commands' : 'first-try', par_value: 1, lesson: { text: 'l', example: 'e' }, brief: 'b', goal: 'g' });
 const PLAY = (extra = {}) => ({ code: 'net-01', state: 'open', check_type: 'answer', workspace: {}, hints: [], hints_total: 2, ...extra });
@@ -36,6 +37,7 @@ function server(extra = {}) {
     'GET /player/': () => json(200, PLAYER()),
     'GET /tracks/': () => json(200, TRACKS()),
     'GET /rewards/': () => json(200, REWARDS),
+    'GET /focus/plan/': () => json(200, PLAN_STATUS),
     'GET /fixtures/': () => json(200, { version: 1, files: [{ path: '/home/ops/README', content: 'hi\n', mode: 420 }] }),
     'GET /missions/net-01/': () => json(200, BRIEF('net-01')),
     'GET /missions/net-01/play/': () => json(200, PLAY()),
@@ -55,6 +57,7 @@ const openSessionPlayer = () => PLAYER({ session: { expires_at: new Date(Date.no
 beforeEach(async () => {
   vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => {}, removeItem: () => {} });
   g.setNavigator(() => {});
+  g.clearToasts();
   g.closeDebrief();
   g.closeOverlay();
   g.leaveCurrent();
@@ -319,5 +322,76 @@ describe('focus', () => {
     S.len = 45;
     await g.startBlock(' Ship it ');
     expect(calls.find((c) => c.key === 'POST /focus/blocks/').body).toEqual({ goal: 'Ship it', minutes: 45 });
+  });
+  const BLOCK = (over = {}) => ({ id: 7, goal: 'x', minutes: 25, kind: 'plan', started_at: new Date(Date.now() - 60000).toISOString(), ends_at: new Date(Date.now() + 600000).toISOString(), claim_by: new Date(Date.now() + 1500000).toISOString(), drifts: 0, presence: 'waiting', check_expires_at: null, ...over });
+  it('asks the server when the check comes up, and takes you to it', async () => {
+    const seen = [];
+    g.setNavigator((path) => seen.push(path));
+    server({
+      'GET /player/': () => json(200, PLAYER({ block: BLOCK() })),
+      'GET /focus/blocks/7/': () => json(200, { block: BLOCK({ presence: 'due', check_expires_at: new Date(Date.now() + 180000).toISOString() }) }),
+    });
+    ui.auth = 'in';
+    await g.refreshPlayer();
+    expect(S.focus.presence).toBe('waiting');
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 20000);
+    g.tick();
+    await vi.waitFor(() => expect(S.focus.presence).toBe('due'));
+    vi.restoreAllMocks();
+    expect(S.focus.checkEndsAt).toBeGreaterThan(Date.now());
+    expect(seen).toContain('/focus');
+  });
+  it('stops asking once you have answered', async () => {
+    server({
+      'GET /player/': () => json(200, PLAYER({ block: BLOCK({ presence: 'due', check_expires_at: new Date(Date.now() + 180000).toISOString() }) })),
+      'POST /focus/blocks/7/presence/': () => json(200, { block: BLOCK({ presence: 'ok' }), events: [] }),
+    });
+    ui.auth = 'in';
+    await g.refreshPlayer();
+    await g.confirmCheckIn();
+    expect(S.focus.presence).toBe('ok');
+    const before = calls.length;
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 40000);
+    g.tick();
+    vi.restoreAllMocks();
+    expect(calls.length).toBe(before);
+  });
+  it('sends the note with the claim and says when a block earned nothing', async () => {
+    const past = new Date(Date.now() - 1000).toISOString();
+    server({
+      'GET /player/': () => json(200, PLAYER({ block: BLOCK({ started_at: past, ends_at: past, presence: 'ok' }) })),
+      'POST /focus/blocks/7/claim/': () => json(200, { result: 'free', seconds_earned: 0, xp: 0, streak: 0, bank_seconds: 300, events: [] }),
+    });
+    await g.refreshPlayer();
+    await g.claimBlock(true, 'Fixed the redirect');
+    expect(calls.find((c) => c.key === 'POST /focus/blocks/7/claim/').body).toEqual({ done: true, note: 'Fixed the redirect' });
+    expect(ui.toast).toContain('no play time');
+  });
+  it('lets go of a block once it is too late to claim', async () => {
+    const past = new Date(Date.now() - 1000).toISOString();
+    let player = PLAYER({ block: BLOCK({ started_at: past, ends_at: past, claim_by: past, presence: 'ok' }) });
+    server({ 'GET /player/': () => json(200, player) });
+    ui.auth = 'in';
+    await g.refreshPlayer();
+    expect(S.claim.id).toBe(7);
+    player = PLAYER();
+    g.tick();
+    await vi.waitFor(() => expect(S.claim).toBeNull());
+  });
+  it('saves a plan and uses its block length', async () => {
+    server({ 'PUT /focus/plan/': () => json(200, PLAN_STATUS) });
+    await g.savePlan({ days: [0], blocks_per_day: 2, block_minutes: 15, windows: [{ start: '08:00', end: '10:00' }] });
+    expect(ui.plan.plan.daily_minutes).toBe(50);
+    expect(S.len).toBe(15);
+  });
+  it('announces a goal being met', { timeout: 8000 }, async () => {
+    const past = new Date(Date.now() - 1000).toISOString();
+    server({
+      'GET /player/': () => json(200, PLAYER({ block: BLOCK({ started_at: past, ends_at: past, presence: 'ok' }) })),
+      'POST /focus/blocks/7/claim/': () => json(200, { result: 'plan', seconds_earned: 600, xp: 10, streak: 1, bank_seconds: 900, events: [{ type: 'target_reached', period: 'week', minutes: 200, seconds: 1200, xp: 200 }] }),
+    });
+    await g.refreshPlayer();
+    await g.claimBlock(true, 'Fixed the redirect');
+    await vi.waitFor(() => expect(ui.toast).toContain('Weekly goal met'), { timeout: 5000 });
   });
 });

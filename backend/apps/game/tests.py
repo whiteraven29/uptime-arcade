@@ -4,6 +4,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
+from apps.focus.models import FocusBlock
 from apps.game import rules, services
 from apps.game.models import StreakReward, TimeLedger, UserBadge, XPLedger
 
@@ -215,8 +216,9 @@ class TestPlayerAndRewards:
     def test_today_counts_only_todays_blocks_in_the_players_zone(self, api, clock):
         block = api.post("/api/v1/focus/blocks/", {"goal": "x", "minutes": 25}, format="json").json()["block"]
         api.post(f"/api/v1/focus/blocks/{block['id']}/drift/")
+        FocusBlock.objects.filter(pk=block["id"]).update(checked_at=clock.now())
         clock.advance(minutes=26)
-        api.post(f"/api/v1/focus/blocks/{block['id']}/claim/", {"done": True}, format="json")
+        api.post(f"/api/v1/focus/blocks/{block['id']}/claim/", {"done": True, "note": "Did the work"}, format="json")
         body = api.get("/api/v1/player/").json()
         assert body["today_minutes"] == 25 and body["today_drifts"] == 1
         assert body["focus_minutes"] == 25 and body["blocks_finished"] == 1

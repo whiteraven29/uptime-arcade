@@ -18,6 +18,8 @@ const ok = (name, pass, extra = '') => {
 
 /* The one reach-around: the timer is over, as far as the server is concerned. */
 const endBlockNow = () => manage('shell', '-c', "from django.utils import timezone; from datetime import timedelta; from apps.focus.models import FocusBlock; FocusBlock.objects.filter(outcome='').update(ends_at=timezone.now()-timedelta(seconds=1))");
+/* The check comes up at a moment nobody can know, so here it's made to come up now. */
+const dueCheckNow = () => manage('shell', '-c', "from django.utils import timezone; from apps.focus.models import FocusBlock; FocusBlock.objects.filter(outcome='').update(check_at=timezone.now())");
 const setPeak = (user, n) => manage('shell', '-c', `from apps.game.models import Player; Player.objects.filter(user__username='${user}').update(peak_cleared=${n})`);
 
 const browser = await chromium.launch({ executablePath: chromePath(), args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
@@ -123,6 +125,29 @@ try {
 
   // ---------- the focus economy ----------
   await page.click('.nav >> text=Focus');
+  await page.waitForSelector('#planForm');
+  ok('a new player sets a study plan before their first block', await page.locator('#startBlock').count() === 0);
+  await page.click('.plan-day >> text=Sat'); // whatever day this test happens to run on
+  await page.click('.plan-day >> text=Sun');
+  await page.fill('#planStart0', '00:00');
+  await page.fill('#planEnd0', '23:59');
+  await page.click('#savePlan');
+  await page.waitForSelector('.plan-error');
+  ok('a plan that covers the whole day is refused', (await page.locator('.plan-error').innerText()).includes("isn't a plan"));
+  const hours = await page.evaluate(() => {
+    const now = new Date();
+    const from = Math.max(0, Math.min(now.getHours() * 60 + now.getMinutes() - 30, 23 * 60 + 59 - 120));
+    const clock = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+    return [clock(from), clock(from + 120)];
+  });
+  await page.fill('#planStart0', hours[0]);
+  await page.fill('#planEnd0', hours[1]);
+  await page.click('#savePlan');
+  await page.waitForSelector('#goal');
+  ok('the plan shows what today looks like', (await page.locator('#planToday').innerText()).includes('0 of 50 min'));
+  ok('the block shows it will earn before it starts', (await page.locator('#outlook').getAttribute('data-kind')) === 'plan');
+  ok('the goals come from the plan', await page.locator('.goal[data-period="week"]').count() === 1 && await page.locator('.goal[data-period="month"]').count() === 1);
+  ok('a typo in a first plan can still be fixed', await page.locator('#changePlan').isEnabled());
   await page.fill('#goal', 'Ship the login page');
   await page.check('#phone');
   await page.click('#startBlock');
@@ -134,18 +159,50 @@ try {
     return r.status;
   });
   ok('the API refuses a request with no token', early === 401);
+  ok('the moment of the check is not told in advance', !seen.some((r) => /check_at/.test(r.text)) && await page.locator('#presenceYes').count() === 0);
   await page.goto(`${BASE}/missions/sh-01/play`);
   await page.waitForSelector('.lock');
   ok('missions stay locked while a block runs', (await page.locator('.lock').innerText()).includes('Locked while your focus block runs'));
+  dueCheckNow();
+  await page.goto(`${BASE}/focus`);
+  await page.waitForSelector('#presenceYes');
+  ok('the check comes up when it is due', (await page.locator('.check-in').innerText()).includes('Still there?'));
+  ok('the tab says so too, for someone in another window', (await page.title()).includes('Still there'));
+  await shot('focus-check');
+  await page.click('#presenceYes');
+  await page.waitForSelector('#presenceYes', { state: 'detached' });
+  ok('answering the check clears it', true);
   endBlockNow();
   await page.goto(`${BASE}/focus`);
-  await page.waitForSelector('#claimYes');
+  await page.waitForSelector('#claimNote');
+  ok('a claim needs a line on what you did', await page.locator('#claimYes').isDisabled());
+  await page.fill('#claimNote', 'Shipped the login redirect');
+  await shot('focus-claim');
   await page.click('#claimYes');
   await page.waitForSelector('#startBlock');
   await page.waitForFunction(() => /15:00/.test(document.querySelector('.chip-time').textContent));
   ok('claiming pays 8:00 plus the 2:00 goal bonus', (await page.locator('.chip-time').innerText()).includes('15:00'));
   ok('the block pays XP, with the first day of its streak', await xp() === 37, `XP ${await xp()}`);
   ok('a badge arrives with its medal', await page.locator('.toast .emblem').count() > 0 || (await page.locator('.toast').innerText()).length > 0, await page.locator('.toast').innerText());
+  await page.waitForFunction(() => document.querySelector('#planToday')?.textContent.includes('25 of 50 min'));
+  ok('the plan counts the block', true);
+  ok('once a block has started, the plan is locked for a week', await page.locator('#changePlan').isDisabled() && (await page.locator('#planLocked').innerText()).includes('You can change it on'));
+
+  // ---------- the history ----------
+  await page.goto(`${BASE}/profile`);
+  await page.waitForSelector('.map-grid');
+  const greens = await page.locator('.map-cell[data-level]:not([data-level="0"])').count();
+  ok('today turns green on the focus map', greens === 1, `${greens} green`);
+  ok('the map shows a whole year', await page.locator('button.map-cell').count() >= 364);
+  ok('both charts draw', await page.locator('#chartFocus .chart-col i').count() === 1 && await page.locator('#chartXp .chart-col i').count() === 1);
+  ok('what you did is written down', (await page.locator('#recentBlocks').innerText()).includes('Shipped the login redirect'));
+  const tile = page.locator('.map-cell[data-level]:not([data-level="0"])');
+  await tile.hover();
+  ok('a day says what it holds', (await page.locator('#focusMap .chart-tip').innerText()).includes('25 min'));
+  await page.locator('button.map-cell[tabindex="0"]').focus();
+  await page.keyboard.press('ArrowLeft');
+  ok('the map can be walked with the keyboard', await page.evaluate(() => document.activeElement.classList.contains('map-cell')));
+  ok('every chart has a table for its numbers', await page.locator('#chartFocus details').count() === 1 && await page.locator('#chartXp details').count() === 1);
 
   // ---------- one whole mission ----------
   const before = await xp();

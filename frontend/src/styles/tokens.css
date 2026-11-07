@@ -96,6 +96,18 @@
   --blood-lo: #a80f2d;
   --emblem-core: #06121f;
 
+  /* charts. Each measure keeps its colour everywhere, and the map's green only ever means more focus.
+     Checked with the dataviz palette validator against --tile: the ramp as ordinal, the marks as categorical. */
+  --heat-0: rgba(190, 180, 255, 0.1);
+  --heat-1: #1f6e55;
+  --heat-2: #2c9a76;
+  --heat-3: #43c698;
+  --heat-4: #5ef0b0;
+  --chart-focus: #2aa880;
+  --chart-xp: #c28610;
+  --chart-grid: rgba(190, 180, 255, 0.14);
+  --chart-track: rgba(42, 168, 128, 0.18);
+
   /* difficulty, from gentle to painful */
   --diff-easy: #5ef0b0;
   --diff-medium: #4fd8ff;

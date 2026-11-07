@@ -12,6 +12,29 @@ GOAL_BONUS_SECONDS = 2 * 60
 GOAL_BONUS_XP = 10
 GOAL_MAX_LENGTH = 100
 
+# The study plan (ADR 0010). Time alone proves nothing, so play time comes from keeping a plan you set in advance.
+PLAN_MAX_BLOCKS_PER_DAY = 6
+PLAN_MAX_WINDOWS = 3
+PLAN_MIN_WINDOW_MINUTES = 30
+PLAN_CHANGE_DAYS = 7
+# "Any time at all" isn't a plan, so study times are limited to this many times the daily amount, or the floor.
+PLAN_WINDOW_SLACK = 3
+PLAN_WINDOW_FLOOR_MINUTES = 4 * 60
+MAKEUPS_PER_WEEK = 2  # blocks that can earn outside your study times, and only to cover what you've missed
+
+# One tap, at a moment the player can't know in advance, somewhere after this share of the block.
+PRESENCE_EARLIEST_SHARE = 0.25
+PRESENCE_WINDOW_SECONDS = 3 * 60
+CLAIM_WINDOW_SECONDS = 15 * 60
+NOTE_MIN_LENGTH = 5
+NOTE_MAX_LENGTH = 140
+
+# Goals are worked out from the plan, with some room for a bad day. Rewards grow with the goal, up to a cap,
+# so a tiny plan can't collect a big reward.
+TARGET_SHARE = {"week": 0.8, "month": 0.75}
+TARGET_REWARD_SECONDS_PER_MINUTE = {"week": 6, "month": 3}
+TARGET_REWARD_MAX_SECONDS = {"week": 20 * 60, "month": 45 * 60}
+
 PAR_BONUS = 20
 HINT_COST = 15
 MIN_MISSION_XP = 10
@@ -102,3 +125,13 @@ def focus_credit(bank, earned):
 
 def streak_credit(bank, earned):
     return max(0, min(BONUS_CAP, bank + earned) - bank)
+
+
+def target_minutes(period, planned):
+    """The share of the planned minutes that meets the goal, rounded up to the next 5."""
+    return math.ceil(planned * TARGET_SHARE[period] / 5) * 5
+
+
+def target_reward(period, target):
+    """(play seconds, XP) for meeting a goal."""
+    return min(TARGET_REWARD_MAX_SECONDS[period], target * TARGET_REWARD_SECONDS_PER_MINUTE[period]), target

@@ -7,8 +7,8 @@ import { F, fs, HOME, HOST, norm, pad } from '../../../engines/fs/index.js';
 import { sh, runLine } from '../../../engines/shell/index.js';
 import { COMMANDS, MAN } from '../../../engines/shell/commands.js';
 import { VI, viKey, viSelection } from '../../../engines/vi/index.js';
-import { ensureAudio, playLevelUp, playTimerEnd, playUnlock, setMuted } from '../sound/cues.js';
-import { ApiError, del, get, patch, post, refreshAccess, setAccess, setSignedOutHandler } from './client.js';
+import { ensureAudio, playCheckIn, playLevelUp, playTimerEnd, playUnlock, setMuted } from '../sound/cues.js';
+import { ApiError, del, get, patch, post, put, refreshAccess, setAccess, setSignedOutHandler } from './client.js';
 
 export { S, VI, viSelection };
 
@@ -46,6 +46,7 @@ export const ui = {
   py: { state: 'idle' },
   current: null, // the mission being played, with its workspace
   openTrack: null, // the category open on the Missions screen
+  plan: null, // the study plan, today against it, and the weekly and monthly goals
   briefings: {},
 };
 
@@ -83,6 +84,11 @@ function showNextToast() {
 export function toast(text, badge = null) {
   toastQueue.push({ text, badge });
   if (!ui.toast) showNextToast();
+}
+/** What was waiting to be said is no longer news once someone has signed out. */
+export function clearToasts() {
+  toastQueue.length = 0;
+  showNextToast();
 }
 const complain = (e) => toast(e instanceof ApiError ? e.message : 'Something went wrong. Try again.');
 
@@ -160,6 +166,7 @@ export function endPractice() {
 }
 
 /* ---------- loading from the server ---------- */
+const checkIn = (b) => ({ presence: b.presence, checkEndsAt: b.check_expires_at ? local(b.check_expires_at) : null });
 function applyPlayer(p) {
   skew = Date.parse(p.server_time) - Date.now();
   ui.level = p.level;
@@ -181,7 +188,7 @@ function applyPlayer(p) {
   S.focus = null;
   S.claim = null;
   if (p.block) {
-    const block = { id: p.block.id, goal: p.block.goal, len: p.block.minutes, startedAt: local(p.block.started_at), endsAt: local(p.block.ends_at), drifts: p.block.drifts };
+    const block = { id: p.block.id, goal: p.block.goal, len: p.block.minutes, kind: p.block.kind, startedAt: local(p.block.started_at), endsAt: local(p.block.ends_at), claimBy: local(p.block.claim_by), drifts: p.block.drifts, ...checkIn(p.block) };
     if (Date.now() >= block.endsAt) S.claim = block;
     else S.focus = block;
   }
@@ -241,7 +248,11 @@ const refreshRewards = async () => {
   applyRewards(await get('/rewards/'));
   bump();
 };
-const refreshAll = () => Promise.all([refreshPlayer(), refreshTracks(), refreshRewards()]);
+export const refreshPlan = async () => {
+  ui.plan = await get('/focus/plan/');
+  bump();
+};
+const refreshAll = () => Promise.all([refreshPlayer(), refreshTracks(), refreshRewards(), refreshPlan()]);
 
 async function enterGame(account) {
   ui.account = account;
@@ -263,7 +274,8 @@ function signedOut() {
   ui.current = null;
   ui.debrief = null;
   ui.overlay = null;
-  bump();
+  ui.plan = null;
+  clearToasts();
 }
 setSignedOutHandler(signedOut);
 
@@ -327,7 +339,7 @@ export async function setTimeZone(time_zone) {
   try {
     const d = await patch('/auth/me/', { time_zone });
     ui.account = d.account;
-    await refreshPlayer();
+    await Promise.all([refreshPlayer(), refreshPlan()]);
   } catch (e) {
     complain(e);
   }
@@ -790,6 +802,8 @@ function applyEvents(events) {
       toast(`Streak shield used. ${e.days} missed day${e.days > 1 ? 's' : ''} covered.`);
     } else if (e.type === 'streak_reward') {
       toast(`${e.days} day streak reward: +${mmss(e.seconds)} play, +${e.xp} XP${e.shields ? ', +1 shield' : ''}`);
+    } else if (e.type === 'target_reached') {
+      toast(`${e.period === 'week' ? 'Weekly' : 'Monthly'} goal met: +${mmss(e.seconds)} play, +${e.xp} XP`);
     }
   }
   bump();
@@ -815,6 +829,41 @@ export async function startBlock(goal) {
     await refreshPlayer();
   } catch (e) {
     complain(e);
+    if (e.code === 'plan_required') await refreshPlan();
+  }
+}
+/** Errors go back to the form, because it's the form that has to change. */
+export async function savePlan(plan) {
+  ui.plan = await put('/focus/plan/', plan);
+  S.len = plan.block_minutes;
+  saveMachine();
+  bump();
+}
+/** The server says when each block's check comes up, and only once it has. */
+async function pollCheckIn() {
+  const f = S.focus;
+  try {
+    const { block } = await get(`/focus/blocks/${f.id}/`);
+    if (S.focus?.id !== f.id) return;
+    const was = f.presence;
+    Object.assign(f, checkIn(block));
+    if (f.presence === 'due' && was !== 'due') {
+      playCheckIn();
+      go('/focus');
+    }
+    bump();
+  } catch { /* the next poll tries again, and the server still decides at the claim */ }
+}
+export async function confirmCheckIn() {
+  const f = S.focus;
+  if (!f) return;
+  try {
+    const { block } = await post(`/focus/blocks/${f.id}/presence/`);
+    Object.assign(f, checkIn(block));
+    bump();
+  } catch (e) {
+    complain(e);
+    await refreshPlayer();
   }
 }
 export async function logDrift() {
@@ -858,13 +907,18 @@ export async function openSession() {
     complain(e);
   }
 }
-export async function claimBlock(done) {
+const UNPAID = {
+  free: 'On your map. It was outside your plan, so no play time.',
+  missed: 'No check-in, so this block earned nothing.',
+  expired: 'Claimed too late, so this block earned nothing.',
+};
+export async function claimBlock(done, note = '') {
   const c = S.claim;
   if (!c) return;
   try {
-    const d = await post(`/focus/blocks/${c.id}/claim/`, { done });
-    toast(`+${mmss(d.seconds_earned)} play time`);
-    await Promise.all([refreshPlayer(), refreshRewards()]);
+    const d = await post(`/focus/blocks/${c.id}/claim/`, { done, note });
+    toast(UNPAID[d.result] || `+${mmss(d.seconds_earned)} play time`);
+    await Promise.all([refreshPlayer(), refreshRewards(), refreshPlan()]);
     applyEvents(d.events);
   } catch (e) {
     // This device's clock can run a moment ahead of the server's. Waiting is all it takes.
@@ -873,7 +927,10 @@ export async function claimBlock(done) {
     await refreshPlayer();
   }
 }
+export const loadHistory = () => get('/focus/history/');
 let refreshingAfterExpiry = false;
+const CHECK_IN_POLL = 15000; // often enough to leave most of the window, even in a throttled background tab
+let lastPoll = 0;
 export function tick() {
   if (ui.auth !== 'in') return;
   const now = Date.now();
@@ -885,6 +942,19 @@ export function tick() {
       S.focus = null;
       playTimerEnd();
       go('/focus');
+    } else if (S.focus.presence !== 'ok' && now - lastPoll >= CHECK_IN_POLL) {
+      lastPoll = now;
+      pollCheckIn();
+    }
+  }
+  if (S.claim) {
+    changed = true;
+    if (now >= S.claim.claimBy && !refreshingAfterExpiry) {
+      refreshingAfterExpiry = true;
+      toast('Too late to claim that block, so it earned nothing.');
+      refreshPlayer().catch(() => {}).finally(() => {
+        refreshingAfterExpiry = false;
+      });
     }
   }
   if (S.sessionEndsAt) {
