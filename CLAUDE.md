@@ -16,7 +16,7 @@ Real focus earns play time, and play time teaches real technical skills. `docs/D
 
 **Grading:** a shell or vi result only counts once the server has replayed the player's log on a clean machine, and Python and Go only count from the sandbox (`docs/adr/0015-the-server-decides.md`). Never trust a pass the browser claims. Operations are a side track, outside the 213 (`docs/adr/0016-operations-on-the-side.md`).
 
-**Accounts:** no tokens before a confirmed email, and nothing may reveal whether an account or email exists (`docs/adr/0014-confirmed-email-and-a-clock-that-stops.md`). Clearing a mission closes its session.
+**Accounts:** no tokens before a confirmed email, and nothing may reveal whether an account or email exists (`docs/adr/0014-confirmed-email-and-a-clock-that-stops.md`). A login belongs to its tab and lasts 30 minutes from each renewal (`docs/adr/0018-streaks-check-ins-logins-and-rewind-misses.md`). Clearing a mission closes its session.
 
 **Focus:** a block earns only by keeping a study plan set in advance, and paid minutes in a week can never pass what was planned (`docs/adr/0010-study-plans.md`). Each study time is set on the player's terms with its rest breaks inside it, nothing earns outside study times, a kept block earns the break after it, and weekends can have their own study times (`docs/adr/0017-rest-weekends-and-no-make-ups.md`).
 

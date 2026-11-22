@@ -3,9 +3,11 @@ import { HudPanel } from '../../ui/HudPanel.jsx';
 import { Avatar, SystemAvatar } from '../../ui/Avatar.jsx';
 import { pad } from '../../../../engines/fs/index.js';
 import { GoalMeters } from '../../ui/GoalMeters.jsx';
-import { BADGES, S, chooseAvatar, level, loadHistory, removeAvatar, ui, uploadAvatar } from '../../api/game.js';
+import { BADGES, S, SIDE_TRACKS, TK, TRACKS, chooseAvatar, level, loadHistory, removeAvatar, ui, uploadAvatar } from '../../api/game.js';
 import { ColumnChart } from './ColumnChart.jsx';
 import { FocusMap } from './FocusMap.jsx';
+import { SkillMap } from './SkillMap.jsx';
+import { skillsOf } from './skills.js';
 import { lastDays, longDay, shortDay } from './history.js';
 
 const SYSTEM_AVATARS = 16;
@@ -131,15 +133,21 @@ export function ProfileScreen() {
             })}
           </div>
         </HudPanel>
-        <HudPanel className="stack" label="Your numbers">
-          <div className="profile-stats">
-            <div><b className="num">{S.xp}</b><span className="small">XP</span></div>
-            <div><b className="num">{S.bestStreak}</b><span className="small">Best streak</span></div>
-            <div><b className="num">{Math.floor(S.focusMin / 60)}h {pad(S.focusMin % 60)}m</b><span className="small">Focus</span></div>
-            <div><b className="num">{S.blocks}</b><span className="small">Blocks</span></div>
-            <div><b className="num">{Object.keys(S.badges || {}).length}/{BADGES.length}</b><span className="small">Badges</span></div>
-          </div>
-        </HudPanel>
+        <div className="stack">
+          <HudPanel className="stack" label="Your numbers">
+            <div className="profile-stats">
+              <div><b className="num">{S.xp}</b><span className="small">XP</span></div>
+              <div><b className="num">{S.bestStreak}</b><span className="small">Best streak</span></div>
+              <div><b className="num">{Math.floor(S.focusMin / 60)}h {pad(S.focusMin % 60)}m</b><span className="small">Focus</span></div>
+              <div><b className="num">{S.blocks}</b><span className="small">Blocks</span></div>
+              <div><b className="num">{Object.keys(S.badges || {}).length}/{BADGES.length}</b><span className="small">Badges</span></div>
+            </div>
+          </HudPanel>
+          <HudPanel className="stack" label="Skill map" id="skillMap">
+            <p className="small" style={{ margin: 0 }}>Each skill is rated 1 to 10 by the share of its missions you've cleared. 10 means the whole path.</p>
+            <SkillMap skills={skillsOf(TRACKS, TK, SIDE_TRACKS)} />
+          </HudPanel>
+        </div>
       </div>
       <History />
     </section>

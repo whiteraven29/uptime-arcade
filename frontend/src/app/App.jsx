@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useGame } from '../api/useGame.js';
 import { S, closeSession, level, mmss, refreshPlayer, setNavigator, tick, ui } from '../api/game.js';
 import { ensureAudio } from '../sound/cues.js';
 import { SceneBackdrop } from '../ui/SceneBackdrop.jsx';
 import { Toast } from '../ui/Toast.jsx';
-import { Logo } from '../ui/icons.jsx';
+import { CollapseIcon, DeckIcon, FocusIcon, Logo, MissionsIcon, ProfileIcon, RewardsIcon, SystemIcon } from '../ui/icons.jsx';
 import { Avatar } from '../ui/Avatar.jsx';
 import { Overlays } from './Overlays.jsx';
 import { DeckScreen } from '../features/deck/DeckScreen.jsx';
@@ -21,17 +21,76 @@ import { SandboxScreen } from '../features/netlab/SandboxScreen.jsx';
 import { SystemScreen } from '../features/system/SystemScreen.jsx';
 import { AuthScreen } from '../features/auth/AuthScreen.jsx';
 
-const NAV = [['/', 'Deck'], ['/focus', 'Focus'], ['/missions', 'Missions'], ['/rewards', 'Rewards'], ['/system', 'System']];
+const NAV = [
+  ['/', 'Deck', DeckIcon],
+  ['/focus', 'Focus', FocusIcon],
+  ['/missions', 'Missions', MissionsIcon],
+  ['/rewards', 'Rewards', RewardsIcon],
+  ['/profile', 'Profile', ProfileIcon],
+  ['/system', 'System', SystemIcon],
+];
+const TITLES = { '': 'Deck', focus: 'Focus', missions: 'Missions', rewards: 'Rewards', profile: 'Profile', system: 'System', sandbox: 'NetLab sandbox', oncall: 'On call' };
 
-function TopBar() {
+/* Full or folded to icons. Your choice is remembered on this device. Until you make one, the window decides:
+   full when there's room, icons when there isn't. */
+const SIDE_KEY = 'ua_side';
+const NARROW = '(max-width: 1279px)';
+function readSide() {
+  try {
+    return localStorage.getItem(SIDE_KEY);
+  } catch {
+    return null;
+  }
+}
+function useSidebar() {
+  const [chosen, setChosen] = useState(readSide);
+  const [narrow, setNarrow] = useState(() => window.matchMedia?.(NARROW).matches ?? false);
+  useEffect(() => {
+    const query = window.matchMedia?.(NARROW);
+    if (!query) return undefined;
+    const follow = () => setNarrow(query.matches);
+    query.addEventListener('change', follow);
+    return () => query.removeEventListener('change', follow);
+  }, []);
+  const folded = chosen ? chosen === 'rail' : narrow;
+  const toggle = () => {
+    const next = folded ? 'full' : 'rail';
+    setChosen(next);
+    try {
+      localStorage.setItem(SIDE_KEY, next);
+    } catch { /* remembered for this visit only */ }
+  };
+  return [folded, toggle];
+}
+
+/* The screens, down the left like a dashboard (ADR 0019). It folds to icons, and on a phone it becomes a bar
+   along the bottom, where a thumb can reach it. */
+function SideBar({ folded, onToggle }) {
+  return (
+    <aside className="sidebar">
+      <div className="side-head">
+        <Link className="logo" to="/"><Logo /><span className="logo-text">WHITERAVEN</span></Link>
+        <button className="side-toggle" type="button" id="sideToggle" aria-expanded={!folded} aria-label={folded ? 'Expand the sidebar' : 'Collapse the sidebar'} title={folded ? 'Expand' : 'Collapse'} onClick={onToggle}>
+          <CollapseIcon />
+        </button>
+      </div>
+      <nav className="nav" aria-label="Screens">
+        {NAV.map(([to, label, Icon]) => (
+          <NavLink key={to} to={to} end={to === '/'} title={label}><Icon /><span className="nav-label">{label}</span></NavLink>
+        ))}
+      </nav>
+    </aside>
+  );
+}
+
+/* Where you are, and your numbers: always in view, whatever the screen. */
+function TopBar({ pathname }) {
   const running = !!S.sessionEndsAt;
   const clock = running ? mmss((S.sessionEndsAt - Date.now()) / 1000) : mmss(S.bank);
   return (
     <header className="top">
-      <Link className="logo" to="/"><Logo />WHITERAVEN</Link>
-      <nav className="nav" aria-label="Screens">
-        {NAV.map(([to, label]) => <NavLink key={to} to={to} end={to === '/'}>{label}</NavLink>)}
-      </nav>
+      <Link className="logo top-logo" to="/" aria-label="Whiteraven, the Deck"><Logo /></Link>
+      <p className="top-title">{TITLES[pathname.split('/')[1]] ?? ''}</p>
       <div className="chips">
         <span className="chip"><b>{level()}</b></span>
         <span className="chip">XP <b>{S.xp}</b></span>
@@ -54,6 +113,7 @@ export function App() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const frame = useRef(null);
+  const [folded, toggleSide] = useSidebar();
 
   useEffect(() => {
     setNavigator(navigate);
@@ -78,12 +138,13 @@ export function App() {
 
   return (
     <div onPointerDown={ensureAudio}>
-      <div className="frame" ref={frame} data-screen={ui.auth !== 'in' ? 'auth' : pathname === '/' ? 'deck' : 'other'}>
+      <div className="frame" ref={frame} data-side={folded ? 'rail' : 'full'} data-screen={ui.auth !== 'in' ? 'auth' : pathname === '/' ? 'deck' : 'other'}>
         <SceneBackdrop frameRef={frame} />
         <div className="scene-veil" />
         <div className="frame-scan" />
         <div className="frame-edge" />
-        {ui.auth === 'in' && <TopBar />}
+        {ui.auth === 'in' && <SideBar folded={folded} onToggle={toggleSide} />}
+        {ui.auth === 'in' && <TopBar pathname={pathname} />}
         {ui.auth === 'checking' && <main><p className="splash">Connecting...</p></main>}
         {ui.auth === 'out' && (
           <main>

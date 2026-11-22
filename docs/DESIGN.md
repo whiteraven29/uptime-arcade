@@ -169,6 +169,7 @@ Fonts are self-hosted from `frontend/public/fonts/`, so the game works offline.
 
 ### 4.5 Layout rules
 
+- **The shell:** a sidebar on the left lists the screens, like a dashboard, and a header across the top shows where you are, your level, XP, streak, the play-time or session clock and your picture. The sidebar collapses to a rail of icons with one button and remembers that on the device. Until you choose, it's full from 1280px and icons below. On a phone it becomes a bar along the bottom ([ADR 0019](adr/0019-a-sidebar-like-a-dashboard.md)).
 - **Desktop:** the HUD fills the window with no page scroll, and only sections scroll. Reading screens sink the scene under one veil, and the Deck shows it at full strength.
 - **Under 1040px:** columns stack and the page scrolls over a fixed scene.
 - **Under 400px:** everything still works, though NetLab shows a "best on a larger screen" note and allows pinch zoom.
@@ -178,7 +179,7 @@ Fonts are self-hosted from `frontend/public/fonts/`, so the game works offline.
 
 ## 5. Screens and routes
 
-Each screen is its own route, and the top bar shows the logo, navigation, level, XP, streak and the play-time or session clock.
+Each screen is its own route. The sidebar lists Deck, Focus, Missions, Rewards, Profile and System, and the header shows the screen's name, level, XP, streak and the play-time or session clock (section 4.5).
 
 | Route | Screen | Purpose |
 |---|---|---|
@@ -192,7 +193,7 @@ Each screen is its own route, and the top bar shows the logo, navigation, level,
 | `/oncall` | **On-call** | Endless incident shifts, unlocked after all track missions are cleared. Arrives in M11 ([ADR 0007](adr/0007-the-game-runs-on-the-server.md)) |
 | `/rewards` | **Rewards** | Streak ladder, level ladder and badge grid |
 | `/sandbox` | **Sandbox** | Your own network with no goals: add, drag, cable and configure devices, test every ping, and break something to practise. It opens after LAB-05 and is free |
-| `/profile` | **Profile** | Your picture (sixteen operators, or upload your own), stats, a year's focus map, goals, focus minutes a day, XP a week, and recent blocks. Your username and picture stay at the top right of every screen |
+| `/profile` | **Profile** | Your picture (sixteen operators, or upload your own), stats, a skill map, a year's focus map, goals, focus minutes a day, XP a week, and recent blocks. Your username and picture stay at the top right of every screen. The skill map is a web with a spoke for each core skill (Shell, vi, Python, Go, Networking, NetLab), each rated 1 to 10 by the share of its missions cleared: any cleared mission makes it 1, the whole path makes it 10, with even steps between, and nothing cleared shows as not started. Operations and Beyond aren't on it. Every point has a tooltip, and a table lists the numbers |
 | `/system` | **System** | An account card (picture, username, level, XP, join date, and View profile), change password, time zone, sound, close session, logout, delete account. The email is never shown |
 | `/login`, `/register` | Auth | Styled in the HUD, and they fit the window too. They only scroll if a phone's keyboard takes the room. Log in with a username, which shows available or taken as you type. Email stays private |
 
@@ -237,7 +238,7 @@ Each study time is set on the player's own terms ([ADR 0017](adr/0017-rest-weeke
   - **Plan:** a study day, inside a study time (only the start has to be), fitting what's left of that study time's study. Each study time earns its own minutes, so a missed morning can't be studied in the evening. Pays its share of the break.
   - **Extra:** everything else, including any block outside your study times. There are no make-ups. Goes on the map and counts towards totals and focus badges, but pays no play time or XP and doesn't touch the streak.
 - **The ceiling:** minutes paid in a week can never pass the minutes planned up to that day, whatever mix of blocks someone tries.
-- **Check-in:** each block asks once if you're still there, at a random moment from a quarter of the way through, with 3:00 to answer. The moment stays on the server until it's due. Missing it voids the block: no pay, not on the map, and the day's amount is free again.
+- **Check-in:** each block asks once if you're still there, at a random moment from a quarter of the way through, with 10:00 to answer (half the block for one under 20 minutes), so someone deep in a problem has time to look up ([ADR 0018](adr/0018-streaks-check-ins-logins-and-rewind-misses.md)). The chime repeats every minute until it's answered, the tab title asks, and a desktop notification asks when the tab isn't in view (permission is asked when a block starts). The moment stays on the server until it's due. Missing it voids the block: no pay, not on the map, and the day's amount is free again.
 - **Claiming:** needs a line of 5 to 140 characters on what you actually did, within 15:00 of the block ending. After that the block earns nothing.
 
 **Goals** are worked out from the plan, and count minutes that earned:
@@ -305,7 +306,7 @@ After a mission is solved, the player answers five questions about it, easiest f
 - **The next question** comes as soon as you answer, with how the last one went above it. There's nothing to click.
 - **Wrong answers** don't show the right one. The question moves to the end of the queue, and costs nothing.
 - **Hints** appear once every question still left has been failed at least once.
-- **The answer** shows after three misses on one question, so nobody gets stuck.
+- **The answer** shows after three misses on one question, so nobody gets stuck. That third miss takes 30 XP off what the mission pays on clear, once per question and never below the 10 XP floor ([ADR 0018](adr/0018-streaks-check-ins-logins-and-rewind-misses.md)).
 - Progress is saved, so you can leave and come back.
 - Questions are written in each mission's YAML and can be edited there. The server sends a question without its answer.
 
@@ -325,14 +326,16 @@ The streak grows by 1 on each calendar day (in the player's time zone) with at l
 |---|---|---|---|
 | 3 days | +5 min | +50 | |
 | 7 days | +10 min | +150 | +1 |
-| 14 days | +15 min | +300 | |
-| 21 days | +15 min | +500 | +1 |
-| 30 days | +20 min | +1000 | |
-| 60 days | +30 min | +2000 | +1 |
-| 100 days | +30 min | +5000 | +1 |
+| 30 days | +20 min | +1000 | +1 |
+| 90 days | +30 min | +2500 | +1 |
+| 180 days | +30 min | +5000 | +1 |
+| 365 days | +30 min | +10000 | +2 |
+
+A 1000-day streak earns the Thousand Days badge ([ADR 0018](adr/0018-streaks-check-ins-logins-and-rewind-misses.md)).
 
 - **Rewards:** each milestone pays once per account.
-- **Shields:** a shield covers one missed study day and is used automatically. If more study days were missed than shields held, the streak resets to 1 and the shields are kept.
+- **Shields:** a shield freezes the streak over one missed study day and is used automatically.
+- **Settled when you come back:** the first time you open the game after a missed study day, it's settled. Enough shields freeze the streak and say so. Otherwise the streak is 0 at once, and the next kept block starts it again at 1. Shields are kept, and today never counts as missed until it's over.
 
 ### 6.8 Badges (launch set)
 
@@ -341,7 +344,7 @@ The streak grows by 1 on each calendar day (in the player's time zone) with at l
 | First Block | Finish one focus block |
 | Clean Ten | 10 blocks with no drifts |
 | Ten Hours, Hundred Hours | 600 and 6000 focus minutes |
-| Full Week, Iron Month, Centurion | 7, 30 and 100-day streaks |
+| Full Week, Iron Month, Centurion, Thousand Days | 7, 30, 100 and 1000-day streaks |
 | First Clear | Clear one mission |
 | Initiate to Sage | Reach levels 2 to 9, one badge each |
 | Shell, vi, Python, Go, Networking and NetLab Master | Clear the whole track (NetLab arrives with M6) |
@@ -1128,7 +1131,7 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 | POST | `auth/verify/`, `auth/verify/resend/` | `{username, code}` confirms the email and logs in. Resend always answers the same (public) |
 | POST | `auth/password/forgot/`, `auth/password/reset/` | `{identifier}` emails a code, with the same answer whether or not anything matched. `{username, code, password, confirm_password}` changes it and logs out every device (public) |
 | POST | `auth/password/change/` | `{current_password, password, confirm_password}` while logged in. Wrong tries are counted per account. Logs out every other device and gives this one fresh tokens |
-| POST | `auth/login/`, `auth/refresh/`, `auth/logout/` | Auth (public), by username. The refresh token is only ever in an HttpOnly cookie |
+| POST | `auth/login/`, `auth/refresh/`, `auth/logout/` | Auth (public), by username. The refresh token is only ever in an HttpOnly session cookie and lasts 30 minutes from each refresh. A login belongs to its tab: the open tab refreshes it every 10 minutes, a new tab shares it only while another is open, and otherwise ends it ([ADR 0018](adr/0018-streaks-check-ins-logins-and-rewind-misses.md)) |
 | GET, PATCH, DELETE | `auth/me/` | Account, including which system avatar and the join date, but never the email. Delete needs the password and wipes everything |
 | POST, DELETE | `auth/avatar/` | Upload or remove a picture. It's always re-encoded ([ADR 0009](adr/0009-seasons-gates-and-profiles.md)) |
 | GET | `avatars/{token}.webp` | A picture, at an unguessable address (public) |

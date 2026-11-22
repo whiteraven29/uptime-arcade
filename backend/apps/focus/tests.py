@@ -805,7 +805,7 @@ class TestPresenceCheck:
             block = start(api, minutes).json()["block"]
             row = FocusBlock.objects.get(pk=block["id"])
             assert row.started_at + timedelta(seconds=minutes * 60 * 0.25) <= row.check_at
-            assert row.check_at + timedelta(seconds=rules.PRESENCE_WINDOW_SECONDS) <= row.ends_at
+            assert row.check_at + timedelta(seconds=rules.presence_window(minutes)) <= row.ends_at
             api.post(f"{BLOCKS}{block['id']}/abandon/")
 
     def test_the_moment_changes_from_block_to_block(self, api, clock):
@@ -844,14 +844,29 @@ class TestPresenceCheck:
 
     def test_too_late_is_too_late(self, api, clock):
         block = start(api).json()["block"]
-        clock.value = FocusBlock.objects.get(pk=block["id"]).check_at + timedelta(seconds=rules.PRESENCE_WINDOW_SECONDS + 1)
+        clock.value = FocusBlock.objects.get(pk=block["id"]).check_at + timedelta(seconds=rules.presence_window(25) + 1)
         assert api.get(f"{BLOCKS}{block['id']}/").json()["block"]["presence"] == "missed"
         assert error(api.post(f"{BLOCKS}{block['id']}/presence/")) == "check_missed"
 
     def test_the_last_second_still_counts(self, api, clock):
         block = start(api).json()["block"]
-        clock.value = FocusBlock.objects.get(pk=block["id"]).check_at + timedelta(seconds=rules.PRESENCE_WINDOW_SECONDS)
+        clock.value = FocusBlock.objects.get(pk=block["id"]).check_at + timedelta(seconds=rules.presence_window(25))
         assert api.post(f"{BLOCKS}{block['id']}/presence/").status_code == 200
+
+    def test_there_are_ten_minutes_to_answer(self, api, clock):
+        """Deep in a problem, a few minutes can pass before you look up (ADR 0018)."""
+        assert rules.presence_window(25) == rules.presence_window(90) == 600
+        block = start(api).json()["block"]
+        clock.value = FocusBlock.objects.get(pk=block["id"]).check_at + timedelta(minutes=9, seconds=30)
+        assert api.post(f"{BLOCKS}{block['id']}/presence/").json()["block"]["presence"] == "ok"
+
+    def test_a_short_block_gets_half_its_length(self, api, clock):
+        assert rules.presence_window(10) == 300 and rules.presence_window(15) == 450
+        for _ in range(20):  # the moment is random, so try it many times
+            block = start(api, 10).json()["block"]
+            row = FocusBlock.objects.get(pk=block["id"])
+            assert row.check_at + timedelta(seconds=300) <= row.ends_at
+            api.post(f"{BLOCKS}{block['id']}/abandon/")
 
     def test_missing_it_voids_the_block(self, api, clock):
         block = start(api).json()["block"]
@@ -1018,9 +1033,40 @@ class TestStreaksFollowThePlan:
         Player.objects.filter(pk=planner.user.player.pk).update(shields=1)
         run_block(planner, clock)
         clock.set(2026, 11, 10, 8, 0)
+        # Coming back is when it's settled, and said once.
+        assert {"type": "shield_used", "days": 1} in planner.get("/api/v1/player/").json()["events"]
+        assert planner.get("/api/v1/player/").json()["events"] == []
         _, body = run_block(planner, clock)
         assert body["streak"] == 2
-        assert {"type": "shield_used", "days": 1} in body["events"]
+
+    def test_starting_a_block_says_so_if_nothing_else_did(self, planner, clock):
+        Player.objects.filter(pk=planner.user.player.pk).update(shields=1)
+        run_block(planner, clock)
+        clock.set(2026, 11, 10, 8, 0)
+        assert {"type": "shield_used", "days": 1} in start(planner).json()["events"]
+
+    def test_without_a_shield_the_streak_is_zero_as_soon_as_you_come_back(self, planner, clock):
+        run_block(planner, clock)  # Friday
+        clock.set(2026, 11, 9, 8, 0)
+        run_block(planner, clock)  # Monday: 2
+        clock.set(2026, 11, 11, 7, 0)  # Wednesday, before studying: Tuesday was missed
+        body = planner.get("/api/v1/player/").json()
+        assert body["streak"] == 0 and body["multiplier"] == 1
+        assert {"type": "streak_lost", "days": 1} in body["events"]
+        clock.set(2026, 11, 11, 8, 0)
+        _, claimed = run_block(planner, clock)
+        assert claimed["streak"] == 1
+
+    def test_a_day_off_isnt_a_missed_day_on_arrival_either(self, planner, clock):
+        run_block(planner, clock)  # Friday
+        clock.set(2026, 11, 9, 7, 0)  # Monday morning, after a weekend off
+        body = planner.get("/api/v1/player/").json()
+        assert body["streak"] == 1 and body["events"] == []
+
+    def test_today_not_yet_studied_isnt_missed(self, planner, clock):
+        run_block(planner, clock)  # Friday
+        clock.set(2026, 11, 9, 23, 0)  # Monday night, nothing done yet today
+        assert planner.get("/api/v1/player/").json()["streak"] == 1
 
 
 class TestHistory:

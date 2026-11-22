@@ -229,7 +229,7 @@ class TestPlayerAndRewards:
 
     def test_rewards_list_everything(self, api):
         body = api.get("/api/v1/rewards/").json()
-        assert len(body["streak"]) == 7
+        assert [m["days"] for m in body["streak"]] == [3, 7, 30, 90, 180, 365]
         assert len(body["levels"]) == 10
         assert len(body["badges"]) == len(rules.BADGES)
         assert all(b["earned_at"] is None for b in body["badges"])
@@ -242,3 +242,21 @@ class TestPlayerAndRewards:
         assert {"type": "badge", "code": "week", "name": "Full Week"} in first
         assert services.award_badges(p) == []
         assert UserBadge.objects.filter(player=p, code="week").count() == 1
+
+
+class TestStreakMilestones:
+    def test_the_milestones_are_three_seven_thirty_ninety_half_a_year_and_a_year(self):
+        assert [m[0] for m in rules.STREAK_MILESTONES] == [3, 7, 30, 90, 180, 365]
+
+    def test_a_thousand_days_earns_a_badge(self, user, clock):
+        p = user.player
+        p.best_streak = 1000
+        p.save()
+        events = services.award_badges(p)
+        assert any(e["type"] == "badge" and e["code"] == "thousand" for e in events)
+
+    def test_nine_hundred_and_ninety_nine_doesnt(self, user, clock):
+        p = user.player
+        p.best_streak = 999
+        p.save()
+        assert not any(e.get("code") == "thousand" for e in services.award_badges(p))

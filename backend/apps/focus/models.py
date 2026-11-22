@@ -60,7 +60,7 @@ class FocusBlock(models.Model):
 
     @property
     def check_expires_at(self):
-        return self.check_at + timedelta(seconds=rules.PRESENCE_WINDOW_SECONDS)
+        return self.check_at + timedelta(seconds=rules.presence_window(self.minutes))
 
     def public(self):
         presence = self.presence()

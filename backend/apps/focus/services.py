@@ -30,7 +30,7 @@ def _check_moment(started_at, minutes):
     """A moment the player can't predict, leaving the whole check window before the block ends."""
     length = minutes * 60
     earliest = int(length * rules.PRESENCE_EARLIEST_SHARE)
-    latest = length - rules.PRESENCE_WINDOW_SECONDS
+    latest = length - rules.presence_window(minutes)
     return started_at + timedelta(seconds=earliest + secrets.randbelow(latest - earliest + 1))
 
 
@@ -125,7 +125,7 @@ def start_block(user, goal, minutes):
     session = current_session(player)
     if session:
         _close_session(player, session)  # missions lock while a block runs, and unused time is kept
-    return FocusBlock.objects.create(
+    block = FocusBlock.objects.create(
         player=player,
         goal=goal,
         minutes=minutes,
@@ -135,6 +135,8 @@ def start_block(user, goal, minutes):
         ends_at=now + timedelta(minutes=minutes),
         check_at=_check_moment(now, minutes),
     )
+    block.events = player.settled  # a streak settled by this start, for a tab left open overnight
+    return block
 
 
 def own_block(player, block_id):

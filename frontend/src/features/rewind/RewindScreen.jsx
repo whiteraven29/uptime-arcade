@@ -86,13 +86,14 @@ export function RewindScreen() {
     <section className="screen" aria-label="Rewind">
       <div className="narrow">
         <HudPanel label={`Questions on: ${m.title}`} data-answers={rw.answers}>
-          <p className="small">Answer all {total} to earn {rw.xpOnClear || m.xp} XP and unlock the next mission. A wrong answer costs nothing and comes back later.</p>
+          <p className="small">Answer all {total} to earn {rw.xpOnClear || m.xp} XP and unlock the next mission. A wrong answer comes back later. A third miss on the same question shows its answer and takes 30 XP off.</p>
           <div className="pips" role="img" aria-label={`${rw.correct} of ${total} correct`}>
             {Array.from({ length: total }, (_, i) => <i key={i} className={i < rw.correct ? 'on' : ''} />)}
           </div>
           {rw.fb && (
             <p key={rw.answers} className={`rw-result ${rw.fb.ok ? 'good' : 'bad'}`} role="status">
               {rw.fb.ok ? 'Correct.' : rw.fb.again ? 'Not quite. Try it again.' : rw.fb.hint ? "Not quite. Here's a hint for this one." : 'Not quite. That one comes back after the others.'}
+              {rw.fb.cost > 0 && ` Third miss on that question: its answer is shown now, and the mission pays ${rw.fb.cost} XP less.`}
             </p>
           )}
           {!sessionOn() ? (

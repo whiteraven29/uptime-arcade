@@ -32,6 +32,7 @@ function server(extra = {}) {
   calls = [];
   routes = {
     'POST /auth/refresh/': () => json(200, { access: 'tok' }),
+    'POST /auth/logout/': () => json(200, { ok: true }),
     'POST /auth/login/': () => json(200, { access: 'tok', account: { username: 'amina', time_zone: 'Africa/Nairobi', sound_on: true, joined: '2026-11-01' } }),
     'GET /auth/me/': () => json(200, { account: { username: 'amina', time_zone: 'Africa/Nairobi', sound_on: true, joined: '2026-11-01' } }),
     'GET /player/': () => json(200, PLAYER()),
@@ -54,8 +55,11 @@ function server(extra = {}) {
 }
 const openSessionPlayer = () => PLAYER({ session: { expires_at: new Date(Date.now() + 300000).toISOString(), seconds_left: 300 }, bank_seconds: 0 });
 
+let tab; // this tab's sessionStorage, which the browser clears when the tab closes
 beforeEach(async () => {
   vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => {}, removeItem: () => {} });
+  tab = new Map([['ua_tab', '1']]);
+  vi.stubGlobal('sessionStorage', { getItem: (k) => tab.get(k) ?? null, setItem: (k, v) => tab.set(k, String(v)), removeItem: (k) => tab.delete(k) });
   g.setNavigator(() => {});
   g.clearToasts();
   g.closeDebrief();
@@ -74,6 +78,40 @@ describe('signing in', () => {
   it('goes straight in with a valid cookie', () => {
     expect(ui.auth).toBe('in');
     expect(ui.account.username).toBe('amina');
+  });
+  it('stays in across a reload of the same tab', async () => {
+    server();
+    await g.boot();
+    expect(ui.auth).toBe('in');
+    expect(calls.some((c) => c.key === 'POST /auth/logout/')).toBe(false);
+  });
+  it('starts logged out in a new tab, and ends the login the cookie still held', async () => {
+    tab.clear();
+    server();
+    await g.boot();
+    expect(ui.auth).toBe('out');
+    expect(calls.map((c) => c.key)).toEqual(['POST /auth/logout/']);
+  });
+  it('marks the tab on login and clears it on logout', async () => {
+    tab.clear();
+    server();
+    await g.login('amina', 'correct horse battery');
+    expect(tab.get('ua_tab')).toBe('1');
+    g.setNavigator(() => {});
+    await g.logout();
+    expect(tab.has('ua_tab')).toBe(false);
+  });
+  it('renews the login every ten minutes while the tab is open', async () => {
+    vi.useFakeTimers();
+    try {
+      server();
+      await g.boot();
+      const before = calls.filter((c) => c.key === 'POST /auth/refresh/').length;
+      await vi.advanceTimersByTimeAsync(10 * 60000);
+      expect(calls.filter((c) => c.key === 'POST /auth/refresh/').length).toBe(before + 1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
   it('signs out when the session dies mid-game', async () => {
     server({
@@ -203,7 +241,7 @@ describe('the rewind', () => {
   it('says when the same question has come straight back', async () => {
     await begin(() => json(200, { correct: false, state: 'solved', done: 4, total: 5, task: task({ hint: 'h' }), events: [] }));
     await g.answerRewind('b');
-    expect(ui.rw.fb).toEqual({ ok: false, again: true, hint: true });
+    expect(ui.rw.fb).toEqual({ ok: false, again: true, hint: true, cost: 0 });
   });
   it("doesn't let a double click answer the next question unread", async () => {
     let n = 0;

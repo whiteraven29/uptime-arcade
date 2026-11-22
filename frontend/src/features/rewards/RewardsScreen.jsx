@@ -16,11 +16,11 @@ export function RewardsScreen() {
         </HudPanel>
         <div className="rewards-side">
         <HudPanel label="Day streak rewards">
-          <p className="small">Finish one focus block a day to keep the streak. Best {S.bestStreak} days. Shields {S.shields}. XP bonus +{Math.round((mult() - 1) * 100)}%, up to +50%.</p>
+          <p className="small">Keep one block on each study day to grow the streak. A shield freezes it over a missed day, and with none left it goes back to 0. Best {S.bestStreak} days. Shields {S.shields}. XP bonus +{Math.round((mult() - 1) * 100)}%, up to +50%.</p>
           <div className="lad">
             {STREAKS.map(([n, m, x, sh]) => {
               const got = S.claimed[n];
-              return <LadderRow key={n} state={got ? 'on' : next && next[0] === n ? 'next' : ''} cells={[`${n} days`, `+${m} min play, +${x} XP${sh ? ', +1 shield' : ''}`, got ? 'Claimed' : '']} />;
+              return <LadderRow key={n} state={got ? 'on' : next && next[0] === n ? 'next' : ''} cells={[`${n} days`, `+${m} min play, +${x} XP${sh ? `, +${sh} shield${sh > 1 ? 's' : ''}` : ''}`, got ? 'Claimed' : '']} />;
             })}
           </div>
         </HudPanel>

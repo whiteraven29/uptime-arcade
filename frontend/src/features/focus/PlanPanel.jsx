@@ -65,7 +65,7 @@ export function PlanPanel({ onChange }) {
       {pending && <p className="small" style={{ margin: 0 }}>From {shortDay(pending.effective_from)}: {planText(pending)}.</p>}
       <GoalMeters targets={targets} />
       <p className="small" style={{ margin: 0 }}>
-        Keep this tab open. Each block asks once if you're still there, and you have {mmss(limits.presence_window_seconds)} to answer. Then claim it within {limits.claim_window_seconds / 60} minutes of it ending.
+        Keep this tab open. Each block asks once if you're still there, with a chime every minute and a desktop notice if you allow it, and you have up to {mmss(limits.presence_window_seconds)} to answer. Then claim it within {limits.claim_window_seconds / 60} minutes of it ending.
       </p>
       <div className="row">
         <button className="btn" type="button" id="changePlan" disabled={!!opensOn} onClick={onChange}>Change plan</button>

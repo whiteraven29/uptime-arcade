@@ -7,7 +7,7 @@ const FAMILY = {
   week: 'jade', month: 'jade', centurion: 'jade',
   first: 'holo', par50: 'holo', nohints: 'holo', night: 'violet',
   tSH: 'violet', tVI: 'violet', tPY: 'violet', tGO: 'violet', tNET: 'violet', tLAB: 'violet', tOPS: 'violet',
-  arch: 'gold',
+  arch: 'gold', thousand: 'gold',
   lv2: 'rank', lv3: 'rank', lv4: 'rank', lv5: 'rank', lv6: 'rank', lv7: 'rank', lv8: 'rank', lv9: 'rank',
   bx1: 'jade', bx2: 'holo', bx3: 'ember', bx4: 'gold', bx5: 'blood',
 };
@@ -97,6 +97,16 @@ const GLYPH = {
       </g>
       <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M42 84Q60 92 78 84" />
       <Big y={66} size={17}>100</Big>
+    </g>
+  ),
+  thousand: (
+    <g>
+      <Flame scale={0.8} y={-14} />
+      <g fill="currentColor" fillOpacity="0.8">
+        {[[30, 78, -30], [27, 64, -8], [30, 50, 14]].map(([x, y, r]) => <ellipse key={`l${y}`} rx="3" ry="6.5" transform={`translate(${x} ${y}) rotate(${r})`} />)}
+        {[[90, 78, 30], [93, 64, 8], [90, 50, -14]].map(([x, y, r]) => <ellipse key={`r${y}`} rx="3" ry="6.5" transform={`translate(${x} ${y}) rotate(${r})`} />)}
+      </g>
+      <Big y={84} size={17}>1000</Big>
     </g>
   ),
   first: (

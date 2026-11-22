@@ -19,6 +19,9 @@
   --veil: rgba(5, 4, 14, 0.8);
   --veil-top: rgba(5, 4, 14, 0.46);
   --rail: rgba(8, 6, 20, 0.84);
+  --side: rgba(7, 6, 18, 0.72); /* the sidebar: the scene still shows through */
+  --nav-hover: rgba(79, 216, 255, 0.07);
+  --nav-on: rgba(79, 216, 255, 0.13);
   --tile: #0b0a1d; /* solid, because the gold edge is drawn behind it */
   --pane: rgba(6, 5, 16, 0.94);
 
@@ -107,6 +110,8 @@
   --chart-xp: #c28610;
   --chart-grid: rgba(190, 180, 255, 0.14);
   --chart-track: rgba(42, 168, 128, 0.18);
+  --chart-skill: #1f9fd0; /* the skill map, validated against the dark surface */
+  --chart-skill-fill: rgba(31, 159, 208, 0.2);
 
   /* NetLab's map: link state always comes with a label or a legend, never colour alone */
   --lab-up: #5ef0b0;

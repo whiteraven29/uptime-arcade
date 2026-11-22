@@ -9,6 +9,7 @@ import { sh, runLine } from '../../../engines/shell/index.js';
 import { COMMANDS, MAN } from '../../../engines/shell/commands.js';
 import { VI, viKey, viSelection } from '../../../engines/vi/index.js';
 import { createLab, injectFaults, reachabilityGoals } from '../../../engines/netsim/index.js';
+import { askToNotify, notify } from '../ui/notify.js';
 import { ensureAudio, playCheckIn, playLevelUp, playNetworkUp, playTimerEnd, playUnlock, setMuted } from '../sound/cues.js';
 import { ApiError, del, get, patch, post, put, refreshAccess, setAccess, setSignedOutHandler } from './client.js';
 
@@ -17,6 +18,7 @@ export { S, VI, viSelection };
 /* ---------- what the server told us ---------- */
 export const TK = {};
 export const TRACKS = [];
+export const SIDE_TRACKS = new Set(); // side tracks like Operations, outside the core skills
 export const COMING = []; // tracks on the way, like NetLab, with what will open them
 export const TRACK_LOCKS = {};
 export let BEYOND = ['BX', 'Beyond', ''];
@@ -208,6 +210,7 @@ function applyTracks(data) {
   DIFFICULTIES.length = 0;
   DIFFICULTIES.push(...data.difficulties);
   TRACKS.length = 0;
+  SIDE_TRACKS.clear();
   TICKETS.length = 0;
   COMING.length = 0;
   ALL.clear();
@@ -220,6 +223,7 @@ function applyTracks(data) {
     }
     if (t.after_archmage) BEYOND = [t.code, t.name, t.subtitle];
     else TRACKS.push([t.code, t.name, t.subtitle]);
+    if (t.side) SIDE_TRACKS.add(t.code);
     const chapters = [];
     TK[t.code] = t.missions.map((m, pos) => {
       if (chapters.at(-1)?.[0] !== m.chapter) chapters.push([m.chapter, pos]);
@@ -244,8 +248,10 @@ function applyRewards(r) {
   S.claimed = Object.fromEntries(r.streak.filter((s) => s.claimed).map((s) => [s.days, true]));
 }
 export const refreshPlayer = async () => {
-  applyPlayer(await get('/player/'));
+  const p = await get('/player/');
+  applyPlayer(p);
   bump();
+  if (p.events?.length) applyEvents(p.events); // a streak settled while you were away, said once
 };
 const refreshTracks = async () => {
   applyTracks(await get('/tracks/'));
@@ -271,7 +277,59 @@ export const refreshPlan = async () => {
 };
 const refreshAll = () => Promise.all([refreshPlayer(), refreshTracks(), refreshRewards(), refreshPlan()]);
 
+/* A login belongs to the tab it was made in (ADR 0018). This tab's storage says so, and the browser clears it when
+   the tab closes, but keeps it across a reload. While the tab is open it renews the login before it lapses. */
+const TAB_KEY = 'ua_tab';
+const KEEP_ALIVE = 10 * 60000; // the refresh token lasts 30 minutes from each renewal
+let keepAlive = null;
+function markTab(on) {
+  try {
+    if (on) sessionStorage.setItem(TAB_KEY, '1');
+    else sessionStorage.removeItem(TAB_KEY);
+  } catch { /* no storage: the login simply won't outlive the page */ }
+}
+function tabIsMarked() {
+  try {
+    return sessionStorage.getItem(TAB_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+/* Open tabs of the game talk here: a new tab asks whether any of them is logged in, so a second tab shares the
+   login instead of ending it, and logging out in one logs out the rest. */
+const tabs = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('ua_tabs');
+tabs?.unref?.(); // never keeps a test runner alive
+if (tabs) {
+  tabs.onmessage = (e) => {
+    if (e.data === 'anyone?' && ui.auth === 'in') tabs.postMessage('here');
+    if (e.data === 'out' && ui.auth === 'in') {
+      signedOut();
+      go('/login');
+    }
+  };
+}
+const ASK_TABS_MS = 300;
+function anotherTabIsIn() {
+  if (!tabs) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const heard = (e) => {
+      if (e.data !== 'here') return;
+      clearTimeout(timer);
+      tabs.removeEventListener('message', heard);
+      resolve(true);
+    };
+    const timer = setTimeout(() => {
+      tabs.removeEventListener('message', heard);
+      resolve(false);
+    }, ASK_TABS_MS);
+    tabs.addEventListener('message', heard);
+    tabs.postMessage('anyone?');
+  });
+}
 async function enterGame(account) {
+  markTab(true);
+  clearInterval(keepAlive);
+  keepAlive = setInterval(() => refreshAccess().catch(() => {}), KEEP_ALIVE);
   ui.account = account;
   loadMachine();
   const [fixtures] = await Promise.all([get('/fixtures/'), refreshAll()]);
@@ -285,6 +343,9 @@ async function enterGame(account) {
 
 /* ---------- accounts ---------- */
 function signedOut() {
+  markTab(false);
+  clearInterval(keepAlive);
+  keepAlive = null;
   setAccess(null);
   ui.auth = 'out';
   ui.account = null;
@@ -298,6 +359,14 @@ function signedOut() {
 setSignedOutHandler(signedOut);
 
 export async function boot() {
+  // A tab opened after the last one closed starts logged out, and ends any login the cookie still holds.
+  if (!tabIsMarked() && !(await anotherTabIsIn())) {
+    try {
+      await post('/auth/logout/');
+    } catch { /* nothing to end */ }
+    signedOut();
+    return;
+  }
   try {
     await refreshAccess();
     const me = await get('/auth/me/');
@@ -329,6 +398,7 @@ export async function logout() {
   try {
     await post('/auth/logout/');
   } catch { /* the token is dropped below either way */ }
+  tabs?.postMessage('out');
   signedOut();
   go('/login');
 }
@@ -1116,7 +1186,8 @@ export async function answerRewind(value) {
       applyEvents(d.events);
       return;
     }
-    rw.fb = { ok: d.correct, again: d.task?.q === asked, hint: !!d.task?.hint };
+    rw.fb = { ok: d.correct, again: d.task?.q === asked, hint: !!d.task?.hint, cost: d.cost || 0 };
+    rw.xpOnClear = d.xp_on_clear ?? rw.xpOnClear;
     rw.task = d.task;
     rw.lockUntil = Date.now() + READ_PAUSE;
   } catch (e) {
@@ -1175,7 +1246,9 @@ function applyEvents(events) {
     } else if (e.type === 'badge') {
       toast(`Badge earned: ${e.name}`, e.code);
     } else if (e.type === 'shield_used') {
-      toast(`Streak shield used. ${e.days} missed day${e.days > 1 ? 's' : ''} covered.`);
+      toast(`Streak frozen. A shield covered ${e.days} missed study day${e.days > 1 ? 's' : ''}.`);
+    } else if (e.type === 'streak_lost') {
+      toast(`Your streak ended: ${e.days} study day${e.days > 1 ? 's' : ''} missed with no shield. Keep a block today to start again.`);
     } else if (e.type === 'streak_reward') {
       toast(`${e.days} day streak reward: +${mmss(e.seconds)} play, +${e.xp} XP${e.shields ? ', +1 shield' : ''}`);
     } else if (e.type === 'target_reached') {
@@ -1205,8 +1278,10 @@ export async function startBlock(goal) {
   const g = goal.trim();
   if (!g) return;
   ensureAudio();
+  askToNotify(); // a click, which browsers want before asking
   try {
-    await post('/focus/blocks/', { goal: g, minutes: S.len });
+    const d = await post('/focus/blocks/', { goal: g, minutes: S.len });
+    applyEvents(d.events);
     VI.on = false;
     await refreshPlayer();
   } catch (e) {
@@ -1221,6 +1296,20 @@ export async function savePlan(plan) {
   saveMachine();
   bump();
 }
+const CHIME_AGAIN = 60000; // until it's answered, so someone deep in a problem still hears it
+let lastChime = 0;
+let checkNotice = null;
+function askAreYouThere() {
+  playCheckIn();
+  lastChime = Date.now();
+  checkNotice?.close();
+  const left = mmss((S.focus.checkEndsAt - Date.now()) / 1000);
+  checkNotice = notify('Still there?', `Tap to keep your focus block. ${left} left to answer.`, 'uptime-check-in');
+}
+function closeCheckNotice() {
+  checkNotice?.close();
+  checkNotice = null;
+}
 /** The server says when each block's check comes up, and only once it has. */
 async function pollCheckIn() {
   const f = S.focus;
@@ -1230,9 +1319,10 @@ async function pollCheckIn() {
     const was = f.presence;
     Object.assign(f, checkIn(block));
     if (f.presence === 'due' && was !== 'due') {
-      playCheckIn();
+      askAreYouThere();
       go('/focus');
     }
+    if (f.presence !== 'due') closeCheckNotice();
     bump();
   } catch { /* the next poll tries again, and the server still decides at the claim */ }
 }
@@ -1242,6 +1332,7 @@ export async function confirmCheckIn() {
   try {
     const { block } = await post(`/focus/blocks/${f.id}/presence/`);
     Object.assign(f, checkIn(block));
+    closeCheckNotice();
     bump();
   } catch (e) {
     complain(e);
@@ -1322,12 +1413,14 @@ export function tick() {
     if (now >= S.focus.endsAt) {
       S.claim = S.focus;
       S.focus = null;
+      closeCheckNotice();
       playTimerEnd();
       go('/focus');
     } else if (S.focus.presence !== 'ok' && now - lastPoll >= CHECK_IN_POLL) {
       lastPoll = now;
       pollCheckIn();
     }
+    if (S.focus?.presence === 'due' && now - lastChime >= CHIME_AGAIN) askAreYouThere();
   }
   if (S.claim) {
     changed = true;

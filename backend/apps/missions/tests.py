@@ -331,6 +331,10 @@ class TestDifficultyAndWorth:
         assert solve(playing, "vi-01", state=state).json()["xp_on_clear"] == 100
 
 
+def api_worth(api):
+    return api.get(url("net-01", "rewind/")).json()["xp_on_clear"]
+
+
 class TestRewindHelp:
     def start(self, api):
         solve(api, "net-01")
@@ -394,6 +398,41 @@ class TestRewindHelp:
         for _ in range(10):
             self.miss(playing)
         assert "reveal" not in self.task(playing)
+
+    def miss_the_first_three_times(self, api):
+        """Misses the first question, answers the rest, then misses it twice more: its third miss."""
+        self.miss(api)
+        for _ in range(4):
+            answer(api, "net-01", right_value(current_task(api, "net-01")))
+        self.miss(api)
+        return self.miss(api).json()
+
+    def test_a_questions_third_miss_costs_thirty_xp(self, playing):
+        self.start(playing)  # 100 plus the 20 first-try bonus
+        third = self.miss_the_first_three_times(playing)
+        assert third["cost"] == rules.REWIND_MISS_COST == 30 and third["xp_on_clear"] == 90
+        before = playing.user.player.xp
+        cleared = answer(playing, "net-01", right_value(current_task(playing, "net-01"))).json()
+        assert cleared["state"] == "cleared"
+        player = playing.user.player
+        player.refresh_from_db()
+        assert player.xp - before == rules.apply_multiplier(90, player.streak)
+
+    def test_two_misses_cost_nothing(self, playing):
+        self.start(playing)
+        assert [self.miss(playing).json()["cost"] for _ in range(10)] == [0] * 10
+        assert self.task(playing) and api_worth(playing) == 120
+
+    def test_it_costs_once_per_question(self, playing):
+        self.start(playing)
+        self.miss_the_first_three_times(playing)
+        assert self.miss(playing).json()["cost"] == 0
+        assert api_worth(playing) == 90
+
+    def test_it_never_goes_below_the_floor(self, playing):
+        self.start(playing)
+        costs = [self.miss(playing).json()["cost"] for _ in range(15)]  # every question three times
+        assert sum(costs) == 110 and api_worth(playing) == rules.MIN_MISSION_XP
 
     def test_the_rewind_cant_be_read_before_solving(self, playing):
         response = playing.get(url("net-01", "rewind/"))

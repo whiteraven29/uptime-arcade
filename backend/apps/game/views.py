@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db import transaction
 from django.db.models import Sum
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -14,7 +15,8 @@ from .models import StreakReward, UserBadge
 
 @api_view(["GET"])
 def player(request):
-    p = request.user.player
+    with transaction.atomic():
+        p, events = services.arriving_player(request.user)
     block = current_block(p)
     claimed = FocusBlock.objects.filter(player=p, claimed_at__isnull=False)
     today = services.local_date(p)
@@ -42,6 +44,7 @@ def player(request):
         "season": services.current_season(),
         "avatar": services.avatar_summary(p),
         "badges": UserBadge.objects.filter(player=p).count(),
+        "events": events,  # a streak settled on arrival: frozen by shields, or ended
     })
 
 

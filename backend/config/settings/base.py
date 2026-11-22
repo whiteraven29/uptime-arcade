@@ -126,11 +126,13 @@ REST_FRAMEWORK = {
     "NUM_PROXIES": 0,
 }
 
-# Short-lived access tokens stay in memory in the browser. The long-lived refresh token only ever
-# travels in an HttpOnly cookie, so a script on the page can't read it.
+# Short-lived access tokens stay in memory in the browser. The refresh token only ever travels in an
+# HttpOnly cookie, so a script on the page can't read it. A login ends when its tab closes (ADR 0018): the
+# open tab renews the refresh token every few minutes, each renewal lasts 30, and the cookie has no date,
+# so a tab that's gone stops renewing and the login lapses within half an hour even if the cookie survives.
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
+    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=30),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
@@ -143,7 +145,7 @@ REFRESH_COOKIE = {
     "samesite": "Strict",
     "secure": False,
     "path": "/api/v1/auth/",
-    "max_age": 14 * 24 * 3600,
+    # No max_age: a session cookie, which the browser drops when it closes.
 }
 
 CONTENT_DIR = BASE_DIR.parent / "content"

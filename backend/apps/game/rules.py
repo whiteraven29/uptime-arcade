@@ -27,7 +27,8 @@ WEEKEND = (5, 6)  # Saturday and Sunday, which can have their own times
 
 # One tap, at a moment the player can't know in advance, somewhere after this share of the block.
 PRESENCE_EARLIEST_SHARE = 0.25
-PRESENCE_WINDOW_SECONDS = 3 * 60
+# Long enough to finish a thought when you're deep in a problem (ADR 0018). A short block gets half its length.
+PRESENCE_WINDOW_SECONDS = 10 * 60
 CLAIM_WINDOW_SECONDS = 15 * 60
 NOTE_MIN_LENGTH = 5
 NOTE_MAX_LENGTH = 140
@@ -44,6 +45,7 @@ MIN_MISSION_XP = 10
 
 # Rewind tasks earn nothing alone: XP is paid when the mission and its rewind are both finished.
 REWIND_REVEAL_AFTER = 3  # misses on one task before its answer is shown, so nobody gets stuck
+REWIND_MISS_COST = 30  # XP off the mission's pay for each question that gets there (ADR 0018), down to MIN_MISSION_XP
 
 # Day boundaries follow the player's time zone, so moving it freely could fake an extra streak day.
 TIME_ZONE_CHANGE_HOURS = 24
@@ -53,15 +55,14 @@ SYSTEM_AVATARS = 16
 STREAK_STEP = 0.05
 STREAK_MAX_STEPS = 10
 
-# (days, play seconds, XP, shields)
+# (days, play seconds, XP, shields). A shield freezes the streak over one missed study day (ADR 0018).
 STREAK_MILESTONES = (
     (3, 5 * 60, 50, 0),
     (7, 10 * 60, 150, 1),
-    (14, 15 * 60, 300, 0),
-    (21, 15 * 60, 500, 1),
-    (30, 20 * 60, 1000, 0),
-    (60, 30 * 60, 2000, 1),
-    (100, 30 * 60, 5000, 1),
+    (30, 20 * 60, 1000, 1),
+    (90, 30 * 60, 2500, 1),
+    (180, 30 * 60, 5000, 1),
+    (365, 30 * 60, 10000, 2),
 )
 
 # Section 6.4, over the 213 core missions (ADR 0012). Beyond doesn't count towards these.
@@ -89,6 +90,7 @@ BADGES = (
     ("week", "Full Week", "7 day streak"),
     ("month", "Iron Month", "30 day streak"),
     ("centurion", "Centurion", "100 day streak"),
+    ("thousand", "Thousand Days", "1000 day streak"),
     ("first", "First Clear", "Clear one mission"),
     *((f"lv{i + 1}", name, f"Reach level {i + 1}") for i, (_, name) in enumerate(LEVELS) if 0 < i < len(LEVELS) - 1),
     *((f"t{code}", f"{name} Master", f"Clear the {name} path") for code, name in CORE_TRACK_BADGES),
@@ -99,6 +101,11 @@ BADGES = (
     ("arch", "Archmage", "Clear every core mission"),
     *((f"bx{i + 1}", f"{tier} Conquered", f"Clear the {tier} tier of Beyond") for i, tier in enumerate(BEYOND_TIERS)),
 )
+
+
+def presence_window(minutes):
+    """Seconds to answer a block's check-in. It always fits after the earliest moment the check can come."""
+    return min(PRESENCE_WINDOW_SECONDS, minutes * 60 // 2)
 
 
 def level_index(cleared):

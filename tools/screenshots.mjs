@@ -48,6 +48,7 @@ for (const [width, height] of [[1400, 880], [400, 860]]) {
   await ctx.request.post(`${base}/api/v1/auth/register/`, { data: { username: `shots_${width}`, email: 'shots@example.test', password: 'correct horse battery', confirm_password: 'correct horse battery' } });
   const made = await ctx.request.post(`${base}/api/v1/auth/verify/`, { data: { username: `shots_${width}`, code: stack.latestCode(`shots_${width}`) } });
   const auth = { Authorization: `Bearer ${(await made.json()).access}` };
+  await page.evaluate(() => sessionStorage.setItem('ua_tab', '1')); // as if this tab had logged in (ADR 0018)
   const call = (path, data = {}) => ctx.request.post(`${base}/api/v1${path}`, { headers: auth, data });
   // The screens with history are only worth checking with a year of it behind them.
   const seedHistory = () => stack.manage('shell', '-c', `
@@ -67,6 +68,12 @@ for back in range(1, 340):
         minutes = chooser.choice([15, 25, 45])
         block = FocusBlock.objects.create(player=player, goal='Worked through the backlog', note='Closed two tickets and wrote up the third', minutes=minutes, kind='plan', started_at=moment, ends_at=moment + timedelta(minutes=minutes), claimed_at=moment + timedelta(minutes=minutes), checked_at=moment, outcome='done')
         XPLedger.objects.create(player=player, delta=minutes + 10, reason='focus', multiplier=1, ref_type='block', ref_id=str(block.pk), created_at=moment)
+# Some of every skill cleared, so the skill map has a shape to draw.
+from apps.content.models import Mission
+from apps.missions.models import MissionProgress
+for code, done in {'SH': 22, 'VI': 12, 'PY': 18, 'GO': 6, 'NET': 30, 'LAB': 4}.items():
+    for mission in Mission.objects.filter(track__code=code).order_by('order')[1:done + 1]:  # the first of each stays new for the play shots
+        MissionProgress.objects.update_or_create(player=player, mission=mission, season=player.season, defaults={'state': 'cleared', 'solved_at': now, 'cleared_at': now})
 `);
 
   await open('/');
@@ -239,6 +246,7 @@ const fits = (page, name, selectors) => page.evaluate(({ selectors }) => {
   }
   await ctx.request.post(`${base}/api/v1/auth/register/`, { data: { username: 'shots_fit', email: 'fit@example.test', password: 'correct horse battery', confirm_password: 'correct horse battery' } });
   await ctx.request.post(`${base}/api/v1/auth/verify/`, { data: { username: 'shots_fit', code: stack.latestCode('shots_fit') } });
+  await page.evaluate(() => sessionStorage.setItem('ua_tab', '1')); // as if this tab had logged in (ADR 0018)
   await page.goto(`${base}/`);
   await page.waitForSelector('.deck');
   for (const [width, height] of SIZES) {

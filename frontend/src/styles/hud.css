@@ -11,7 +11,8 @@ a { color: inherit; }
 * { scrollbar-width: thin; scrollbar-color: rgba(98, 220, 255, 0.32) transparent; }
 
 /* ---------- stage: the scene fills the window and the HUD is drawn into it (ADR 0003) ---------- */
-.frame { position: fixed; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; background: var(--void); isolation: isolate; }
+.frame { --side-w: 220px; position: fixed; inset: 0; display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: 'side top' 'side main'; overflow: hidden; background: var(--void); isolation: isolate; }
+.frame[data-screen='auth'] { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'top' 'main'; }
 .scene-inner { position: absolute; inset: 0; z-index: -2; }
 .scene-layer { position: absolute; inset: 0; width: 100%; height: 100%; }
 .scene-glow { animation: glow-breathe 6s ease-in-out infinite; }
@@ -28,24 +29,46 @@ a { color: inherit; }
 .hairline-x { position: absolute; left: 0; right: 0; height: 1px; pointer-events: none; background: var(--iris); opacity: 0.5;
   -webkit-mask: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); mask: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); }
 
-/* ---------- top bar ---------- */
-.top { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px; padding: 14px clamp(16px, 2.6vw, 38px) 12px; }
+/* ---------- the shell: screens down the left, your numbers across the top (ADR 0019) ---------- */
+.sidebar { grid-area: side; position: relative; z-index: 3; display: flex; flex-direction: column; gap: 26px; min-height: 0; padding: 18px 14px; background: var(--side); overflow-y: auto; scrollbar-width: none; }
+.sidebar::-webkit-scrollbar { display: none; }
+.sidebar::after { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 1px; pointer-events: none; background: var(--iris); opacity: 0.42;
+  -webkit-mask: linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent); mask: linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent); }
+.sidebar .logo { padding: 4px 6px; min-width: 0; gap: 9px; font-size: 13.5px; letter-spacing: 0.22em; }
+.logo svg { flex: none; }
+.side-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.side-toggle { display: grid; place-items: center; width: 32px; height: 32px; flex: none; padding: 0; color: var(--dim); background: none; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+.side-toggle:hover { color: var(--text); background: var(--nav-hover); border-color: var(--line-soft); }
+.side-toggle svg { width: 18px; height: 18px; transition: transform 0.2s ease; }
+/* Folded: a rail of icons, each named for screen readers and on hover. */
+.frame[data-side='rail'] { --side-w: 72px; }
+.frame[data-side='rail'] .sidebar { padding-inline: 10px; }
+.frame[data-side='rail'] .side-head { flex-direction: column; gap: 10px; }
+.frame[data-side='rail'] .sidebar .logo { justify-content: center; padding: 4px 0; }
+.frame[data-side='rail'] .side-toggle svg { transform: scaleX(-1); }
+.frame[data-side='rail'] .logo-text, .frame[data-side='rail'] .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.frame[data-side='rail'] .nav a { justify-content: center; padding: 11px 0; }
+.nav { display: flex; flex-direction: column; gap: 4px; }
+.nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid transparent; border-radius: 10px; letter-spacing: 0.16em; font-size: 12.5px; text-transform: uppercase; color: var(--dim); text-decoration: none; transition: color 0.2s ease, background 0.2s ease; }
+.nav a svg { width: 19px; height: 19px; flex: none; }
+.nav a:hover { color: var(--text); background: var(--nav-hover); }
+.nav a.active { color: var(--text); background: var(--nav-on); border-color: var(--line); box-shadow: inset 3px 0 0 var(--holo); }
+.nav a.active svg { color: var(--holo); }
+.top { grid-area: top; position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px; padding: 14px clamp(16px, 2.6vw, 38px) 12px; }
+.top-title { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase; color: var(--holo-soft); }
+.top .top-logo { display: none; }
 .top::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; pointer-events: none; background: var(--iris); opacity: 0.42;
   -webkit-mask: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: 0.28em; font-size: 14.5px; color: #eef8ff; text-decoration: none; }
 .logo svg { width: 26px; height: 26px; filter: drop-shadow(0 0 6px rgba(98, 220, 255, 0.7)); }
-.nav { display: flex; flex-wrap: wrap; gap: 2px; margin-inline: auto; }
-.nav a { padding: 5px 13px; letter-spacing: 0.2em; font-size: 13px; text-transform: uppercase; color: var(--dim); text-decoration: none; border-radius: 99px; transition: color 0.2s ease; }
-.nav a:hover { color: #fff; }
-.nav a.active { color: #fff; text-shadow: 0 0 14px rgba(98, 220, 255, 0.95); box-shadow: inset 0 -1px 0 var(--holo); border-radius: 0; }
-.chips { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; font-size: 13px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; margin-left: auto; font-size: 13px; }
 .chip { color: var(--dim); white-space: nowrap; letter-spacing: 0.04em; }
 .chip b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 .chip-time { display: inline-flex; align-items: baseline; gap: 8px; padding: 5px 15px; border-radius: 99px; border: 1px solid rgba(255, 179, 64, 0.5); background: rgba(10, 16, 24, 0.55); box-shadow: 0 0 16px rgba(255, 140, 50, 0.16); letter-spacing: 0.1em; font-size: 12.5px; text-transform: uppercase; color: var(--dim); }
 .chip-time b { color: var(--amber); font-size: 15.5px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
 
 /* ---------- sections: no boxes, the scene is the surface ---------- */
-main { grid-row: 2; min-height: 0; } /* row 1 is the top bar, even on screens without one */
+main { grid-area: main; min-height: 0; }
 .screen { height: 100%; min-height: 0; overflow: auto; padding: 14px clamp(16px, 2.6vw, 38px) 24px; }
 .screen.flush { padding: 0; }
 .hud { position: relative; min-width: 0; padding: 14px 0; }
@@ -255,6 +278,21 @@ button.map-cell:hover, button.map-cell:focus-visible { outline: 2px solid var(--
 .tone-xp .chart-col i { background: var(--chart-xp); }
 .chart-x { display: grid; gap: 2px; margin: 5px 0 0 34px; font-size: 11px; line-height: 14px; color: var(--dim); }
 .chart-x span { justify-self: end; white-space: nowrap; }
+.skill-map svg { display: block; width: 100%; max-width: 460px; height: auto; margin: 0 auto; overflow: visible; }
+.skill-grid polygon, .skill-grid line { fill: none; stroke: var(--chart-grid); stroke-width: 1; }
+.skill-grid polygon:last-of-type { stroke: var(--line-soft); }
+.skill-tick { font-size: 11px; fill: var(--dim); font-variant-numeric: tabular-nums; }
+.skill-shape { fill: var(--chart-skill-fill); stroke: var(--chart-skill); stroke-width: 2; stroke-linejoin: round; }
+.skill-point { fill: var(--chart-skill); stroke: var(--void); stroke-width: 2; }
+.skill-label { font-size: 14px; font-weight: 600; fill: var(--text); }
+.skill-score { font-weight: 400; fill: var(--dim); font-variant-numeric: tabular-nums; }
+.skill-hit { fill: transparent; cursor: default; }
+.skill-hit:focus-visible { outline: none; stroke: var(--amber); stroke-width: 2; }
+@media (forced-colors: active) {
+  .skill-shape { fill: none; stroke: CanvasText; }
+  .skill-point { fill: CanvasText; }
+  .skill-label, .skill-score, .skill-tick { fill: CanvasText; }
+}
 .chart-table summary { cursor: pointer; font-size: 13px; color: var(--holo-soft); }
 .chart-table summary:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .chart-table-scroll { max-height: 220px; overflow: auto; margin-top: 6px; }
@@ -738,8 +776,6 @@ input[type='email'], input[type='password'] { width: 100%; background: var(--gla
   .side { padding: 14px 16px; }
   .hud.work { min-height: 60vh; border-left: 0; border-top: 1px solid var(--line); }
   .rewards { grid-template-columns: minmax(0, 1fr); }
-  .chips { margin-left: 0; }
-  .nav { margin-inline: 0; }
   .grid2 { grid-template-columns: minmax(0, 1fr); }
   .lab { grid-template-rows: auto auto minmax(320px, 1fr); }
   .lab-top { grid-template-columns: minmax(0, 1fr); }
@@ -748,9 +784,6 @@ input[type='email'], input[type='password'] { width: 100%; background: var(--gla
   .focus-plan > .hud + .hud { border-top: 1px solid var(--line-soft); }
   .scene-veil { position: fixed; }
 }
-@media (max-width: 400px) {
-  .nav a { padding: 5px 9px; letter-spacing: 0.1em; }
-}
 @media (prefers-reduced-motion: reduce) {
   .lab-reveal-map path { animation: none; stroke-dashoffset: 0; }
   .lab-reveal-device, .lm-node.open, .lm-node.rewind, .lm-node.fresh { animation: none; }
@@ -758,7 +791,7 @@ input[type='email'], input[type='password'] { width: 100%; background: var(--gla
   .lab-burst { display: none; }
   .lab-progress i { transition: none; }
   .cycle-item, .tcard-body, .chapter-body, .rw-result, .spin, .pulse, .beam, .scene-glow, .over .hud, .lvlup .name, .node.flash .dot { animation: none; }
-  .btn, .opt, .scene-veil, .tile, .path, .prompt-field, .chevron, .avatar-pick { transition: none; }
+  .btn, .opt, .scene-veil, .tile, .path, .prompt-field, .chevron, .avatar-pick, .nav a, .side-toggle svg { transition: none; }
 }
 
 /* On a phone the map keeps a size where ports can be grabbed, and slides sideways instead of shrinking. */
@@ -865,26 +898,45 @@ input[type='email'], input[type='password'] { width: 100%; background: var(--gla
   .path-text b, .path-text .small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .track { display: block; font-size: 0; }
   .frame[data-screen='deck'] .top { padding-block: 4px; flex-wrap: nowrap; }
-  .frame[data-screen='deck'] .chip, .frame[data-screen='deck'] #meName { display: none; }
-  .frame[data-screen='deck'] .nav { flex-wrap: nowrap; margin-inline: auto; }
-  .frame[data-screen='deck'] .nav a { padding: 3px 5px; letter-spacing: 0.04em; font-size: 11px; }
-  .frame[data-screen='deck'] .logo { font-size: 11.5px; letter-spacing: 0.12em; }
-  .frame[data-screen='deck'] .chips { flex-wrap: nowrap; margin: 0; }
+  .frame[data-screen='deck'] .chip, .frame[data-screen='deck'] #meName, .frame[data-screen='deck'] .top-title { display: none; }
+  .frame[data-screen='deck'] .chips { flex-wrap: nowrap; }
+  .sidebar { gap: 10px; padding-block: 8px; }
+  .nav { gap: 2px; }
+  .frame[data-side] .nav a { padding-block: 6px; }
 }
 
-/* The top bar on a phone: the logo, your clock and your picture, with the screens on one line below. */
+/* When the page scrolls as a whole, the sidebar stays put beside it. */
+@media (max-width: 1040px) {
+  .sidebar { position: sticky; top: 0; height: 100vh; align-self: start; grid-row: 1 / -1; }
+  .frame[data-screen='deck'] .sidebar { height: auto; align-self: stretch; }
+}
+
+/* A phone: the logo, your clock and your picture on top, and the screens in a bar along the bottom. */
 @media (max-width: 600px) {
-  .top { padding: 7px 12px 5px; gap: 3px 8px; }
+  .frame { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: 'top' 'main' 'side'; }
+  .frame[data-screen='auth'] { grid-template-rows: auto minmax(0, 1fr); }
+  .frame[data-side] .sidebar { grid-row: auto; position: sticky; top: auto; bottom: 0; height: auto; align-self: end; flex-direction: row; gap: 0; padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px)); background: var(--rail); }
+  .sidebar::after { top: 0; bottom: auto; left: 0; right: 0; width: auto; height: 1px; -webkit-mask: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
+  .frame[data-side] .side-head { display: none; }
+  .nav { flex: 1; flex-direction: row; justify-content: space-between; gap: 0; }
+  .frame[data-side] .nav a { flex: 1; flex-direction: column; gap: 2px; min-width: 0; padding: 5px 0 3px; border-radius: 8px; font-size: 10px; letter-spacing: 0.03em; text-transform: none; }
+  .nav a.active { box-shadow: inset 0 2px 0 var(--holo); }
+  .frame[data-side] .nav-label { position: static; width: auto; height: auto; clip-path: none; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .top { padding: 7px 12px 5px; gap: 3px 8px; flex-wrap: nowrap; }
+  .top .top-logo { display: flex; }
+  .top-title { display: none; }
   .logo { gap: 6px; font-size: 12px; letter-spacing: 0.18em; }
-  .logo svg { width: 20px; height: 20px; }
-  .chips { order: 2; margin-left: auto; gap: 4px 8px; }
-  .frame[data-screen='deck'] .chips { flex-wrap: nowrap; }
+  .logo svg { width: 22px; height: 22px; }
+  .chips { gap: 4px 8px; flex-wrap: nowrap; min-width: 0; }
+  .chip:first-child { display: none; } /* the level, which the Deck and Profile show in full */
   .chip-time { padding: 2px 9px; font-size: 10.5px; gap: 5px; }
   .chip-time b { font-size: 13px; }
-  .nav { order: 3; width: 100%; flex-wrap: nowrap; justify-content: space-between; margin: 0; }
-  .nav a { padding: 3px 4px; font-size: 11.5px; letter-spacing: 0.05em; }
-  .frame[data-screen='deck'] .chip, .frame[data-screen='deck'] #meName { display: none; }
-  .frame[data-screen='deck'] .me { padding: 0; }
+  #meName { display: none; }
+  .me { padding: 0; }
+  .toast { bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-width: 380px) {
+  .chip { display: none; }
 }
 
 /* Login and register are landing pages too. They only ever scroll if a phone's keyboard takes the room. */

@@ -533,16 +533,23 @@ def answer_rewind(user, code, value):
     rewind = RewindProgress.objects.select_for_update().get(progress=progress)
     index = rewind.queue[0]
     correct = _task_correct(mission.rewind[index], value)
+    cost = 0
     if correct:
         rewind.queue = rewind.queue[1:]
         rewind.correct += 1
     else:
         # The right answer isn't sent. The task comes back after the others, with help when it's earned.
-        rewind.misses[str(index)] = int(rewind.misses.get(str(index), 0)) + 1
+        misses = int(rewind.misses.get(str(index), 0)) + 1
+        rewind.misses[str(index)] = misses
         rewind.queue = rewind.queue[1:] + [index]
+        if misses == rules.REWIND_REVEAL_AFTER:
+            # Its answer is shown from now on, and that costs something, once per question (ADR 0018).
+            worth = max(rules.MIN_MISSION_XP, progress.worth - rules.REWIND_MISS_COST)
+            cost, progress.worth = progress.worth - worth, worth
+            progress.save(update_fields=["worth"])
     rewind.save()
     if rewind.queue:
         following = rewind.queue[0]
-        return {"correct": correct, "state": "solved", "done": rewind.correct, "total": len(mission.rewind), "task": _public_task(mission.rewind[following], rewind, following), "events": []}
+        return {"correct": correct, "state": "solved", "done": rewind.correct, "total": len(mission.rewind), "task": _public_task(mission.rewind[following], rewind, following), "xp_on_clear": progress.worth, "cost": cost, "events": []}
     xp, events = _clear(player, mission, progress)
     return {"correct": correct, "state": "cleared", "done": rewind.correct, "total": len(mission.rewind), "task": None, "xp": xp, "events": events}

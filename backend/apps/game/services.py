@@ -24,8 +24,18 @@ def create_player(user):
 
 
 def locked_player(user):
-    """Call inside transaction.atomic. It's the single point every state change goes through."""
-    return Player.objects.select_for_update().get(user=user)
+    """Call inside transaction.atomic. It's the single point every state change goes through, so a streak that has
+    ended is settled before anything is paid against it."""
+    player = Player.objects.select_for_update().get(user=user)
+    player.settled = settle_streak(player)  # said by whatever this request reports, like a claim
+    return player
+
+
+def arriving_player(user):
+    """(player, events) for someone opening the game. A streak that ended while they were away is settled now, and
+    the events say so once. Call inside transaction.atomic."""
+    player = Player.objects.select_for_update().get(user=user)
+    return player, settle_streak(player)
 
 
 def add_time(player, seconds, reason, ref_type="", ref_id=""):
@@ -56,23 +66,37 @@ def _missed_study_days(player, today):
     return plan.study_days_between(player, player.last_streak_day + timedelta(days=1), today - timedelta(days=1))
 
 
+def settle_streak(player):
+    """Section 6.7 and ADR 0018. Called holding the player's lock, whenever they come back. Once a study day has gone
+    by unkept, shields freeze the streak over it if there are enough. Otherwise the streak is over at once, and
+    shows 0 from the first visit after, not only once the next block is claimed. Shields are kept either way."""
+    if not player.streak or not player.last_streak_day:
+        return []
+    today = local_date(player)
+    missed = _missed_study_days(player, today)
+    if not missed:
+        return []
+    if player.shields >= missed:
+        player.shields -= missed
+        player.last_streak_day = today - timedelta(days=1)  # frozen up to yesterday
+        player.save(update_fields=["shields", "last_streak_day"])
+        return [{"type": "shield_used", "days": missed}]
+    player.streak = 0
+    player.save(update_fields=["streak"])
+    return [{"type": "streak_lost", "days": missed}]
+
+
 def record_streak_day(player):
     """Section 6.7. Returns events. Called once per claimed block, and only the first each day counts."""
+    events = getattr(player, "settled", []) + settle_streak(player)
+    player.settled = []
     today = local_date(player)
     StreakDay.objects.get_or_create(player=player, date=today)
     # Also covers moving your time zone backwards: that must never count as a gap and reset a streak.
     if player.last_streak_day and today <= player.last_streak_day:
-        return []
-    events = []
-    missed = _missed_study_days(player, today)
-    if missed == 0:
-        player.streak += 1
-    elif player.shields >= missed:
-        player.shields -= missed
-        player.streak += 1
-        events.append({"type": "shield_used", "days": missed})
-    else:
-        player.streak = 1  # shields are kept, as section 6.7 says
+        return events
+    # Settled above: either nothing was missed, or the streak is 0 and starts again here.
+    player.streak += 1
     player.last_streak_day = today
     player.best_streak = max(player.best_streak, player.streak)
     player.save(update_fields=["streak", "shields", "last_streak_day", "best_streak"])
@@ -135,6 +159,7 @@ def _badge_tests(player):
         "week": lambda: player.best_streak >= 7,
         "month": lambda: player.best_streak >= 30,
         "centurion": lambda: player.best_streak >= 100,
+        "thousand": lambda: player.best_streak >= 1000,
         "first": lambda: MissionProgress.objects.filter(player=player, state=MissionProgress.State.CLEARED).exists(),
         "par50": lambda: MissionProgress.objects.filter(player=player, par_bonus__gt=0).count() >= 50,
         "nohints": lambda: _clean_chapter(player),

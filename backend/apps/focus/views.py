@@ -49,7 +49,7 @@ def blocks(request):
     body = StartBlock(data=request.data)
     body.is_valid(raise_exception=True)
     block = services.start_block(request.user, body.validated_data["goal"], body.validated_data["minutes"])
-    return Response({"block": block.public(), "events": []}, status=status.HTTP_201_CREATED)
+    return Response({"block": block.public(), "events": block.events}, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET"])

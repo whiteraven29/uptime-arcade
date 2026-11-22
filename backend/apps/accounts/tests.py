@@ -724,3 +724,24 @@ class TestAccountCard:
     def test_says_when_you_joined_in_your_own_zone(self, api):
         account = api.get("/api/v1/auth/me/").json()["account"]
         assert account["joined"] == api.user.date_joined.astimezone(ZoneInfo(api.user.player.time_zone)).date().isoformat()
+
+
+@pytest.mark.django_db
+class TestALoginEndsWithItsTab:
+    """ADR 0018: the cookie has no date, so the browser drops it, and each refresh token lasts 30 minutes."""
+
+    def test_the_cookie_is_for_this_browser_session_only(self, registered):
+        cookie = registered.cookies[COOKIE]
+        assert cookie.value and not cookie["max-age"] and not cookie["expires"]
+        assert cookie["httponly"] and cookie["samesite"] == "Strict"
+
+    def test_a_refresh_token_lasts_thirty_minutes(self, registered):
+        token = RefreshToken(registered.cookies[COOKIE].value)
+        assert token["exp"] - token["iat"] == 30 * 60
+
+    def test_each_renewal_lasts_thirty_minutes_again(self, anon, registered):
+        renewed = anon.post("/api/v1/auth/refresh/")
+        assert renewed.status_code == 200
+        cookie = renewed.cookies[COOKIE]
+        token = RefreshToken(cookie.value)
+        assert token["exp"] - token["iat"] == 30 * 60 and not cookie["max-age"]

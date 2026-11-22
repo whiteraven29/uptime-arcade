@@ -794,6 +794,10 @@ try {
   await page.waitForSelector('.avatar-grid');
   await shot('profile');
   ok('there are sixteen to choose from', await page.locator('.avatar-pick').count() === 16);
+  ok('the skill map has a spoke for each core skill', await page.locator('#skillMap .skill-hit').count() === 6);
+  ok('skills you have worked on are rated', (await page.locator('#skillMap .skill-hit').first().getAttribute('aria-label')).match(/rated ([1-9]|10) of 10/) !== null, await page.locator('#skillMap .skill-hit').first().getAttribute('aria-label'));
+  await page.locator('#skillMap .skill-hit').first().focus();
+  ok('a skill says its numbers on focus', (await page.locator('#skillMap .chart-tip').innerText()).includes('missions'));
   await page.locator('.avatar-pick').nth(5).click();
   await page.waitForSelector('.avatar-pick.on');
   ok('choosing one marks it', await page.locator('.avatar-pick').nth(5).getAttribute('aria-checked') === 'true');
@@ -815,7 +819,7 @@ try {
   ok('the picture is still there after a reload', true);
   await page.goto(`${BASE}/rewards`);
   await page.waitForSelector('.badge');
-  ok('rewards come from the server', (await page.locator('.badge').count()) === 32);
+  ok('rewards come from the server', (await page.locator('.badge').count()) === 33);
 
   await page.goto(`${BASE}/system`);
   await page.waitForSelector('#logoutBtn');
@@ -860,6 +864,24 @@ try {
   await page.waitForSelector('.deck');
   ok('logging back in works, and picks up where you left', await xp() > 37);
 
+  ok('the sidebar starts full on a wide window', await page.locator('.frame').getAttribute('data-side') === 'full' && await page.locator('.nav >> text=Missions').isVisible());
+  await page.click('#sideToggle');
+  ok('the sidebar folds to icons', await page.locator('.frame').getAttribute('data-side') === 'rail' && (await page.locator('#sideToggle').getAttribute('aria-expanded')) === 'false');
+  await page.reload();
+  await page.waitForSelector('.deck');
+  ok('and stays folded after a reload', await page.locator('.frame').getAttribute('data-side') === 'rail');
+  await page.click('#sideToggle');
+  ok('and opens again', await page.locator('.frame').getAttribute('data-side') === 'full');
+
+  const second = await ctx.newPage();
+  await second.goto(`${BASE}/`);
+  await second.waitForSelector('.deck');
+  ok('a second tab shares the login while the first is open', true);
+  await second.close();
+  await page.goto(`${BASE}/`);
+  await page.waitForSelector('.deck');
+  ok('and the first tab is still logged in after it closes', true);
+
   const calm = await browser.newContext({ viewport: { width: 1400, height: 880 }, reducedMotion: 'reduce' });
   const still = await calm.newPage();
   await still.goto(`${BASE}/login`);
@@ -872,6 +894,13 @@ try {
   ok('the production security policy blocks nothing the game needs', cspBlocks.length === 0, cspBlocks.slice(0, 2).join(' | '));
   const cspHeader = (await page.request.get(`${BASE}/`)).headers()['content-security-policy'] || '';
   ok('and it really is in force here', cspHeader.includes("default-src 'none'") && cspHeader.includes("frame-ancestors 'none'"));
+  await page.close();
+  const reopened = await ctx.newPage();
+  await reopened.goto(`${BASE}/missions`);
+  await reopened.waitForURL('**/login');
+  ok('closing the last tab ends the login', await reopened.locator('#loginBtn').count() === 1);
+  const leftBehind = await reopened.request.post(`${BASE}/api/v1/auth/refresh/`);
+  ok('and the cookie it left behind no longer works', leftBehind.status() === 401);
 } catch (e) {
   console.log('STOPPED:', e.message.split('\n').slice(0, 4).join(' '));
   if (shots) await page.screenshot({ path: join(shots, 'stopped.png') }).catch(() => {});
