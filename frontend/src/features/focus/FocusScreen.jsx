@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { HudPanel } from '../../ui/HudPanel.jsx';
 import { TimerRing } from '../../ui/TimerRing.jsx';
-import { BANK_CAP, EARN, GOAL_BONUS, S, abandonBlock, claimBlock, confirmCheckIn, logDrift, mmss, refreshPlan, setLen, startBlock, ui } from '../../api/game.js';
+import { BANK_CAP, S, abandonBlock, claimBlock, confirmCheckIn, earns, logDrift, mmss, outlook, refreshPlan, setLen, startBlock, ui } from '../../api/game.js';
 import { shortDay, weekdayName } from '../profile/history.js';
 import { PlanForm } from './PlanForm.jsx';
 import { PlanPanel } from './PlanPanel.jsx';
@@ -11,20 +11,23 @@ const NOTE_MIN = 5;
 
 /** What this block would earn, as the server worked it out. */
 function outlookText() {
-  const { outlook, today } = ui.plan;
-  const pays = `${S.len} min earns ${EARN[S.len]}:00 of play, plus ${GOAL_BONUS}:00 if you finish your goal.`;
-  const kind = outlook[S.len];
-  if (kind === 'plan') return `On plan. ${pays}`;
-  if (kind === 'makeup') return `Outside your study times, so this is a make-up block, with ${today.makeups_left} left this week. ${pays}`;
-  const next = today.next_window ? ` Next study time: ${weekdayName(today.next_window.date)} ${shortDay(today.next_window.date)} at ${today.next_window.start}.` : '';
-  return `This block goes on your map but earns no play time, because there's nothing left in your plan to earn right now.${next}`;
+  const { today } = ui.plan;
+  if (outlook(S.len).kind === 'plan') return `On plan. ${S.len} min earns ${mmss(earns(S.len))} of rest, to play here instead of on your phone. Finishing your goal adds XP.`;
+  const day = today.next_window?.date === today.date ? 'today' : today.next_window && `${weekdayName(today.next_window.date)} ${shortDay(today.next_window.date)}`;
+  const next = today.next_window ? ` Next study time: ${day} at ${today.next_window.start}.` : '';
+  const why = today.in_window ? 'this study time\'s study is already done' : 'it\'s outside your study times';
+  return `This block goes on your map but earns no play time, because ${why}.${next}`;
 }
 
 function Idle() {
   const [goal, setGoal] = useState('');
   const [phone, setPhone] = useState(false);
-  const ready = goal.trim() && phone;
-  const free = ui.plan.outlook[S.len] === 'free';
+  const { limits, today } = ui.plan;
+  const planned = today.block_minutes;
+  const fits = Number.isInteger(S.len) && S.len >= limits.block_min_minutes && S.len <= limits.block_max_minutes;
+  const ready = goal.trim() && phone && fits;
+  const kind = outlook(S.len).kind;
+  const free = kind === 'free';
   return (
     <HudPanel className="focus-card stack" label="Start a focus block">
       <h1 className="title metal">Real work earns play time</h1>
@@ -32,10 +35,10 @@ function Idle() {
         <label className="small" htmlFor="goal">What will you finish in this block?</label>
         <input type="text" id="goal" maxLength={100} placeholder="Fix the login endpoint bug" autoComplete="off" value={goal} onChange={(e) => setGoal(e.target.value)} />
       </div>
-      <div className="row" role="group" aria-label="Block length">
-        {[15, 25, 45].map((n) => (
-          <button key={n} className="btn" type="button" aria-pressed={S.len === n} onClick={() => setLen(n)}>{n} min</button>
-        ))}
+      <div className="row plan-length">
+        <label className="small" htmlFor="blockMinutes">Minutes</label>
+        <input id="blockMinutes" type="number" min={limits.block_min_minutes} max={limits.block_max_minutes} value={S.len} onChange={(e) => setLen(Number(e.target.value))} />
+        {planned && planned !== S.len && <button className="btn" type="button" id="usePlanLength" onClick={() => setLen(planned)}>Use my plan's {planned}</button>}
       </div>
       <label className="check"><input type="checkbox" id="phone" checked={phone} onChange={(e) => setPhone(e.target.checked)} /><span>My phone is out of reach</span></label>
       <button
@@ -47,7 +50,7 @@ function Idle() {
       >
         {free ? 'Start an extra block' : 'Start block'}
       </button>
-      <div className="small" id="outlook" data-kind={ui.plan.outlook[S.len]}>{outlookText()}</div>
+      <div className="small" id="outlook" data-kind={kind}>{fits ? outlookText() : `A block is ${limits.block_min_minutes} to ${limits.block_max_minutes} minutes.`}</div>
       <div className="small">Banked {mmss(S.bank)} of {mmss(BANK_CAP)}.</div>
     </HudPanel>
   );
@@ -94,7 +97,7 @@ function Running() {
         <div className="clock" id="clock">{mmss(left)}</div>
         <div className="wrap-any">{f.goal}</div>
         <div className="small">{f.drifts ? `Logged ${f.drifts}. Back to it.` : note}</div>
-        {f.kind === 'free' && <div className="small">An extra block: it goes on your map but earns no play time.</div>}
+        {f.kind === 'free' ? <div className="small">An extra block: it goes on your map but earns no play time.</div> : f.earns > 0 && <div className="small">Then {mmss(f.earns)} of rest.</div>}
         <div className="row" style={{ justifyContent: 'center', marginTop: 8 }}>
           <button className="btn" type="button" onClick={logDrift}>I drifted</button>
           <button className="btn" type="button" onClick={() => setAsking(true)}>End early</button>

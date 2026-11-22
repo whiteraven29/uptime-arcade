@@ -21,8 +21,8 @@ const TRACKS = (first = 'open') => ({
     { code: 'BX', name: 'Beyond', subtitle: 'b', after_archmage: true, missions: [card('bx-01', 1, 'locked')] },
   ],
 });
-const PLAN_STATUS = { plan: { days: [0], blocks_per_day: 2, block_minutes: 25, daily_minutes: 50, windows: [{ start: '08:00', end: '10:00' }], time_zone: 'Africa/Nairobi', effective_from: '2026-11-02' }, pending: null, changes_open_on: null, today: {}, outlook: { 15: 'plan', 25: 'plan', 45: 'free' }, targets: {}, limits: {} };
-const REWARDS = { config: { earn_seconds: { 15: 300, 25: 480, 45: 900 }, goal_bonus_seconds: 120, bank_cap: 1800, hint_cost: 15, rewind_reveal_after: 3 }, streak: [{ days: 3, seconds: 300, xp: 50, shields: 0, claimed: false }], levels: [{ index: 1, title: 'Noob', cleared: 0, reached: true }, { index: 2, title: 'Initiate', cleared: 8, reached: false }, { index: 3, title: 'Apprentice', cleared: 19, reached: false }], badges: [{ code: 'first', name: 'First Clear', description: 'x', earned_at: null }] };
+const PLAN_STATUS = { plan: { days: [0], daily_minutes: 50, windows: [{ start: '08:00', end: '09:00', breaks: 2, rest_minutes: 5, block_minutes: 25, study_minutes: 50 }], weekend: null, time_zone: 'Africa/Nairobi', effective_from: '2026-11-02' }, pending: null, changes_open_on: null, today: {}, targets: {}, limits: {} };
+const REWARDS = { config: { bank_cap: 1800, hint_cost: 15, rewind_reveal_after: 3 }, streak: [{ days: 3, seconds: 300, xp: 50, shields: 0, claimed: false }], levels: [{ index: 1, title: 'Noob', cleared: 0, reached: true }, { index: 2, title: 'Initiate', cleared: 8, reached: false }, { index: 3, title: 'Apprentice', cleared: 19, reached: false }], badges: [{ code: 'first', name: 'First Clear', description: 'x', earned_at: null }] };
 const BRIEF = (code, check = 'answer') => ({ state: 'open', code, track: 'NET', skill: 'networking', title: 'T', from_dept: 'N', difficulty: 'easy', xp: 100, check_type: check, par_kind: check === 'fs' ? 'commands' : 'first-try', par_value: 1, lesson: { text: 'l', example: 'e' }, brief: 'b', goal: 'g' });
 const PLAY = (extra = {}) => ({ code: 'net-01', state: 'open', check_type: 'answer', workspace: {}, hints: [], hints_total: 2, ...extra });
 
@@ -32,8 +32,8 @@ function server(extra = {}) {
   calls = [];
   routes = {
     'POST /auth/refresh/': () => json(200, { access: 'tok' }),
-    'POST /auth/login/': () => json(200, { access: 'tok', account: { username: 'amina', email: 'a@x.test', time_zone: 'Africa/Nairobi', sound_on: true } }),
-    'GET /auth/me/': () => json(200, { account: { username: 'amina', email: 'a@x.test', time_zone: 'Africa/Nairobi', sound_on: true } }),
+    'POST /auth/login/': () => json(200, { access: 'tok', account: { username: 'amina', time_zone: 'Africa/Nairobi', sound_on: true, joined: '2026-11-01' } }),
+    'GET /auth/me/': () => json(200, { account: { username: 'amina', time_zone: 'Africa/Nairobi', sound_on: true, joined: '2026-11-01' } }),
     'GET /player/': () => json(200, PLAYER()),
     'GET /tracks/': () => json(200, TRACKS()),
     'GET /rewards/': () => json(200, REWARDS),
@@ -571,11 +571,41 @@ describe('focus', () => {
     g.tick();
     await vi.waitFor(() => expect(S.claim).toBeNull());
   });
-  it('saves a plan and uses its block length', async () => {
-    server({ 'PUT /focus/plan/': () => json(200, PLAN_STATUS) });
-    await g.savePlan({ days: [0], blocks_per_day: 2, block_minutes: 15, windows: [{ start: '08:00', end: '10:00' }] });
+  it('saves a plan and uses the study length it works out', async () => {
+    server({ 'PUT /focus/plan/': () => json(200, { ...PLAN_STATUS, today: { block_minutes: 45, rest_minutes: 15, room_minutes: 90 } }) });
+    const windows = [{ start: '04:00', end: '06:00', breaks: 2, rest_minutes: 15 }];
+    await g.savePlan({ days: [0], windows, weekend: null });
+    expect(calls.at(-1).body).toEqual({ days: [0], windows, weekend: null });
     expect(ui.plan.plan.daily_minutes).toBe(50);
-    expect(S.len).toBe(15);
+    expect(S.len).toBe(45);
+  });
+  it('says what a block earns from the room the server reports, and nothing without it', async () => {
+    ui.plan = { ...PLAN_STATUS, today: { room_minutes: 50, block_minutes: 45, rest_minutes: 10 } };
+    expect(g.outlook(45)).toEqual({ kind: 'plan', seconds: 600 });
+    expect(g.earns(22)).toBe(293); // rounded down, like the server
+    expect(g.outlook(51).kind).toBe('free');
+    ui.plan = { ...PLAN_STATUS, today: { room_minutes: 0, block_minutes: 45, rest_minutes: 10 } };
+    expect(g.earns(25)).toBe(0);
+    ui.plan = null;
+    expect(g.earns(25)).toBe(0);
+  });
+  it('follows today\'s plan length, and keeps a length you set', async () => {
+    server({ 'GET /focus/plan/': () => json(200, { ...PLAN_STATUS, today: { block_minutes: 37, rest_minutes: 12, room_minutes: 74 } }) });
+    await g.refreshPlan();
+    expect(S.len).toBe(37);
+    g.setLen(20);
+    await g.refreshPlan();
+    expect(S.len).toBe(20);
+  });
+  it('tells you a kept block earned its rest', async () => {
+    const past = new Date(Date.now() - 1000).toISOString();
+    server({
+      'GET /player/': () => json(200, PLAYER({ block: BLOCK({ started_at: past, ends_at: past, presence: 'ok' }) })),
+      'POST /focus/blocks/7/claim/': () => json(200, { result: 'plan', seconds_earned: 900, xp: 10, streak: 1, bank_seconds: 1200, events: [] }),
+    });
+    await g.refreshPlayer();
+    await g.claimBlock(true, 'Fixed the redirect');
+    expect(ui.toast).toContain('15:00 of rest earned');
   });
   it('announces a goal being met', { timeout: 8000 }, async () => {
     const past = new Date(Date.now() - 1000).toISOString();
@@ -586,5 +616,19 @@ describe('focus', () => {
     await g.refreshPlayer();
     await g.claimBlock(true, 'Fixed the redirect');
     await vi.waitFor(() => expect(ui.toast).toContain('Weekly goal met'), { timeout: 5000 });
+  });
+});
+
+describe('changing your password', () => {
+  it('stays logged in with the new tokens and the account from the server', async () => {
+    server({ 'POST /auth/password/change/': () => json(200, { access: 'fresh', account: { username: 'amina', time_zone: 'Africa/Nairobi', sound_on: true, joined: '2026-11-01' } }) });
+    await g.changePassword('old password here', 'a brand new long password', 'a brand new long password');
+    expect(calls.at(-1).body).toEqual({ current_password: 'old password here', password: 'a brand new long password', confirm_password: 'a brand new long password' });
+    expect(ui.account.joined).toBe('2026-11-01');
+    expect(ui.auth).toBe('in');
+  });
+  it('passes on what the server refused', async () => {
+    server({ 'POST /auth/password/change/': () => json(403, { error: { code: 'bad_credentials', message: 'Wrong password.' } }) });
+    await expect(g.changePassword('nope', 'a brand new long password', 'a brand new long password')).rejects.toThrow('Wrong password.');
   });
 });

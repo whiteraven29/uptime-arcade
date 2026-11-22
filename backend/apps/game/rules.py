@@ -6,21 +6,24 @@ STARTER_BANK = 5 * 60
 BANK_CAP = 30 * 60  # what focus blocks can bank
 BONUS_CAP = 60 * 60  # what streak rewards can raise the bank to
 
-BLOCK_MINUTES = (15, 25, 45)
-EARN_SECONDS = {15: 5 * 60, 25: 8 * 60, 45: 15 * 60}
-GOAL_BONUS_SECONDS = 2 * 60
+# Each player picks their own lengths (ADR 0017), within limits that keep a block real and the rest a break.
+BLOCK_MIN_MINUTES = 10
+BLOCK_MAX_MINUTES = 90
 GOAL_BONUS_XP = 10
 GOAL_MAX_LENGTH = 100
 
-# The study plan (ADR 0010). Time alone proves nothing, so play time comes from keeping a plan you set in advance.
-PLAN_MAX_BLOCKS_PER_DAY = 6
+# The study plan (ADRs 0010 and 0017). Time alone proves nothing, so play time comes from keeping a plan you set
+# in advance. Each study time is yours to set: when it starts and ends, and how many rest breaks it has. The study
+# between the breaks is what's left, a kept block earns the rest after it, and nothing earns outside your study times.
 PLAN_MAX_WINDOWS = 3
 PLAN_MIN_WINDOW_MINUTES = 30
+PLAN_MAX_BREAKS = 4  # rest breaks in one study time, each after a stretch of study
 PLAN_CHANGE_DAYS = 7
-# "Any time at all" isn't a plan, so study times are limited to this many times the daily amount, or the floor.
-PLAN_WINDOW_SLACK = 3
-PLAN_WINDOW_FLOOR_MINUTES = 4 * 60
-MAKEUPS_PER_WEEK = 2  # blocks that can earn outside your study times, and only to cover what you've missed
+PLAN_MAX_DAY_MINUTES = 8 * 60  # study times in a day can't add up to more: "any time at all" isn't a plan
+REST_MIN_MINUTES = 5
+REST_MAX_MINUTES = 30
+REST_MAX_SHARE = 0.5  # a break is at most half the study before it, so a 50 can rest 25 and a 10 can rest 5
+WEEKEND = (5, 6)  # Saturday and Sunday, which can have their own times
 
 # One tap, at a moment the player can't know in advance, somewhere after this share of the block.
 PRESENCE_EARLIEST_SHARE = 0.25
@@ -126,6 +129,25 @@ def focus_credit(bank, earned):
 
 def streak_credit(bank, earned):
     return max(0, min(BONUS_CAP, bank + earned) - bank)
+
+
+def block_fits(minutes):
+    return isinstance(minutes, int) and BLOCK_MIN_MINUTES <= minutes <= BLOCK_MAX_MINUTES
+
+
+def rest_limit(block_minutes):
+    """The longest rest a block of this length can have."""
+    return min(REST_MAX_MINUTES, int(block_minutes * REST_MAX_SHARE))
+
+
+def rest_fits(block_minutes, rest_minutes):
+    return isinstance(rest_minutes, int) and REST_MIN_MINUTES <= rest_minutes <= rest_limit(block_minutes)
+
+
+def rest_earned(block_minutes, rest_minutes, minutes):
+    """Seconds of play a kept block of this length earns: the plan's rest, in step with the block's length.
+    Rounded down, and the browser shows it with the same sum."""
+    return rest_minutes * 60 * minutes // block_minutes
 
 
 def target_minutes(period, planned):

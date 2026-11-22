@@ -24,16 +24,19 @@ class ClaimBlock(serializers.Serializer):
 
 
 class Window(serializers.Serializer):
+    """A study time on the player's terms. The study between its breaks is worked out from these."""
+
     start = serializers.CharField(max_length=5)
     end = serializers.CharField(max_length=5)
+    breaks = serializers.IntegerField()
+    rest_minutes = serializers.IntegerField()
 
 
 class Plan(serializers.Serializer):
     # Only these are read. Nobody picks a start date or a time zone for their plan.
     days = serializers.ListField(child=serializers.IntegerField(), max_length=7)
-    blocks_per_day = serializers.IntegerField()
-    block_minutes = serializers.IntegerField()
     windows = serializers.ListField(child=Window(), max_length=8)
+    weekend = serializers.ListField(child=Window(), max_length=8, required=False, allow_null=True)
 
 
 @api_view(["GET", "POST"])

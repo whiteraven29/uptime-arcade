@@ -1,6 +1,6 @@
 # Uptime Arcade: Design and Architecture
 
-**Version:** 1.1 (2026-11-07)
+**Version:** 1.2 (2026-11-22)
 **Owner:** raven
 **Stack:** Django REST Framework + React (Vite), built on the *DRF React Foundation* template
 **Status:** approved for build
@@ -193,7 +193,7 @@ Each screen is its own route, and the top bar shows the logo, navigation, level,
 | `/rewards` | **Rewards** | Streak ladder, level ladder and badge grid |
 | `/sandbox` | **Sandbox** | Your own network with no goals: add, drag, cable and configure devices, test every ping, and break something to practise. It opens after LAB-05 and is free |
 | `/profile` | **Profile** | Your picture (sixteen operators, or upload your own), stats, a year's focus map, goals, focus minutes a day, XP a week, and recent blocks. Your username and picture stay at the top right of every screen |
-| `/system` | **System** | Account, time zone, sound, close session, logout, delete account |
+| `/system` | **System** | An account card (picture, username, level, XP, join date, and View profile), change password, time zone, sound, close session, logout, delete account. The email is never shown |
 | `/login`, `/register` | Auth | Styled in the HUD, and they fit the window too. They only scroll if a phone's keyboard takes the room. Log in with a username, which shows available or taken as you type. Email stays private |
 
 **Locks:**
@@ -208,11 +208,18 @@ All numbers live in one config file, `backend/apps/game/rules.py`, so balancing 
 
 ### 6.1 Focus economy
 
-| Block | Play time | Goal bonus | XP |
-|---|---|---|---|
-| 15 min | 5:00 | +2:00 | 15 (+10 for the goal) |
-| 25 min | 8:00 | +2:00 | 25 (+10 for the goal) |
-| 45 min | 15:00 | +2:00 | 45 (+10 for the goal) |
+Each study time is set on the player's own terms ([ADR 0017](adr/0017-rest-weekends-and-no-make-ups.md)): when it starts and ends, and how many rest breaks it has. Study and rest take turns inside it, and each break is played here instead of on a phone. The study between breaks is what the breaks leave: 04:00 to 06:00 with two 15:00 breaks is 45 study, 15 play, 45 study, 15 play.
+
+| Setting | Allowed |
+|---|---|
+| Study times a day | 1 to 3, at least 30 minutes each, 8 hours a day at most |
+| Rest breaks in a study time | 1 to 4 |
+| Each break | 5 to 30 minutes, and at most half the study before it |
+| Study between breaks (worked out) | 10 to 90 minutes |
+| A block you start | any 10 to 90 minutes, defaulting to the study time's own length |
+
+- **Earning:** a kept block earns the break after it. A block of another length earns in step with its length, rounded down to the second (in a study time of 45 minute stretches with 15:00 breaks, a 25 minute block earns 8:20). What a block earns is fixed when it starts.
+- **XP:** a kept block earns its minutes in XP. Finishing the goal adds 10 XP, not time, so the break stays what was planned.
 
 - **Bank caps:** focus blocks can bank up to 30:00, and streak rewards can raise the bank to 60:00.
 - **Starting bank:** 5:00, so a new player can try a mission right away.
@@ -222,13 +229,13 @@ All numbers live in one config file, `backend/apps/game/rules.py`, so balancing 
 
 **What makes a block earn ([ADR 0010](adr/0010-study-plans.md)).** Nothing can prove someone studied, so the aim is to make idling pointless.
 
-- **Study plan:** before their first block, a player sets their days, blocks a day, block length and up to three study times, in their own time zone. Blocks a day times length is their daily amount.
-- **Limits on a plan:** study times need at least 30 minutes each, must add up to the daily amount, and can't pass the larger of 4 hours or three times the daily amount, because a plan covering all day isn't a plan.
+- **Study plan:** before their first block, a player sets their days and up to three study times, each with its breaks, in their own time zone. The study in all of them is their daily amount.
+- **Weekends:** Saturday and Sunday can have study times of their own, or follow the weekday ones. Either part can be a day off.
+- **Limits on a plan:** as in the table above. Each part of the week is checked on its own, and a refusal names the study time it's about.
 - **Changing it:** the first plan starts today and can be corrected until a block has started. After that it can change once every 7 days, and a change starts tomorrow, so a plan can't be moved to wherever you are now. Moving your time zone also takes effect tomorrow and doesn't use up the weekly change.
-- **Each block is one of three kinds, decided when it starts:**
-  - **Plan:** a study day, inside a study time (only the start has to be), fitting what's left of the daily amount. Pays in full.
-  - **Make-up:** outside that, covering planned minutes not yet earned this week. Pays in full. Two a week. Unused minutes don't carry into the next week.
-  - **Extra:** everything else. Goes on the map and counts towards totals and focus badges, but pays no play time or XP and doesn't touch the streak.
+- **Each block is one of two kinds, decided when it starts:**
+  - **Plan:** a study day, inside a study time (only the start has to be), fitting what's left of that study time's study. Each study time earns its own minutes, so a missed morning can't be studied in the evening. Pays its share of the break.
+  - **Extra:** everything else, including any block outside your study times. There are no make-ups. Goes on the map and counts towards totals and focus badges, but pays no play time or XP and doesn't touch the streak.
 - **The ceiling:** minutes paid in a week can never pass the minutes planned up to that day, whatever mix of blocks someone tries.
 - **Check-in:** each block asks once if you're still there, at a random moment from a quarter of the way through, with 3:00 to answer. The moment stays on the server until it's due. Missing it voids the block: no pay, not on the map, and the day's amount is free again.
 - **Claiming:** needs a line of 5 to 140 characters on what you actually did, within 15:00 of the block ending. After that the block earns nothing.
@@ -1091,8 +1098,8 @@ erDiagram
 | `MissionProgress` | player, mission, season, state (open, solved, cleared), tries, hints_used, commands, keys, par_bonus, worth, xp_awarded, solved_at, cleared_at. Unique on (player, mission, season) |
 | `Submission` | progress, payload (JSON), result, created_at |
 | `RewindProgress` | progress (1:1), queue (JSON), correct, misses (JSON) |
-| `FocusBlock` | user, goal, note, minutes, kind (plan, makeup, free), started_at, ends_at, claimed_at, checked_at, outcome (done, not_done, abandoned, missed, expired), drifts. Server-only until due: check_at |
-| `StudyPlan` | user, days (JSON), blocks_per_day, block_minutes, windows (JSON), time_zone, effective_from, by_player, created_at. Unique on (user, effective_from). A change is a new row from a later date |
+| `FocusBlock` | user, goal, note, minutes, kind (plan, free, and makeup in older history), earn_seconds (fixed at the start), started_at, ends_at, claimed_at, checked_at, outcome (done, not_done, abandoned, missed, expired), drifts. Server-only until due: check_at |
+| `StudyPlan` | user, days (JSON), windows (JSON `[start, end, breaks, rest]`), weekend (the same, or null), time_zone, effective_from, by_player, created_at. Unique on (user, effective_from). A change is a new row from a later date |
 | `TargetReward` | user, period (week, month), starts_on, target_minutes, reached_at. Unique on (user, period, starts_on) |
 | `PlaySession` | user, opened_at, expires_at, closed_at, returned_seconds |
 | `TimeLedger` | user, delta_seconds, reason (focus, goal_bonus, streak, target, session_open, session_return, starter), ref_type, ref_id, created_at. **Bank = sum** |
@@ -1120,8 +1127,9 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 | POST | `auth/register/` | Creates an account and emails a code (public). Gives no tokens yet, and needs `confirm_password` |
 | POST | `auth/verify/`, `auth/verify/resend/` | `{username, code}` confirms the email and logs in. Resend always answers the same (public) |
 | POST | `auth/password/forgot/`, `auth/password/reset/` | `{identifier}` emails a code, with the same answer whether or not anything matched. `{username, code, password, confirm_password}` changes it and logs out every device (public) |
+| POST | `auth/password/change/` | `{current_password, password, confirm_password}` while logged in. Wrong tries are counted per account. Logs out every other device and gives this one fresh tokens |
 | POST | `auth/login/`, `auth/refresh/`, `auth/logout/` | Auth (public), by username. The refresh token is only ever in an HttpOnly cookie |
-| GET, PATCH, DELETE | `auth/me/` | Account, including which system avatar. Delete needs the password and wipes everything |
+| GET, PATCH, DELETE | `auth/me/` | Account, including which system avatar and the join date, but never the email. Delete needs the password and wipes everything |
 | POST, DELETE | `auth/avatar/` | Upload or remove a picture. It's always re-encoded ([ADR 0009](adr/0009-seasons-gates-and-profiles.md)) |
 | GET | `avatars/{token}.webp` | A picture, at an unguessable address (public) |
 | GET | `player/` | Level, XP, bank, session, running block, streak, shields, focus totals, badges summary and `server_time` |
@@ -1135,14 +1143,14 @@ All endpoints are under `/api/v1/`, need login unless marked public, and report 
 | GET | `missions/{code}/debrief/` | Why, solution, job. Only after it's solved |
 | GET | `missions/{code}/rewind/` | Current task (without its answer), progress, and a hint or answer once earned |
 | POST | `missions/{code}/rewind/answer/` | `{value}` returns correct and the next task. The last one pays the XP and returns unlock, level and badge events. **Session** |
-| GET, PUT | `focus/plan/` | The plan, any change waiting to start, today against it, what each length would earn, and the goals. PUT sets it `{days, blocks_per_day, block_minutes, windows}`. Start dates and zones from a client are ignored |
+| GET, PUT | `focus/plan/` | The plan, any change waiting to start, today against it with its turns of study and rest, what each length would earn, and the goals. PUT sets it `{days, windows, weekend}`, where each study time is `{start, end, breaks, rest_minutes}` and `weekend` is a list of them or null. Today says how many minutes a block can still earn (`room_minutes`) at what rate. Start dates and zones from a client are ignored |
 | GET | `focus/history/` | Focus minutes per day for a year, XP per week for 12 weeks and the last 15 blocks, in the player's own dates |
 | POST | `focus/blocks/` | Start a block `{goal, minutes}`. Needs a plan. The server decides what kind it is |
 | GET | `focus/blocks/{id}/` | The block, including whether its check is waiting, due, answered or missed, and never when it will come |
 | POST | `focus/blocks/{id}/presence/` | Answer the check. Refused before it's due and after it has passed |
 | POST | `focus/blocks/{id}/drift/` | Log a drift |
 | POST | `focus/blocks/{id}/abandon/` | End early |
-| POST | `focus/blocks/{id}/claim/` | `{done: bool, note}`, allowed after `ends_at`. Returns `result` (plan, makeup, free, missed, expired), time earned, XP, and streak, goal and badge events |
+| POST | `focus/blocks/{id}/claim/` | `{done: bool, note}`, allowed after `ends_at`. Returns `result` (plan, free, missed, expired), time earned, XP, and streak, goal and badge events |
 | GET | `focus/blocks/` | Your blocks from the last 30 days |
 | POST | `sessions/open/` | Opens with the full bank |
 | POST | `sessions/close/` | Returns unused seconds |

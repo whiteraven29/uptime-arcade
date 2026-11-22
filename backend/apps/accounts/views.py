@@ -7,7 +7,7 @@ read it and another site can't send it."""
 import re
 import uuid
 from datetime import timedelta
-from zoneinfo import available_timezones
+from zoneinfo import ZoneInfo, available_timezones
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
@@ -55,8 +55,10 @@ def _clear_cookie(response):
 
 
 def _account(user):
+    """What the player's own screens show. The email isn't here: nothing on screen needs it, so it never travels."""
     p = user.player
-    return {"username": user.username, "email": user.email, "display_name": p.display_name, "time_zone": p.time_zone, "sound_on": p.sound_on, "avatar": avatar_summary(p)}
+    joined = user.date_joined.astimezone(ZoneInfo(p.time_zone)).date()
+    return {"username": user.username, "display_name": p.display_name, "time_zone": p.time_zone, "sound_on": p.sound_on, "avatar": avatar_summary(p), "joined": joined}
 
 
 USERNAME = re.compile(r"^[A-Za-z0-9_-]{3,20}$")
@@ -135,6 +137,26 @@ class Account(serializers.Serializer):
 
 class DeleteAccount(serializers.Serializer):
     password = serializers.CharField(max_length=128, trim_whitespace=False)
+
+
+class ChangePassword(serializers.Serializer):
+    current_password = serializers.CharField(max_length=128, trim_whitespace=False)
+    password = serializers.CharField(max_length=128, trim_whitespace=False)
+    confirm_password = serializers.CharField(max_length=128, trim_whitespace=False)
+
+    def validate(self, attrs):
+        return _passwords_match(attrs)
+
+
+def _require_password(user, password, action):
+    """A stolen access token shouldn't be a way to guess the password, so wrong tries are counted per account."""
+    wrong = f"{action}-wrong:{user.pk}"
+    if cache.get(wrong, 0) >= MAX_DELETE_TRIES:
+        raise GameError("too_many_tries", "Too many tries. Wait a while and try again.", status.HTTP_429_TOO_MANY_REQUESTS)
+    if not user.check_password(password):
+        cache.add(wrong, 0, timeout=3600)
+        cache.incr(wrong)
+        raise GameError("bad_credentials", "Wrong password.", status.HTTP_403_FORBIDDEN)
 
 
 @api_view(["GET"])
@@ -280,6 +302,30 @@ def reset_password(request):
 
 
 @api_view(["POST"])
+@throttle_classes([AuthThrottle])
+def change_password(request):
+    """From System, while logged in. It needs the current password, so a stolen access token can't take the account.
+    Every other device is logged out, and this one gets fresh tokens so it stays in."""
+    body = ChangePassword(data=request.data)
+    body.is_valid(raise_exception=True)
+    data = body.validated_data
+    user = request.user
+    _require_password(user, data["current_password"], "change")
+    if data["password"] == data["current_password"]:
+        raise serializers.ValidationError({"password": ["Pick a password you haven't used here."]})
+    try:
+        validate_password(data["password"], user=user)
+    except DjangoValidationError as e:
+        raise serializers.ValidationError({"password": e.messages}) from e
+    with transaction.atomic():
+        user.set_password(data["password"])
+        user.save(update_fields=["password"])
+        _sign_out_everywhere(user)
+    background.run(email_codes.send_password_changed, user)
+    return _with_tokens(Response({"account": _account(user)}), RefreshToken.for_user(user))
+
+
+@api_view(["POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])
 @throttle_classes([AuthThrottle, LoginAccountThrottle])
@@ -361,14 +407,7 @@ def me(request):
         # token from destroying the account.
         body = DeleteAccount(data=request.data)
         body.is_valid(raise_exception=True)
-        # A stolen access token shouldn't be a way to guess the password, so wrong tries are counted per account.
-        wrong = f"delete-wrong:{user.pk}"
-        if cache.get(wrong, 0) >= MAX_DELETE_TRIES:
-            raise GameError("too_many_tries", "Too many tries. Wait a while and try again.", status.HTTP_429_TOO_MANY_REQUESTS)
-        if not user.check_password(body.validated_data["password"]):
-            cache.add(wrong, 0, timeout=3600)
-            cache.incr(wrong)
-            raise GameError("bad_credentials", "Wrong password.", status.HTTP_403_FORBIDDEN)
+        _require_password(user, body.validated_data["password"], "delete")
         user.delete()
         return _clear_cookie(Response(status=status.HTTP_204_NO_CONTENT))
     return Response({"account": _account(user)})

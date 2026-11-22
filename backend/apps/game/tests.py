@@ -11,8 +11,9 @@ from apps.game.models import StreakReward, TimeLedger, UserBadge, XPLedger
 
 class TestRulesNumbers:
     def test_focus_economy_matches_the_design(self):
-        assert rules.EARN_SECONDS == {15: 300, 25: 480, 45: 900}
-        assert rules.GOAL_BONUS_SECONDS == 120
+        assert (rules.BLOCK_MIN_MINUTES, rules.BLOCK_MAX_MINUTES, rules.REST_MIN_MINUTES, rules.REST_MAX_MINUTES) == (10, 90, 5, 30)
+        assert rules.rest_fits(50, 25) and rules.rest_fits(45, 22) and not rules.rest_fits(25, 13) and not rules.rest_fits(90, 31) and not rules.rest_fits(10, 4)
+        assert rules.rest_earned(45, 15, 45) == 900 and rules.rest_earned(25, 5, 25) == 300
         assert rules.BANK_CAP == 1800
         assert rules.BONUS_CAP == 3600
         assert rules.STARTER_BANK == 300

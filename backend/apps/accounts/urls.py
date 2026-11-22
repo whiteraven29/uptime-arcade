@@ -9,6 +9,7 @@ urlpatterns = [
     path("verify/resend/", views.resend_verify, name="verify-resend"),
     path("password/forgot/", views.forgot_password, name="password-forgot"),
     path("password/reset/", views.reset_password, name="password-reset"),
+    path("password/change/", views.change_password, name="password-change"),
     path("login/", views.login, name="login"),
     path("refresh/", views.refresh, name="refresh"),
     path("logout/", views.logout, name="logout"),

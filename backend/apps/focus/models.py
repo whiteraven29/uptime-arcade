@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import timedelta
 
 from django.db import models
@@ -18,7 +19,7 @@ class FocusBlock(models.Model):
 
     class Kind(models.TextChoices):
         PLAN = "plan"  # inside the study plan: earns
-        MAKEUP = "makeup"  # outside the plan, covering minutes missed this week: earns
+        MAKEUP = "makeup"  # no longer given (ADR 0017), but older blocks keep it
         FREE = "free"  # extra: counts on the map, earns nothing
 
     player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="blocks")
@@ -26,6 +27,8 @@ class FocusBlock(models.Model):
     note = models.CharField(max_length=140, blank=True)  # what actually got done, in the player's words
     minutes = models.PositiveSmallIntegerField()
     kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.PLAN)
+    # Fixed when the block starts, from the plan it started under, so a plan that changes before the claim can't change it.
+    earn_seconds = models.PositiveIntegerField(default=0)
     started_at = models.DateTimeField()  # server clock, never from the client
     ends_at = models.DateTimeField()
     # Server-only until it's due: knowing the moment in advance would defeat the check.
@@ -67,6 +70,7 @@ class FocusBlock(models.Model):
             "note": self.note,
             "minutes": self.minutes,
             "kind": self.kind,
+            "earn_seconds": self.earn_seconds,
             "started_at": self.started_at,
             "ends_at": self.ends_at,
             "claim_by": self.claim_by,
@@ -92,15 +96,88 @@ class PlaySession(models.Model):
         ]
 
 
+@dataclass(frozen=True)
+class StudyTime:
+    """One study time on the player's own terms: when it runs, and how many rest breaks it has. Study and rest take
+    turns, a stretch of study then a break, and the study is whatever the breaks leave (ADR 0017)."""
+
+    start: int  # minutes after local midnight
+    end: int
+    breaks: int
+    rest_minutes: int  # each break
+
+    @property
+    def block_minutes(self):
+        return (self.end - self.start - self.breaks * self.rest_minutes) // self.breaks
+
+    @property
+    def study_minutes(self):
+        return self.breaks * self.block_minutes
+
+    def holds(self, minute):
+        """A study time includes its start and stops just before its end."""
+        return self.start <= minute < self.end
+
+    def earns(self, minutes):
+        return rules.rest_earned(self.block_minutes, self.rest_minutes, minutes)
+
+    def slots(self):
+        slots, at = [], self.start
+        for _ in range(self.breaks):
+            slots.append({"kind": "study", "start": clock_text(at), "minutes": self.block_minutes})
+            at += self.block_minutes
+            slots.append({"kind": "rest", "start": clock_text(at), "minutes": self.rest_minutes})
+            at += self.rest_minutes
+        return slots
+
+    def public(self):
+        return {
+            "start": clock_text(self.start),
+            "end": clock_text(self.end),
+            "breaks": self.breaks,
+            "rest_minutes": self.rest_minutes,
+            "block_minutes": self.block_minutes,
+            "study_minutes": self.study_minutes,
+        }
+
+
+@dataclass(frozen=True)
+class Schedule:
+    """One day's study times, in order."""
+
+    times: tuple
+
+    @classmethod
+    def of(cls, stored):
+        return cls(tuple(StudyTime(*row) for row in stored))
+
+    @property
+    def daily_minutes(self):
+        return sum(t.study_minutes for t in self.times)
+
+    def at(self, minute):
+        return next((t for t in self.times if t.holds(minute)), None)
+
+    def after(self, minute):
+        return next((t for t in self.times if t.start > minute), None)
+
+    def slots(self):
+        return [slot for t in self.times for slot in t.slots()]
+
+    def public(self):
+        return {"windows": [t.public() for t in self.times], "daily_minutes": self.daily_minutes}
+
+
 class StudyPlan(models.Model):
     """When a player said they'd study. Rows are never edited once in force: a change is a new row from a
-    later date, so the past keeps the plan it was judged by (ADR 0010)."""
+    later date, so the past keeps the plan it was judged by (ADR 0010). The study times are for every study
+    day, unless the weekend has its own (ADR 0017)."""
 
     player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="plans")
     days = models.JSONField()  # weekdays, with Monday as 0
-    blocks_per_day = models.PositiveSmallIntegerField()
-    block_minutes = models.PositiveSmallIntegerField()
-    windows = models.JSONField()  # [[start, end]] in minutes after local midnight, sorted
+    windows = models.JSONField()  # [[start, end, breaks, rest]], start and end in minutes after local midnight, sorted
+    # Saturday and Sunday's own study times, in the same form, or null when they follow the ones above.
+    weekend = models.JSONField(null=True, blank=True)
     # Its own zone, so moving your time zone can't open a window or a new day on the spot.
     time_zone = models.CharField(max_length=64)
     effective_from = models.DateField()
@@ -114,16 +191,27 @@ class StudyPlan(models.Model):
         ]
 
     @property
-    def daily_minutes(self):
-        return self.blocks_per_day * self.block_minutes
+    def main(self):
+        return Schedule.of(self.windows)
+
+    @property
+    def weekend_schedule(self):
+        return Schedule.of(self.weekend) if self.weekend else None
+
+    def schedule_on(self, day):
+        """The schedule for this date, or None on a day off."""
+        if day.weekday() not in self.days:
+            return None
+        if day.weekday() in rules.WEEKEND and self.weekend:
+            return self.weekend_schedule
+        return self.main
 
     def public(self):
+        weekend = self.weekend_schedule
         return {
             "days": self.days,
-            "blocks_per_day": self.blocks_per_day,
-            "block_minutes": self.block_minutes,
-            "daily_minutes": self.daily_minutes,
-            "windows": [{"start": clock_text(a), "end": clock_text(b)} for a, b in self.windows],
+            **self.main.public(),
+            "weekend": weekend.public() if weekend else None,
             "time_zone": self.time_zone,
             "effective_from": self.effective_from,
         }

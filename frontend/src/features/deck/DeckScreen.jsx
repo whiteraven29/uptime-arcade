@@ -5,7 +5,7 @@ import { BadgeEmblem } from '../../ui/BadgeEmblem.jsx';
 import { Meter } from '../../ui/Meter.jsx';
 import { PlayIcon, TimerIcon } from '../../ui/icons.jsx';
 import { pad } from '../../../../engines/fs/index.js';
-import { BADGES, BEYOND, EARN, LEVELS, S, STREAKS, TK, TRACKS, beyondOpen, cleared, clearedIn, level, levelIdx, missionPath, mmss, mult, nextUp, sessionOn, stateOf, trackName, ui } from '../../api/game.js';
+import { BADGES, BEYOND, LEVELS, S, STREAKS, TK, TRACKS, beyondOpen, cleared, clearedIn, earns, level, levelIdx, missionPath, mmss, mult, nextUp, sessionOn, stateOf, trackName, ui } from '../../api/game.js';
 
 function nextAction() {
   if (S.focus) return { label: 'Back to Focus', to: '/focus', kicker: 'Focus block running', title: 'Stay on it', sub: 'Missions stay locked until it ends' };
@@ -15,6 +15,11 @@ function nextAction() {
   if (!m) return { label: 'View rewards', to: '/rewards', kicker: 'All clear', title: 'Every mission cleared', sub: 'New missions arrive with the next season' };
   const rewind = stateOf(m) === 'rewind';
   return { label: rewind ? 'Continue the questions' : 'Open briefing', to: missionPath(m), kicker: rewind ? 'Questions waiting' : 'Next mission', title: m.title, sub: `${trackName(m.track)}, mission ${m.pos + 1}. Worth ${m.xp} XP` };
+}
+
+function earnText() {
+  if (!ui.plan?.plan) return 'Set a study plan to earn play time';
+  return earns(S.len) ? `${S.len} min earns ${mmss(earns(S.len))} of rest` : 'Nothing earns outside your study times';
 }
 
 /* A labelled tile, wired to the core by a short line. */
@@ -66,7 +71,7 @@ export function DeckScreen() {
           <Tile label="Earn play time" to="/focus" hot>
             <span className="tile-row">
               <span className="card-icon"><TimerIcon /></span>
-              <span className="small">{S.len} min earns {EARN[S.len]}:00 of play</span>
+              <span className="small">{earnText()}</span>
             </span>
           </Tile>
           <Tile label="Day streak">

@@ -53,8 +53,6 @@ def rewards(request):
     level = rules.level_index(p.peak_cleared)
     return Response({
         "config": {
-            "earn_seconds": rules.EARN_SECONDS,
-            "goal_bonus_seconds": rules.GOAL_BONUS_SECONDS,
             "bank_cap": rules.BANK_CAP,
             "hint_cost": rules.HINT_COST,
             "rewind_reveal_after": rules.REWIND_REVEAL_AFTER,

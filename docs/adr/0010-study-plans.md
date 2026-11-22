@@ -1,6 +1,6 @@
 # ADR 0010: Play time comes from keeping a study plan
 
-**Status:** accepted, 2026-11-07. Changes sections 4.2, 5, 6.1, 6.7, 15, 16 and 19.
+**Status:** accepted, 2026-11-07. Changes sections 4.2, 5, 6.1, 6.7, 15, 16 and 19. Make-ups and the fixed earning table were replaced by [ADR 0017](0017-rest-weekends-and-no-make-ups.md).
 
 ## Context
 

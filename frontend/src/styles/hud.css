@@ -199,6 +199,14 @@ pre { tab-size: 4; font-family: var(--font-mono); font-size: 13.5px; line-height
 .focus-plan { display: grid; grid-template-columns: minmax(0, 540px) minmax(0, 460px); gap: 0 clamp(24px, 4vw, 64px); align-items: start; justify-content: center; width: 100%; }
 .focus-plan > .hud + .hud { border-top: 0; }
 .plan-label { display: block; margin-bottom: 6px; }
+.plan-time { border: 1px solid var(--line-soft); padding: 10px 12px 12px; margin: 0; min-width: 0; }
+.plan-length { align-items: center; flex-wrap: wrap; }
+.plan-length input { width: 96px; flex: 0 0 auto; }
+.plan-part { margin: 6px 0 0; padding-top: 10px; border-top: 1px solid var(--line); }
+.plan-slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 14px; }
+.plan-slots li { padding: 3px 8px; border-left: 2px solid var(--line); }
+.plan-slot-time { font-variant-numeric: tabular-nums; margin-right: 6px; }
+.plan-slots li[data-kind="rest"] { border-left-color: var(--line-gold); color: var(--dim); }
 .plan-day { min-width: 58px; }
 .plan-amount { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 16px; }
 .plan-window { flex-wrap: nowrap; }

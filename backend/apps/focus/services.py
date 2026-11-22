@@ -112,11 +112,11 @@ def start_block(user, goal, minutes):
         raise GameError("goal_required", "Say what you'll finish in this block.", status.HTTP_400_BAD_REQUEST)
     if len(goal) > rules.GOAL_MAX_LENGTH:
         raise GameError("goal_too_long", f"Keep the goal under {rules.GOAL_MAX_LENGTH} characters.", status.HTTP_400_BAD_REQUEST)
-    if minutes not in rules.BLOCK_MINUTES:
-        raise GameError("bad_block_length", "A block is 15, 25 or 45 minutes.", status.HTTP_400_BAD_REQUEST)
+    if not rules.block_fits(minutes):
+        raise GameError("bad_block_length", f"A block is {rules.BLOCK_MIN_MINUTES} to {rules.BLOCK_MAX_MINUTES} minutes.", status.HTTP_400_BAD_REQUEST)
     now = clock.now()
-    kind = plan.classify(player, minutes, now)
-    if kind is None:
+    outlook = plan.classify(player, minutes, now)
+    if outlook is None:
         raise GameError("plan_required", "Set your study plan first, so your blocks have something to count towards.")
     _expire_unclaimed(player)
     if current_block(player):
@@ -129,7 +129,8 @@ def start_block(user, goal, minutes):
         player=player,
         goal=goal,
         minutes=minutes,
-        kind=kind,
+        kind=outlook[0],
+        earn_seconds=outlook[1],
         started_at=now,
         ends_at=now + timedelta(minutes=minutes),
         check_at=_check_moment(now, minutes),
@@ -231,14 +232,12 @@ def claim_block(user, block_id, done, note=""):
     if block.kind == FocusBlock.Kind.FREE:
         return {**_unpaid(player, "free"), "events": services.award_badges(player)}
 
-    bank = player.bank()
-    earned = rules.focus_credit(bank, rules.EARN_SECONDS[block.minutes])
+    # The rest the plan put after this block (ADR 0017). Finishing the goal adds XP, not time, so the rest stays what was planned.
+    earned = rules.focus_credit(player.bank(), block.earn_seconds)
     services.add_time(player, earned, TimeLedger.Reason.FOCUS, "block", block.pk)
-    bonus = rules.focus_credit(bank + earned, rules.GOAL_BONUS_SECONDS) if done else 0
-    services.add_time(player, bonus, TimeLedger.Reason.GOAL_BONUS, "block", block.pk)
 
     events = services.record_streak_day(player)
     xp = services.award_xp(player, block.minutes + (rules.GOAL_BONUS_XP if done else 0), XPLedger.Reason.FOCUS, "block", block.pk)
     events += plan.settle_targets(player, block.started_at)
     events += services.award_badges(player)
-    return {"result": block.kind, "seconds_earned": earned + bonus, "xp": xp, "streak": player.streak, "bank_seconds": player.bank(), "events": events}
+    return {"result": block.kind, "seconds_earned": earned, "xp": xp, "streak": player.streak, "bank_seconds": player.bank(), "events": events}

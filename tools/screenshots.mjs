@@ -75,7 +75,7 @@ for back in range(1, 340):
   await open('/focus');
   await page.waitForSelector('#planForm');
   await shot('focus-plan');
-  await ctx.request.put(`${base}/api/v1/focus/plan/`, { headers: auth, data: { days: [0, 1, 2, 3, 4], blocks_per_day: 3, block_minutes: 25, windows: [{ start: '07:00', end: '09:00' }, { start: '18:00', end: '20:00' }] } });
+  await ctx.request.put(`${base}/api/v1/focus/plan/`, { headers: auth, data: { days: [0, 1, 2, 3, 4, 5, 6], windows: [{ start: '04:00', end: '06:00', breaks: 2, rest_minutes: 15 }, { start: '21:00', end: '23:00', breaks: 2, rest_minutes: 15 }], weekend: [{ start: '10:00', end: '12:00', breaks: 3, rest_minutes: 10 }] } });
   await open('/focus');
   await page.waitForSelector('#goal');
   await shot('focus');

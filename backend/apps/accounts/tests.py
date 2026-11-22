@@ -1,6 +1,8 @@
+import json
 import re
 import uuid
 from datetime import timedelta
+from zoneinfo import ZoneInfo
 from io import BytesIO, StringIO
 
 import pytest
@@ -646,3 +648,79 @@ class TestPasswordReset:
             raise OSError("smtp is down")
         monkeypatch.setattr(email_codes, "send_mail", broken)
         assert self.ask().status_code == 200
+
+
+@pytest.mark.django_db
+class TestChangePassword:
+    """From System, while logged in (ADR 0017)."""
+
+    NEW = "a brand new long password"
+
+    def account(self):
+        client, code = fresh_account()
+        access = confirm(client, "dana_01", code).data["access"]
+        mail.outbox.clear()
+        return client, access
+
+    def change(self, client, access, current=None, password=None, confirm_password=None):
+        password = password or self.NEW
+        body = {"current_password": current or GOOD["password"], "password": password, "confirm_password": confirm_password or password}
+        return client.post("/api/v1/auth/password/change/", body, format="json", HTTP_AUTHORIZATION=f"Bearer {access}")
+
+    def login(self, password):
+        return APIClient().post("/api/v1/auth/login/", {"username": "dana_01", "password": password}, format="json")
+
+    def test_the_whole_way_through(self):
+        client, access = self.account()
+        response = self.change(client, access)
+        assert response.status_code == 200 and response.data["access"]
+        assert self.login(self.NEW).status_code == 200
+        assert self.login(GOOD["password"]).status_code == 401
+        assert mail.outbox[-1].subject == "Your Uptime Arcade password was changed"
+
+    def test_needs_you_logged_in(self):
+        assert APIClient().post("/api/v1/auth/password/change/", {"current_password": "x", "password": "y", "confirm_password": "y"}, format="json").status_code == 401
+
+    def test_needs_the_current_password(self):
+        client, access = self.account()
+        response = self.change(client, access, current="not my password at all")
+        assert response.status_code == 403 and response.data["error"]["code"] == "bad_credentials"
+        assert self.login(GOOD["password"]).status_code == 200
+
+    def test_guesses_run_out(self):
+        client, access = self.account()
+        for _ in range(5):
+            self.change(client, access, current="not my password at all")
+        assert self.change(client, access).status_code == 429
+        assert self.login(GOOD["password"]).status_code == 200
+
+    def test_a_weak_or_unchanged_password_is_refused(self):
+        client, access = self.account()
+        assert self.change(client, access, password="password123").status_code == 400
+        assert self.change(client, access, password=GOOD["password"]).status_code == 400
+        assert self.login(GOOD["password"]).status_code == 200
+
+    def test_the_passwords_have_to_match(self):
+        client, access = self.account()
+        response = self.change(client, access, confirm_password="not the same password")
+        assert response.status_code == 400 and "confirm_password" in response.data["error"]["details"]
+
+    def test_other_devices_are_logged_out_and_this_one_stays_in(self):
+        client, access = self.account()
+        other = APIClient()
+        other_access = other.post("/api/v1/auth/login/", {"username": "dana_01", "password": GOOD["password"]}, format="json").data["access"]
+        response = self.change(client, access)
+        assert other.post("/api/v1/auth/refresh/").status_code == 401
+        assert APIClient().get("/api/v1/auth/me/", HTTP_AUTHORIZATION=f"Bearer {other_access}").status_code == 401
+        assert client.get("/api/v1/auth/me/", HTTP_AUTHORIZATION=f"Bearer {response.data['access']}").status_code == 200
+        assert client.post("/api/v1/auth/refresh/").status_code == 200
+
+
+class TestAccountCard:
+    def test_the_email_never_travels(self, api):
+        account = api.get("/api/v1/auth/me/").json()["account"]
+        assert "email" not in account and api.user.email not in json.dumps(account)
+
+    def test_says_when_you_joined_in_your_own_zone(self, api):
+        account = api.get("/api/v1/auth/me/").json()["account"]
+        assert account["joined"] == api.user.date_joined.astimezone(ZoneInfo(api.user.player.time_zone)).date().isoformat()

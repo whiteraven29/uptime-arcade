@@ -79,6 +79,7 @@ const answerTask = async (m) => {
 };
 const USER = 'e2e_amina';
 const PASSWORD = 'correct horse battery';
+const CHANGED_PASSWORD = 'a password changed in system';
 
 try {
   // ---------- signing up ----------
@@ -218,12 +219,18 @@ try {
   });
   await page.fill('#planStart0', hours[0]);
   await page.fill('#planEnd0', hours[1]);
+  ok('a study time says what its breaks leave for study', (await page.locator('#planStudy0').innerText()).includes('2 x 45 min of study'));
   await page.click('#savePlan');
   await page.waitForSelector('#goal');
-  ok('the plan shows what today looks like', (await page.locator('#planToday').innerText()).includes('0 of 50 min'));
+  ok('the plan shows what today looks like', (await page.locator('#planToday').innerText()).includes('0 of 90 min'));
+  ok('today lays out study and rest in turns', (await page.locator('#planSlots li[data-kind="rest"]').count()) === 2);
   ok('the block shows it will earn before it starts', (await page.locator('#outlook').getAttribute('data-kind')) === 'plan');
   ok('the goals come from the plan', await page.locator('.goal[data-period="week"]').count() === 1 && await page.locator('.goal[data-period="month"]').count() === 1);
   ok('a typo in a first plan can still be fixed', await page.locator('#changePlan').isEnabled());
+  ok('the block length follows the plan', (await page.locator('#blockMinutes').inputValue()) === '45');
+  await page.fill('#blockMinutes', '25'); // any length will do, and it earns in step
+  await page.waitForFunction(() => document.querySelector('#outlook')?.textContent.includes('08:20'));
+  ok('a shorter block earns its share of the break', true);
   await page.fill('#goal', 'Ship the login page');
   await page.check('#phone');
   await page.click('#startBlock');
@@ -256,11 +263,11 @@ try {
   await shot('focus-claim');
   await page.click('#claimYes');
   await page.waitForSelector('#startBlock');
-  await page.waitForFunction(() => /15:00/.test(document.querySelector('.chip-time').textContent));
-  ok('claiming pays 8:00 plus the 2:00 goal bonus', (await page.locator('.chip-time').innerText()).includes('15:00'));
+  await page.waitForFunction(() => /13:20/.test(document.querySelector('.chip-time').textContent));
+  ok('claiming pays its share of the break, 08:20', (await page.locator('.chip-time').innerText()).includes('13:20'));
   ok('the block pays XP, with the first day of its streak', await xp() === 37, `XP ${await xp()}`);
   ok('a badge arrives with its medal', await page.locator('.toast .emblem').count() > 0 || (await page.locator('.toast').innerText()).length > 0, await page.locator('.toast').innerText());
-  await page.waitForFunction(() => document.querySelector('#planToday')?.textContent.includes('25 of 50 min'));
+  await page.waitForFunction(() => document.querySelector('#planToday')?.textContent.includes('25 of 90 min'));
   ok('the plan counts the block', true);
   ok('once a block has started, the plan is locked for a week', await page.locator('#changePlan').isDisabled() && (await page.locator('#planLocked').innerText()).includes('You can change it on'));
 
@@ -813,6 +820,22 @@ try {
   await page.goto(`${BASE}/system`);
   await page.waitForSelector('#logoutBtn');
   await shot('system');
+  ok('System shows your account without the email', (await page.locator('#accountCard').innerText()).includes(USER) && !(await page.locator('main, body').first().innerText()).includes('@example'));
+  await page.click('#viewProfile');
+  await page.waitForURL('**/profile');
+  ok('View profile opens your profile', true);
+  await page.goto(`${BASE}/system`);
+  await page.click('#changePasswordBtn');
+  await page.fill('#currentPassword', 'not my password at all');
+  await page.fill('#newPassword', CHANGED_PASSWORD);
+  await page.fill('#confirmNewPassword', CHANGED_PASSWORD);
+  await page.click('#savePassword');
+  await page.waitForSelector('#changePasswordForm [role=alert]');
+  ok('changing your password needs the current one', (await page.locator('#changePasswordForm [role=alert]').innerText()).includes('Wrong password'));
+  await page.fill('#currentPassword', PASSWORD);
+  await page.click('#savePassword');
+  await page.waitForSelector('#passwordChanged');
+  ok('a password changed in System keeps you logged in', await page.locator('#logoutBtn').count() === 1);
   const oldCookie = (await ctx.cookies()).find((c) => c.name === 'ua_refresh').value;
   await page.click('#logoutBtn');
   await page.waitForURL('**/login');
@@ -832,7 +855,7 @@ try {
   await page.waitForSelector('[role=alert]');
   ok('a wrong password is refused', (await page.locator('[role=alert]').innerText()).includes('Wrong username or password'));
   await page.fill('#username', USER.toUpperCase());
-  await page.fill('#password', PASSWORD);
+  await page.fill('#password', CHANGED_PASSWORD);
   await page.click('#loginBtn');
   await page.waitForSelector('.deck');
   ok('logging back in works, and picks up where you left', await xp() > 37);

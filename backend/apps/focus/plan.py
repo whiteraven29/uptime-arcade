@@ -1,8 +1,10 @@
-"""The study plan: when a block earns, and the weekly and monthly goals (ADR 0010).
+"""The study plan: when a block earns, and the weekly and monthly goals (ADRs 0010 and 0017).
 
 Nothing can prove someone studied, so the aim is to make idling pointless. A block earns only inside
 the times you set in advance, up to the amount you set, and paid minutes in a week can never pass what
-was planned up to that day. Off-plan work still counts on your map."""
+was planned up to that day. Each study time is set on the player's own terms, with its rest breaks inside it, and a
+kept block earns the break after it. Off-plan work still counts
+on your map, and earns nothing."""
 import re
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
@@ -16,9 +18,9 @@ from apps.core.exceptions import GameError
 from apps.game import rules, services
 from apps.game.models import TimeLedger, XPLedger
 
-from .models import FocusBlock, StudyPlan, TargetReward, clock_text
+from .models import FocusBlock, StudyPlan, StudyTime, TargetReward, clock_text
 
-PAID_KINDS = (FocusBlock.Kind.PLAN, FocusBlock.Kind.MAKEUP)
+PAID_KINDS = (FocusBlock.Kind.PLAN, FocusBlock.Kind.MAKEUP)  # make-ups are only in older history
 PAID_OUTCOMES = (FocusBlock.Outcome.DONE, FocusBlock.Outcome.NOT_DONE)
 CLOCK = re.compile(r"^(?:([01]\d|2[0-3]):([0-5]\d)|(24):(00))$")
 
@@ -43,14 +45,17 @@ def studies_on(row, day):
     return row is not None and day.weekday() in row.days
 
 
+def schedule_of(row, day):
+    return row.schedule_on(day) if row is not None else None
+
+
 def minute_of_day(local):
     return local.hour * 60 + local.minute
 
 
-def open_window(row, local):
-    """The window this moment falls in. A window includes its start and stops just before its end."""
-    now = minute_of_day(local)
-    return next(((a, b) for a, b in row.windows if a <= now < b), None)
+def open_window(schedule, local):
+    """The study time this moment falls in, or None."""
+    return schedule.at(minute_of_day(local))
 
 
 def dates(first, last):
@@ -59,7 +64,7 @@ def dates(first, last):
 
 
 def planned_minutes(rows, first, last):
-    return sum(on_date(rows, day).daily_minutes for day in dates(first, last) if studies_on(on_date(rows, day), day))
+    return sum(schedule.daily_minutes for day in dates(first, last) if (schedule := schedule_of(on_date(rows, day), day)))
 
 
 def day_start(day, zone):
@@ -90,37 +95,45 @@ def month_of(day):
 PERIODS = {"week": week_of, "month": month_of}
 
 
-def _makeups_used(player, first, last, zone):
-    return FocusBlock.objects.filter(
-        player=player,
-        kind=FocusBlock.Kind.MAKEUP,
-        outcome__in=PAID_OUTCOMES,
-        started_at__gte=day_start(first, zone),
-        started_at__lt=day_start(last + timedelta(days=1), zone),
-    ).count()
+FREE = (FocusBlock.Kind.FREE, 0)
 
 
-def classify(player, minutes, moment, rows=None):
-    """What a block of this length, started at this moment, would be. None without a plan."""
-    rows = rows_of(player) if rows is None else rows
+def room_now(player, rows, moment):
+    """(minutes a block started now can still earn, the study time it's in). Nothing outside a study time.
+    A block earns if its length fits in this, which is exactly what `classify` checks."""
     row = in_force(rows, moment)
     if not row:
-        return None
+        return 0, None
     zone = ZoneInfo(row.time_zone)
     local = moment.astimezone(zone)
     today = local.date()
-    monday, sunday = week_of(today)
+    schedule = row.schedule_on(today)
+    current = open_window(schedule, local) if schedule else None
+    if not current:
+        return 0, None
+    monday, _ = week_of(today)
     # What's been planned so far this week and not yet earned. Nothing earns past this, so no mix of
-    # plan changes, make-ups and extra blocks can pay for more than the plan asked for.
-    room = planned_minutes(rows, monday, today) - paid_minutes(player, monday, today, zone)
+    # plan changes and extra blocks can pay for more than the plan asked for.
+    week = planned_minutes(rows, monday, today) - paid_minutes(player, monday, today, zone)
+    # Each study time earns its own study minutes, so the morning can't be spent in the evening.
+    opened = day_start(today, zone) + timedelta(minutes=current.start)
+    closed = day_start(today, zone) + timedelta(minutes=current.end)
+    used = FocusBlock.objects.filter(
+        player=player, kind__in=PAID_KINDS, outcome__in=PAID_OUTCOMES, started_at__gte=opened, started_at__lt=closed
+    ).aggregate(total=Sum("minutes"))["total"] or 0
+    return max(0, min(week, current.study_minutes - used)), current
+
+
+def classify(player, minutes, moment, rows=None):
+    """(kind, seconds of play it would earn) for a block of this length started at this moment. None without a plan.
+    Outside your study times nothing earns (ADR 0017), however much of the week is still to do."""
+    rows = rows_of(player) if rows is None else rows
+    if not in_force(rows, moment):
+        return None
+    room, current = room_now(player, rows, moment)
     if minutes > room:
-        return FocusBlock.Kind.FREE
-    used_today = paid_minutes(player, today, today, zone, (FocusBlock.Kind.PLAN,))
-    if studies_on(row, today) and open_window(row, local) and used_today + minutes <= row.daily_minutes:
-        return FocusBlock.Kind.PLAN
-    if _makeups_used(player, monday, sunday, zone) < rules.MAKEUPS_PER_WEEK:
-        return FocusBlock.Kind.MAKEUP
-    return FocusBlock.Kind.FREE
+        return FREE
+    return FocusBlock.Kind.PLAN, current.earns(minutes)
 
 
 def study_days_between(player, first, last):
@@ -177,12 +190,12 @@ def _next_window(rows, local):
     today = local.date()
     now = minute_of_day(local)
     for day in dates(today, today + timedelta(days=7)):
-        row = on_date(rows, day)
-        if not studies_on(row, day):
+        schedule = schedule_of(on_date(rows, day), day)
+        if not schedule:
             continue
-        for start, _ in row.windows:
-            if day > today or start > now:
-                return {"date": day, "start": clock_text(start)}
+        for time in schedule.times:
+            if day > today or time.start > now:
+                return {"date": day, "start": clock_text(time.start)}
     return None
 
 
@@ -204,9 +217,15 @@ def status_of(player):
     rows = rows_of(player)
     now = clock.now()
     limits = {
-        "makeups_per_week": rules.MAKEUPS_PER_WEEK,
-        "max_blocks_per_day": rules.PLAN_MAX_BLOCKS_PER_DAY,
+        "block_min_minutes": rules.BLOCK_MIN_MINUTES,
+        "block_max_minutes": rules.BLOCK_MAX_MINUTES,
+        "rest_min_minutes": rules.REST_MIN_MINUTES,
+        "rest_max_minutes": rules.REST_MAX_MINUTES,
+        "rest_max_share": rules.REST_MAX_SHARE,
+        "weekend": rules.WEEKEND,
         "max_windows": rules.PLAN_MAX_WINDOWS,
+        "max_breaks": rules.PLAN_MAX_BREAKS,
+        "max_day_minutes": rules.PLAN_MAX_DAY_MINUTES,
         "min_window_minutes": rules.PLAN_MIN_WINDOW_MINUTES,
         "change_days": rules.PLAN_CHANGE_DAYS,
         "presence_window_seconds": rules.PRESENCE_WINDOW_SECONDS,
@@ -220,24 +239,30 @@ def status_of(player):
     zone = ZoneInfo(row.time_zone)
     local = now.astimezone(zone)
     today = local.date()
-    monday, sunday = week_of(today)
-    window = open_window(row, local) if studies_on(row, today) else None
+    schedule = row.schedule_on(today)
+    window = open_window(schedule, local) if schedule else None
+    # What a block would be like now, or in the next study time today, so the screen can preview it.
+    preview = window or (schedule.after(minute_of_day(local)) if schedule else None)
     pending = rows[0] if rows[0].pk != row.pk else None
+    room, _ = room_now(player, rows, now)
     return {
         "plan": row.public(),
         "pending": pending.public() if pending else None,
         "changes_open_on": None if _first_plan_is_open(player, rows) or (pending and pending.by_player) else _unlocks_on(rows, now),
         "today": {
             "date": today,
-            "is_study_day": studies_on(row, today),
+            "is_study_day": schedule is not None,
             "in_window": window is not None,
-            "window_ends": clock_text(window[1]) if window else None,
+            "window_ends": clock_text(window.end) if window else None,
             "next_window": _next_window(rows, local),
-            "minutes_planned": row.daily_minutes if studies_on(row, today) else 0,
+            "minutes_planned": schedule.daily_minutes if schedule else 0,
             "minutes_earning": paid_minutes(player, today, today, zone),
-            "makeups_left": max(0, rules.MAKEUPS_PER_WEEK - _makeups_used(player, monday, sunday, zone)),
+            "block_minutes": preview.block_minutes if preview else None,
+            "rest_minutes": preview.rest_minutes if preview else None,
+            "slots": schedule.slots() if schedule else [],
+            # Any length up to this earns right now, at rest_minutes for every block_minutes. The server decides again at the start.
+            "room_minutes": room,
         },
-        "outlook": {str(minutes): classify(player, minutes, now, rows) for minutes in rules.BLOCK_MINUTES},
         "targets": {period: target_summary(player, rows, period, now) for period in PERIODS},
         "limits": limits,
         "time_zone": player.time_zone,
@@ -255,40 +280,51 @@ def _minutes(text):
     return int(hours) * 60 + int(minutes)
 
 
-def clean(days, blocks_per_day, block_minutes, windows):
-    """Checks a plan and returns it in stored form."""
+def _schedule(windows, where=""):
+    """Checks one day's study times and returns them in stored form. `where` says which day, when there are two."""
     bad = status.HTTP_400_BAD_REQUEST
+    if not 1 <= len(windows) <= rules.PLAN_MAX_WINDOWS:
+        raise GameError("bad_windows", f"{where}Set between 1 and {rules.PLAN_MAX_WINDOWS} study times.", bad)
+    times = sorted((_minutes(w["start"]), _minutes(w["end"]), w["breaks"], w["rest_minutes"]) for w in windows)
+    for start, end, _, _ in times:
+        if end - start < rules.PLAN_MIN_WINDOW_MINUTES:
+            raise GameError("window_too_short", f"{where}Each study time needs at least {rules.PLAN_MIN_WINDOW_MINUTES} minutes, and has to end the same day.", bad)
+    if any(earlier[1] > later[0] for earlier, later in zip(times, times[1:])):
+        raise GameError("windows_overlap", f"{where}Your study times overlap.", bad)
+    if sum(end - start for start, end, _, _ in times) > rules.PLAN_MAX_DAY_MINUTES:
+        hours = rules.PLAN_MAX_DAY_MINUTES // 60
+        raise GameError("windows_too_wide", f"{where}Keep your study times to {hours} hours a day at most. A plan that covers all day isn't a plan.", bad)
+    for row in times:
+        time = StudyTime(*row)
+        named = f"{where}{clock_text(time.start)} to {clock_text(time.end)}: "
+        if not 1 <= time.breaks <= rules.PLAN_MAX_BREAKS:
+            raise GameError("bad_breaks", f"{named}have 1 to {rules.PLAN_MAX_BREAKS} rest breaks.", bad)
+        if not rules.REST_MIN_MINUTES <= time.rest_minutes <= rules.REST_MAX_MINUTES:
+            raise GameError("bad_rest", f"{named}a break is {rules.REST_MIN_MINUTES} to {rules.REST_MAX_MINUTES} minutes.", bad)
+        if time.block_minutes < rules.BLOCK_MIN_MINUTES:
+            raise GameError("bad_block_length", f"{named}that leaves {max(0, time.block_minutes)} minutes of study between breaks, and it needs at least {rules.BLOCK_MIN_MINUTES}. Use fewer or shorter breaks, or a longer study time.", bad)
+        if time.block_minutes > rules.BLOCK_MAX_MINUTES:
+            raise GameError("bad_block_length", f"{named}that leaves {time.block_minutes} minutes of study between breaks, and {rules.BLOCK_MAX_MINUTES} is the most. Add a break, or shorten the study time.", bad)
+        if not rules.rest_fits(time.block_minutes, time.rest_minutes):
+            raise GameError("bad_rest", f"{named}each break can be at most half the {time.block_minutes} minutes of study before it, so {rules.rest_limit(time.block_minutes)} minutes or less.", bad)
+    return [list(row) for row in times]
+
+
+def clean(days, windows, weekend=None):
+    """Checks a plan and returns it in stored form. A weekend's own times are only kept if a weekend day is studied."""
     days = sorted(set(days))
     if not days or any(day not in range(7) for day in days):
-        raise GameError("bad_days", "Pick at least one day to study.", bad)
-    if block_minutes not in rules.BLOCK_MINUTES:
-        raise GameError("bad_block_length", "A block is 15, 25 or 45 minutes.", bad)
-    if not 1 <= blocks_per_day <= rules.PLAN_MAX_BLOCKS_PER_DAY:
-        raise GameError("bad_blocks_per_day", f"Plan between 1 and {rules.PLAN_MAX_BLOCKS_PER_DAY} blocks a day.", bad)
-    if not 1 <= len(windows) <= rules.PLAN_MAX_WINDOWS:
-        raise GameError("bad_windows", f"Set between 1 and {rules.PLAN_MAX_WINDOWS} study times.", bad)
-    spans = sorted((_minutes(w["start"]), _minutes(w["end"])) for w in windows)
-    for start, end in spans:
-        if end - start < rules.PLAN_MIN_WINDOW_MINUTES:
-            raise GameError("window_too_short", f"Each study time needs at least {rules.PLAN_MIN_WINDOW_MINUTES} minutes, and has to end the same day.", bad)
-    if any(earlier[1] > later[0] for earlier, later in zip(spans, spans[1:])):
-        raise GameError("windows_overlap", "Your study times overlap.", bad)
-    total = sum(end - start for start, end in spans)
-    daily = blocks_per_day * block_minutes
-    if total < daily:
-        raise GameError("windows_too_small", f"Your study times need to add up to at least your {daily} minutes a day.", bad)
-    limit = max(rules.PLAN_WINDOW_FLOOR_MINUTES, daily * rules.PLAN_WINDOW_SLACK)
-    if total > limit:
-        raise GameError("windows_too_wide", f"Keep your study times to {limit} minutes a day at most. A plan that covers all day isn't a plan.", bad)
-    return {"days": days, "blocks_per_day": blocks_per_day, "block_minutes": block_minutes, "windows": [list(span) for span in spans]}
+        raise GameError("bad_days", "Pick at least one day to study.", status.HTTP_400_BAD_REQUEST)
+    studies_weekend = any(day in rules.WEEKEND for day in days)
+    return {"days": days, "windows": _schedule(windows), "weekend": _schedule(weekend, "At the weekend, ") if weekend and studies_weekend else None}
 
 
 @transaction.atomic
-def set_plan(user, days, blocks_per_day, block_minutes, windows):
+def set_plan(user, days, windows, weekend=None):
     """A first plan starts today. Later changes start tomorrow, at most once a week, so a plan can't be
     moved to wherever you happen to be right now."""
     player = services.locked_player(user)
-    fields = clean(days, blocks_per_day, block_minutes, windows)
+    fields = clean(days, windows, weekend)
     now = clock.now()
     fields |= {"time_zone": player.time_zone, "created_at": now, "by_player": True}
     today = now.astimezone(ZoneInfo(player.time_zone)).date()
@@ -331,9 +367,8 @@ def follow_time_zone(player):
         effective_from=tomorrow,
         defaults={
             "days": newest.days,
-            "blocks_per_day": newest.blocks_per_day,
-            "block_minutes": newest.block_minutes,
             "windows": newest.windows,
+            "weekend": newest.weekend,
             "time_zone": player.time_zone,
             # A change the player already asked for stays theirs. The copy itself doesn't use up their weekly change.
             "by_player": newest.by_player and newest.effective_from == tomorrow,

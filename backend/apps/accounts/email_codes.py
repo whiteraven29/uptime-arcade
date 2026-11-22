@@ -92,7 +92,7 @@ def send_reset(user):
 def send_password_changed(user):
     send_mail(
         "Your Uptime Arcade password was changed",
-        f"Hi {user.username},\n\nYour password was just changed, and every device was logged out.\n\n"
+        f"Hi {user.username},\n\nYour password was just changed, and your other devices were logged out.\n\n"
         "If this was you, there's nothing to do. If it wasn't, use Forgot password on the login page straight away.\n",
         settings.DEFAULT_FROM_EMAIL,
         [user.email],

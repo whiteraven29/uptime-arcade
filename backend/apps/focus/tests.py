@@ -44,9 +44,13 @@ class TestStartingABlock:
         row = FocusBlock.objects.get(pk=response.json()["block"]["id"])
         assert row.started_at == clock.now()
 
-    @pytest.mark.parametrize("minutes", [0, 1, 14, 16, 60, -25, 1000000])
-    def test_only_allows_the_real_lengths(self, api, minutes):
+    @pytest.mark.parametrize("minutes", [0, 1, 9, 91, -25, 1000000])
+    def test_only_allows_lengths_in_range(self, api, minutes):
         assert start(api, minutes).status_code == 400
+
+    @pytest.mark.parametrize("minutes", [10, 33, 50, 90])
+    def test_any_length_in_range_will_do(self, api, minutes):
+        assert start(api, minutes).status_code == 201
 
     @pytest.mark.parametrize("goal", ["", "   ", "x" * 101])
     def test_needs_a_sensible_goal(self, api, goal):
@@ -70,19 +74,27 @@ class TestStartingABlock:
 
 
 class TestClaiming:
-    # The block itself starts a one-day streak, so its XP already has the +5%.
-    @pytest.mark.parametrize("minutes,seconds,xp", [(15, 300, 16), (25, 480, 26), (45, 900, 47)])
-    def test_pays_what_the_table_says_when_goal_not_finished(self, api, clock, minutes, seconds, xp):
+    # The block itself starts a one-day streak, so its XP already has the +5%. The test plan is 45 minute
+    # blocks with 15 minutes of rest, so other lengths earn rest in step with their length.
+    @pytest.mark.parametrize("minutes,seconds,xp", [(15, 300, 16), (25, 500, 26), (45, 900, 47)])
+    def test_pays_the_plans_rest_when_goal_not_finished(self, api, clock, minutes, seconds, xp):
         body = finish(api, clock, minutes, done=False).json()
         assert body["seconds_earned"] == seconds
         assert body["bank_seconds"] == 300 + seconds
         assert body["xp"] == xp
 
-    @pytest.mark.parametrize("minutes", rules.BLOCK_MINUTES)
-    def test_finishing_the_goal_adds_the_bonus(self, api, clock, minutes):
+    @pytest.mark.parametrize("minutes", [15, 25, 45])
+    def test_finishing_the_goal_adds_xp_but_not_time(self, api, clock, minutes):
         body = finish(api, clock, minutes, done=True).json()
-        assert body["seconds_earned"] == rules.EARN_SECONDS[minutes] + 120
+        assert body["seconds_earned"] == rules.rest_earned(45, 15, minutes)
         assert body["xp"] == rules.apply_multiplier(minutes + 10, 1)
+
+    def test_what_it_earns_is_fixed_when_it_starts(self, api, clock):
+        block = start(api, 45).json()["block"]
+        assert block["earn_seconds"] == 900
+        StudyPlan.objects.filter(player=api.user.player).update(windows=[[0, 1440, 24, 5]])
+        clock.advance(minutes=45)
+        assert claim(api, block["id"]).json()["seconds_earned"] == 900
 
     def test_is_refused_before_the_timer_ends(self, api, clock):
         block = start(api, 25).json()["block"]
@@ -257,11 +269,24 @@ WEEKDAYS = [0, 1, 2, 3, 4]
 
 
 def plan_body(**over):
-    # Two 25 minute blocks, Monday to Friday, in the morning. 2026-11-06 is a Friday, and the clock starts at 08:00 UTC.
-    return {"days": WEEKDAYS, "blocks_per_day": 2, "block_minutes": 25, "windows": [{"start": "08:00", "end": "10:00"}], **over}
+    # 08:00 to 09:00 with two 5 minute breaks: two 25 minute blocks, Monday to Friday. 2026-11-06 is a Friday, and the
+    # clock starts at 08:00 UTC.
+    return {"days": WEEKDAYS, "windows": [w("08:00", "09:00")], **over}
 
 
-def set_plan(api, **over):
+def w(start, end, breaks=2, rest=5):
+    """A study time on the player's terms."""
+    return {"start": start, "end": end, "breaks": breaks, "rest_minutes": rest}
+
+
+# Two hours with 30 minutes of rest in two breaks: 45 study, 15 play, 45 study, 15 play.
+EVENING = [w("21:00", "23:00", 2, 15)]
+
+
+def set_plan(api, breaks=None, **over):
+    """`breaks` changes the morning's breaks, which tests use as a plain change to a plan."""
+    if breaks:
+        over["windows"] = [w("08:00", "09:00", breaks)]
     return api.put(PLAN, plan_body(**over), format="json")
 
 
@@ -294,7 +319,7 @@ def planner(newcomer, clock):
 class TestSettingAPlan:
     def test_a_new_player_has_none(self, newcomer):
         body = newcomer.get(PLAN).json()
-        assert body["plan"] is None and body["targets"] is None and body["limits"]["makeups_per_week"] == 2
+        assert body["plan"] is None and body["targets"] is None and body["limits"]["rest_max_share"] == 0.5
 
     def test_a_block_needs_one_first(self, newcomer, clock):
         response = start(newcomer)
@@ -306,8 +331,8 @@ class TestSettingAPlan:
         body = set_plan(newcomer).json()
         assert body["plan"]["effective_from"] == "2026-11-06"
         assert body["plan"]["daily_minutes"] == 50
-        assert body["plan"]["windows"] == [{"start": "08:00", "end": "10:00"}]
-        assert body["today"]["in_window"] is True and body["today"]["window_ends"] == "10:00"
+        assert body["plan"]["windows"] == [{"start": "08:00", "end": "09:00", "breaks": 2, "rest_minutes": 5, "block_minutes": 25, "study_minutes": 50}]
+        assert body["today"]["in_window"] is True and body["today"]["window_ends"] == "09:00"
 
     def test_ignores_a_start_date_or_zone_from_the_client(self, newcomer, clock):
         utc_player(newcomer)
@@ -318,18 +343,24 @@ class TestSettingAPlan:
         ({"days": []}, "bad_days"),
         ({"days": [7]}, "bad_days"),
         ({"days": [-1]}, "bad_days"),
-        ({"blocks_per_day": 0}, "bad_blocks_per_day"),
-        ({"blocks_per_day": 7}, "bad_blocks_per_day"),
-        ({"block_minutes": 30}, "bad_block_length"),
         ({"windows": []}, "bad_windows"),
-        ({"windows": [{"start": "08:00", "end": "09:00"}] * 4}, "bad_windows"),
-        ({"windows": [{"start": "8am", "end": "09:00"}]}, "bad_time"),
-        ({"windows": [{"start": "24:30", "end": "24:45"}]}, "bad_time"),
-        ({"windows": [{"start": "08:00", "end": "08:29"}]}, "window_too_short"),
-        ({"windows": [{"start": "23:00", "end": "01:00"}]}, "window_too_short"),
-        ({"windows": [{"start": "08:00", "end": "09:30"}, {"start": "09:00", "end": "10:30"}]}, "windows_overlap"),
-        ({"blocks_per_day": 6, "block_minutes": 45, "windows": [{"start": "08:00", "end": "09:00"}]}, "windows_too_small"),
-        ({"windows": [{"start": "00:00", "end": "24:00"}]}, "windows_too_wide"),
+        ({"windows": [w("08:00", "09:00")] * 4}, "bad_windows"),
+        ({"windows": [w("8am", "09:00")]}, "bad_time"),
+        ({"windows": [w("24:30", "24:45")]}, "bad_time"),
+        ({"windows": [w("08:00", "08:29")]}, "window_too_short"),
+        ({"windows": [w("23:00", "01:00")]}, "window_too_short"),
+        ({"windows": [w("08:00", "09:30"), w("09:00", "10:30")]}, "windows_overlap"),
+        ({"windows": [w("00:00", "24:00", 4)]}, "windows_too_wide"),
+        ({"windows": [w("06:00", "10:30", 3), w("18:00", "22:00", 3)]}, "windows_too_wide"),  # 8:30 in a day
+        ({"windows": [w("08:00", "09:00", 0)]}, "bad_breaks"),
+        ({"windows": [w("08:00", "11:00", 5)]}, "bad_breaks"),
+        ({"windows": [w("08:00", "09:00", 1, 4)]}, "bad_rest"),
+        ({"windows": [w("08:00", "11:00", 2, 31)]}, "bad_rest"),
+        ({"windows": [w("08:00", "09:00", 4, 10)]}, "bad_block_length"),  # leaves 5 minutes of study
+        ({"windows": [w("08:00", "10:00", 1)]}, "bad_block_length"),  # leaves 115
+        ({"windows": [w("08:00", "09:00", 2, 15)]}, "bad_rest"),  # 15 of play after 15 of study
+        ({"days": [0, 5], "weekend": [w("21:00", "23:00", 2, 40)]}, "bad_rest"),
+        ({"days": [0, 5], "weekend": [w("21:00", "21:20")]}, "window_too_short"),
     ])
     def test_refuses_a_plan_that_isnt_one(self, newcomer, clock, over, code):
         response = set_plan(newcomer, **over)
@@ -337,32 +368,32 @@ class TestSettingAPlan:
         assert not StudyPlan.objects.exists()
 
     def test_days_and_times_are_tidied(self, newcomer, clock):
-        windows = [{"start": "18:00", "end": "19:00"}, {"start": "08:00", "end": "09:00"}]
+        windows = [w("18:00", "19:00"), w("08:00", "09:00")]
         body = set_plan(newcomer, days=[4, 0, 4], windows=windows).json()
         assert body["plan"]["days"] == [0, 4]
         assert body["plan"]["windows"][0]["start"] == "08:00"
 
     def test_windows_can_touch(self, newcomer, clock):
-        assert set_plan(newcomer, windows=[{"start": "08:00", "end": "09:00"}, {"start": "09:00", "end": "10:00"}]).status_code == 200
+        assert set_plan(newcomer, windows=[w("08:00", "09:00"), w("09:00", "10:00")]).status_code == 200
 
     def test_someone_elses_plan_stays_theirs(self, planner, other_api):
-        assert other_api.get(PLAN).json()["plan"]["blocks_per_day"] == 40
+        assert other_api.get(PLAN).json()["plan"]["windows"][0]["breaks"] == 24
 
 
 class TestChangingAPlan:
     def test_a_typo_can_be_fixed_until_the_first_block(self, planner, clock):
-        body = set_plan(planner, blocks_per_day=3).json()
-        assert body["plan"]["blocks_per_day"] == 3 and body["plan"]["effective_from"] == "2026-11-06"
+        body = set_plan(planner, breaks=3).json()
+        assert body["plan"]["windows"][0]["breaks"] == 3 and body["plan"]["effective_from"] == "2026-11-06"
         assert StudyPlan.objects.count() == 1
 
     def test_a_typo_can_still_be_fixed_after_moving_your_zone(self, planner, clock):
         planner.patch("/api/v1/auth/me/", {"time_zone": "Asia/Tokyo"}, format="json")
-        assert set_plan(planner, blocks_per_day=3).status_code == 200
-        assert set_plan(planner, blocks_per_day=4).status_code == 200
+        assert set_plan(planner, breaks=3).status_code == 200
+        assert set_plan(planner, breaks=4).status_code == 200
 
     def test_after_a_block_it_is_locked_for_a_week(self, planner, clock):
         start(planner)
-        response = set_plan(planner, blocks_per_day=3)
+        response = set_plan(planner, breaks=3)
         assert response.status_code == 409 and error(response) == "plan_locked"
         assert "2026-11-13" in response.json()["error"]["message"]
         assert planner.get(PLAN).json()["changes_open_on"] == "2026-11-13"
@@ -370,40 +401,40 @@ class TestChangingAPlan:
     def test_a_change_starts_tomorrow_not_today(self, planner, clock):
         run_block(planner, clock)
         clock.advance(days=7)
-        body = set_plan(planner, blocks_per_day=3).json()
-        assert body["plan"]["blocks_per_day"] == 2
-        assert body["pending"]["blocks_per_day"] == 3 and body["pending"]["effective_from"] == "2026-11-14"
+        body = set_plan(planner, breaks=3).json()
+        assert body["plan"]["windows"][0]["breaks"] == 2
+        assert body["pending"]["windows"][0]["breaks"] == 3 and body["pending"]["effective_from"] == "2026-11-14"
         clock.advance(days=1)
         body = planner.get(PLAN).json()
-        assert body["plan"]["blocks_per_day"] == 3 and body["pending"] is None
+        assert body["plan"]["windows"][0]["breaks"] == 3 and body["pending"] is None
 
     def test_cant_move_todays_window_to_where_you_are_now(self, planner, clock):
         run_block(planner, clock)
         clock.advance(days=7, hours=5)  # Friday 13:33, well outside the morning
-        set_plan(planner, windows=[{"start": "13:00", "end": "15:00"}])
+        set_plan(planner, windows=[w("13:00", "15:00")])
         assert planner.get(PLAN).json()["today"]["in_window"] is False
 
     def test_a_change_waiting_to_start_can_be_replaced(self, planner, clock):
         run_block(planner, clock)
         clock.advance(days=7)
-        set_plan(planner, blocks_per_day=3)
-        body = set_plan(planner, blocks_per_day=4).json()
-        assert body["pending"]["blocks_per_day"] == 4
+        set_plan(planner, breaks=3)
+        body = set_plan(planner, breaks=4).json()
+        assert body["pending"]["windows"][0]["breaks"] == 4
         assert body["pending"]["effective_from"] == "2026-11-14"
 
     def test_the_week_starts_again_after_a_change(self, planner, clock):
         run_block(planner, clock)
         clock.advance(days=7)
-        set_plan(planner, blocks_per_day=3)
+        set_plan(planner, breaks=3)
         clock.advance(days=1)
-        assert error(set_plan(planner, blocks_per_day=4)) == "plan_locked"
+        assert error(set_plan(planner, breaks=4)) == "plan_locked"
 
 
 class TestTimeZones:
     def test_windows_are_in_your_own_zone(self, newcomer, clock):
         Player.objects.filter(pk=newcomer.user.player.pk).update(time_zone="Africa/Nairobi")
         # 08:00 UTC is 11:00 in Nairobi.
-        assert set_plan(newcomer, windows=[{"start": "11:00", "end": "12:00"}]).json()["today"]["in_window"] is True
+        assert set_plan(newcomer, windows=[w("11:00", "12:00")]).json()["today"]["in_window"] is True
 
     def test_moving_your_zone_opens_no_window_today(self, planner, clock):
         clock.advance(hours=4)  # 12:00 UTC, past the morning
@@ -427,12 +458,12 @@ class TestTimeZones:
         clock.advance(days=7)
         planner.patch("/api/v1/auth/me/", {"time_zone": "Asia/Tokyo"}, format="json")
         clock.advance(days=2)
-        assert set_plan(planner, blocks_per_day=3).status_code == 200
+        assert set_plan(planner, breaks=3).status_code == 200
 
     def test_moving_your_zone_cant_get_round_the_weekly_lock(self, planner, clock):
         run_block(planner, clock)
         planner.patch("/api/v1/auth/me/", {"time_zone": "Asia/Tokyo"}, format="json")
-        assert error(set_plan(planner, blocks_per_day=3)) == "plan_locked"
+        assert error(set_plan(planner, breaks=3)) == "plan_locked"
 
     def test_no_plan_means_nothing_to_move(self, newcomer, clock):
         assert newcomer.patch("/api/v1/auth/me/", {"time_zone": "Asia/Tokyo"}, format="json").status_code == 200
@@ -445,24 +476,24 @@ class TestWhatABlockEarns:
         assert kind_of(response) == "plan"
         clock.advance(minutes=25)
         body = claim(planner, response.json()["block"]["id"]).json()
-        assert body["result"] == "plan" and body["seconds_earned"] == 600 and body["xp"] == 37
+        assert body["result"] == "plan" and body["seconds_earned"] == 300 and body["xp"] == 37
 
     def test_a_window_includes_its_first_minute(self, planner, clock):
         clock.set(2026, 11, 6, 8, 0)
-        assert planner.get(PLAN).json()["outlook"]["25"] == "plan"
+        assert planner.get(PLAN).json()["today"]["room_minutes"] == 50
 
     def test_a_window_stops_at_its_last_minute(self, planner, clock):
-        clock.set(2026, 11, 6, 9, 59, 59)
+        clock.set(2026, 11, 6, 8, 59, 59)
         assert planner.get(PLAN).json()["today"]["in_window"] is True
-        clock.set(2026, 11, 6, 10, 0)
+        clock.set(2026, 11, 6, 9, 0)
         assert planner.get(PLAN).json()["today"]["in_window"] is False
 
     def test_only_the_start_needs_to_be_in_the_window(self, planner, clock):
-        clock.set(2026, 11, 6, 9, 59)
+        clock.set(2026, 11, 6, 8, 59)
         block = start(planner).json()["block"]
         assert block["kind"] == "plan"
         clock.advance(minutes=25)
-        assert claim(planner, block["id"]).json()["seconds_earned"] == 600
+        assert claim(planner, block["id"]).json()["seconds_earned"] == 300
 
     def test_the_daily_amount_is_the_limit(self, planner, clock):
         run_block(planner, clock)
@@ -480,8 +511,8 @@ class TestWhatABlockEarns:
         clock.set(2026, 11, 10, 8, 0)  # Tuesday, with Monday's 50 minutes unused
         run_block(newcomer, clock)
         run_block(newcomer, clock)
-        # Still inside the window, but today's amount is done: catching up has to use a make-up.
-        assert kind_of(start(newcomer)) == "makeup"
+        # Still inside the window, but today's amount is done, and nothing earns past it.
+        assert kind_of(start(newcomer)) == "free"
 
     def test_a_length_that_doesnt_fit_doesnt_earn(self, planner, clock):
         # 50 minutes a day: a 45 fits, and then a 15 doesn't, though there are 5 minutes left.
@@ -522,66 +553,236 @@ class TestWhatABlockEarns:
         assert planner.get("/api/v1/player/").json()["focus_minutes"] == 75
 
 
-class TestMakeUps:
-    def test_before_anything_is_missed_theres_only_today_to_make_up(self, planner, clock):
+class TestNothingEarnsOutsideTheWindow:
+    """ADR 0017: a block earns only inside your study times. There are no make-ups."""
+
+    def test_before_the_window_is_extra(self, planner, clock):
+        clock.set(2026, 11, 6, 7, 0)  # Friday, an hour before the morning
+        assert kind_of(start(planner)) == "free"
+
+    def test_after_the_window_is_extra_even_with_the_day_still_to_do(self, planner, clock):
         clock.set(2026, 11, 6, 15, 0)  # Friday afternoon, with today's 50 minutes still to do
-        assert kind_of(start(planner)) == "makeup"
-
-    def test_nothing_to_make_up_means_no_pay(self, planner, clock):
-        run_block(planner, clock)
-        run_block(planner, clock)
-        clock.set(2026, 11, 6, 15, 0)
-        assert kind_of(start(planner)) == "free"
-
-    def test_a_day_off_can_catch_up_a_missed_day(self, planner, clock):
-        clock.set(2026, 11, 7, 12, 0)  # Saturday, a day off, with Friday's block not done
-        assert kind_of(start(planner)) == "makeup"
-
-    def test_two_a_week_and_no_more(self, newcomer, clock):
-        utc_player(newcomer)
-        clock.set(2026, 11, 9, 8, 0)  # Monday
-        set_plan(newcomer)
-        clock.set(2026, 11, 11, 15, 0)  # Wednesday afternoon, two days missed
-        run_block(newcomer, clock)
-        block, _ = run_block(newcomer, clock)
-        assert block["kind"] == "makeup"
-        assert newcomer.get(PLAN).json()["today"]["makeups_left"] == 0
-        assert kind_of(start(newcomer)) == "free"
-
-    def test_they_come_back_next_week(self, newcomer, clock):
-        utc_player(newcomer)
-        clock.set(2026, 11, 9, 8, 0)
-        set_plan(newcomer)
-        clock.set(2026, 11, 11, 15, 0)
-        run_block(newcomer, clock)
-        run_block(newcomer, clock)
-        clock.set(2026, 11, 16, 15, 0)  # next Monday afternoon
-        assert kind_of(start(newcomer)) == "makeup"
-
-    def test_a_missed_week_cant_be_carried_over(self, newcomer, clock):
-        utc_player(newcomer)
-        clock.set(2026, 11, 2, 8, 0)
-        set_plan(newcomer)
-        clock.set(2026, 11, 9, 7, 0)  # Monday, before the morning window, and all of last week unused
-        assert newcomer.get(PLAN).json()["outlook"]["25"] == "makeup"
-        run_block(newcomer, clock)
-        run_block(newcomer, clock)
-        # Two make-ups covered today's 50 minutes, and last week's gap can't pay for a third.
-        assert kind_of(start(newcomer)) == "free"
-
-    def test_a_make_up_pays_and_keeps_the_streak(self, planner, clock):
-        clock.set(2026, 11, 6, 15, 0)
+        assert planner.get(PLAN).json()["today"]["room_minutes"] == 0
         _, body = run_block(planner, clock)
-        assert body["result"] == "makeup" and body["seconds_earned"] == 600 and body["streak"] == 1
+        assert body["result"] == "free" and body["seconds_earned"] == 0 and body["xp"] == 0
 
-    def test_make_ups_cant_add_to_a_day_youve_also_kept(self, planner, clock):
-        clock.set(2026, 11, 6, 7, 0)  # before the window: covers one of today's two
-        run_block(planner, clock)
-        clock.set(2026, 11, 6, 8, 0)
-        run_block(planner, clock)
-        # That's 50 minutes paid, which is everything planned so far.
+    def test_a_day_off_earns_nothing(self, planner, clock):
+        clock.set(2026, 11, 7, 8, 0)  # Saturday, a day off, at the weekday's study time
         assert kind_of(start(planner)) == "free"
 
+    def test_extra_blocks_still_go_on_the_map(self, planner, clock):
+        clock.set(2026, 11, 6, 15, 0)
+        run_block(planner, clock)
+        days = planner.get("/api/v1/focus/history/").json()["days"]
+        assert days == [{"date": "2026-11-06", "minutes": 25, "blocks": 1}]
+
+    def test_nothing_is_said_about_make_ups(self, planner, clock):
+        body = planner.get(PLAN).json()
+        assert "makeups_left" not in body["today"] and "makeups_per_week" not in body["limits"]
+
+
+class TestStudyTimesOnYourTerms:
+    """ADR 0017: each study time is set by the player, with its rest breaks inside it, and the study between breaks
+    is worked out from that."""
+
+    MORNING_AND_EVENING = [w("04:00", "06:00", 2, 15), *EVENING]
+
+    def plan(self, newcomer, windows=MORNING_AND_EVENING):
+        utc_player(newcomer)
+        return set_plan(newcomer, windows=windows)
+
+    def test_two_study_times_with_thirty_minutes_of_play_in_each(self, newcomer, clock):
+        clock.set(2026, 11, 9, 4, 0)  # Monday, 04:00
+        body = self.plan(newcomer).json()
+        assert body["plan"]["daily_minutes"] == 180
+        assert [(t["start"], t["end"], t["block_minutes"], t["breaks"], t["rest_minutes"]) for t in body["plan"]["windows"]] == [
+            ("04:00", "06:00", 45, 2, 15),
+            ("21:00", "23:00", 45, 2, 15),
+        ]
+        assert body["today"]["slots"] == [
+            {"kind": "study", "start": "04:00", "minutes": 45},
+            {"kind": "rest", "start": "04:45", "minutes": 15},
+            {"kind": "study", "start": "05:00", "minutes": 45},
+            {"kind": "rest", "start": "05:45", "minutes": 15},
+            {"kind": "study", "start": "21:00", "minutes": 45},
+            {"kind": "rest", "start": "21:45", "minutes": 15},
+            {"kind": "study", "start": "22:00", "minutes": 45},
+            {"kind": "rest", "start": "22:45", "minutes": 15},
+        ]
+
+    def test_each_study_time_earns_its_own_minutes(self, newcomer, clock):
+        clock.set(2026, 11, 9, 4, 0)
+        self.plan(newcomer)
+        # What each block earns, before the bank's 30:00 cap: these tests don't play the rest.
+        run_block(newcomer, clock, 45, gap={"minutes": 15})
+        second, _ = run_block(newcomer, clock, 45)
+        assert second["kind"] == "plan" and second["earn_seconds"] == 900
+        assert newcomer.get(PLAN).json()["today"]["room_minutes"] == 0  # 05:45: the morning's study is done
+        clock.set(2026, 11, 9, 21, 0)
+        assert newcomer.get(PLAN).json()["today"]["room_minutes"] == 90
+        evening, _ = run_block(newcomer, clock, 45)
+        assert evening["kind"] == "plan" and evening["earn_seconds"] == 900
+
+    def test_a_missed_morning_cant_be_studied_in_the_evening(self, newcomer, clock):
+        clock.set(2026, 11, 9, 21, 0)
+        self.plan(newcomer)
+        assert kind_of(start(newcomer, 90)) == "plan"
+        FocusBlock.objects.filter(outcome="").delete()
+        assert newcomer.get(PLAN).json()["today"]["room_minutes"] == 90
+
+    def test_each_study_time_can_be_set_its_own_way(self, newcomer, clock):
+        clock.set(2026, 11, 9, 4, 0)
+        self.plan(newcomer, [w("04:00", "06:00", 3, 10), *EVENING])  # three 30s with 10 minute breaks
+        today = newcomer.get(PLAN).json()["today"]
+        assert (today["block_minutes"], today["rest_minutes"]) == (30, 10)
+        _, claimed = run_block(newcomer, clock, 30)
+        assert claimed["seconds_earned"] == 600
+        clock.set(2026, 11, 9, 21, 0)
+        today = newcomer.get(PLAN).json()["today"]
+        assert (today["block_minutes"], today["rest_minutes"]) == (45, 15)
+
+    def test_before_a_study_time_the_next_one_is_previewed(self, newcomer, clock):
+        clock.set(2026, 11, 9, 12, 0)
+        self.plan(newcomer)
+        today = newcomer.get(PLAN).json()["today"]
+        assert today["room_minutes"] == 0 and (today["block_minutes"], today["rest_minutes"]) == (45, 15)
+
+    def test_fifty_minutes_of_study_can_have_a_twenty_five_minute_break(self, newcomer, clock):
+        self.plan(newcomer, [w("08:00", "09:15", 1, 25)])
+        _, claimed = run_block(newcomer, clock, 50)
+        assert claimed["seconds_earned"] == 25 * 60
+
+    def test_odd_numbers_are_fine(self, newcomer, clock):
+        body = self.plan(newcomer, [w("08:00", "09:40", 2, 13)]).json()
+        assert body["plan"]["windows"][0]["block_minutes"] == 37
+        _, claimed = run_block(newcomer, clock, 37)
+        assert claimed["seconds_earned"] == 13 * 60
+
+    def test_another_length_earns_in_step_and_rounds_down(self, newcomer, clock):
+        self.plan(newcomer, [w("08:00", "09:50", 2, 10)])  # two 45s
+        _, claimed = run_block(newcomer, clock, 22)
+        assert claimed["seconds_earned"] == 10 * 60 * 22 // 45
+
+    def test_room_says_how_long_a_block_can_still_earn(self, newcomer, clock):
+        self.plan(newcomer, [w("08:00", "10:30", 2, 25)])  # two 50s
+        run_block(newcomer, clock, 30)
+        assert newcomer.get(PLAN).json()["today"]["room_minutes"] == 70
+        assert kind_of(start(newcomer, 71)) == "free"
+        FocusBlock.objects.filter(outcome="").delete()
+        assert kind_of(start(newcomer, 70)) == "plan"
+
+    def test_the_limits_are_told(self, newcomer, clock):
+        limits = newcomer.get(PLAN).json()["limits"]
+        assert (limits["block_min_minutes"], limits["block_max_minutes"], limits["rest_min_minutes"], limits["rest_max_minutes"], limits["max_breaks"]) == (10, 90, 5, 30, 4)
+
+    def test_the_message_names_the_study_time(self, newcomer, clock):
+        response = self.plan(newcomer, [w("04:00", "06:00", 2, 15), w("21:00", "22:00", 4, 10)])
+        assert error(response) == "bad_block_length" and "21:00 to 22:00" in response.json()["error"]["message"]
+
+
+class TestRest:
+    def evening(self, newcomer, **over):
+        utc_player(newcomer)
+        clock_body = {"days": WEEKDAYS, "windows": EVENING, **over}
+        return newcomer.put(PLAN, clock_body, format="json")
+
+    def test_two_hours_hold_two_blocks_and_their_rest(self, newcomer, clock):
+        clock.set(2026, 11, 9, 21, 0)  # Monday evening
+        body = self.evening(newcomer).json()
+        assert body["plan"]["windows"][0]["rest_minutes"] == 15
+        assert body["today"]["slots"] == [
+            {"kind": "study", "start": "21:00", "minutes": 45},
+            {"kind": "rest", "start": "21:45", "minutes": 15},
+            {"kind": "study", "start": "22:00", "minutes": 45},
+            {"kind": "rest", "start": "22:45", "minutes": 15},
+        ]
+
+    def test_a_kept_block_earns_its_rest(self, newcomer, clock):
+        clock.set(2026, 11, 9, 21, 0)
+        self.evening(newcomer)
+        today = newcomer.get(PLAN).json()["today"]
+        assert (today["room_minutes"], today["block_minutes"], today["rest_minutes"]) == (90, 45, 15)
+        _, body = run_block(newcomer, clock, 45)
+        assert body["result"] == "plan" and body["seconds_earned"] == 900
+
+    def test_the_rest_can_be_played_and_the_next_block_still_earns(self, newcomer, clock):
+        clock.set(2026, 11, 9, 21, 0)
+        self.evening(newcomer)
+        run_block(newcomer, clock, 45)
+        newcomer.post("/api/v1/sessions/open/")
+        clock.advance(minutes=15)
+        _, body = run_block(newcomer, clock, 45)
+        assert body["result"] == "plan" and body["seconds_earned"] == 900
+
+    def test_a_shorter_block_earns_rest_in_step(self, newcomer, clock):
+        clock.set(2026, 11, 9, 21, 0)
+        self.evening(newcomer)
+        _, body = run_block(newcomer, clock, 15)
+        assert body["seconds_earned"] == 300
+
+    def test_nothing_after_the_evening_ends(self, newcomer, clock):
+        clock.set(2026, 11, 9, 23, 0)
+        self.evening(newcomer)
+        assert kind_of(start(newcomer, 45)) == "free"
+
+    def test_a_day_off_has_no_slots(self, planner, clock):
+        clock.set(2026, 11, 7, 8, 0)
+        assert planner.get(PLAN).json()["today"]["slots"] == []
+
+
+class TestWeekends:
+    def plan(self, newcomer, weekend=EVENING, days=(0, 1, 2, 3, 4, 5, 6)):
+        utc_player(newcomer)
+        return set_plan(newcomer, days=list(days), weekend=weekend)
+
+    def test_the_weekend_keeps_its_own_times(self, newcomer, clock):
+        body = self.plan(newcomer).json()
+        assert body["plan"]["windows"][0]["end"] == "09:00"
+        assert body["plan"]["weekend"]["windows"][0]["start"] == "21:00"
+        assert body["plan"]["weekend"]["daily_minutes"] == 90
+
+    def test_saturday_follows_the_weekend_times(self, newcomer, clock):
+        self.plan(newcomer)
+        clock.set(2026, 11, 7, 8, 0)  # Saturday, at the weekday morning time
+        assert kind_of(start(newcomer)) == "free"
+        clock.set(2026, 11, 7, 21, 0)
+        FocusBlock.objects.all().delete()
+        body = newcomer.get(PLAN).json()
+        assert body["today"]["in_window"] is True and body["today"]["minutes_planned"] == 90
+        _, claimed = run_block(newcomer, clock, 45)
+        assert claimed["result"] == "plan" and claimed["seconds_earned"] == 900
+
+    def test_weekdays_dont_use_the_weekend_times(self, newcomer, clock):
+        self.plan(newcomer)
+        clock.set(2026, 11, 9, 21, 0)  # Monday evening
+        assert kind_of(start(newcomer)) == "free"
+
+    def test_without_one_the_weekend_follows_the_week(self, newcomer, clock):
+        self.plan(newcomer, weekend=None)
+        clock.set(2026, 11, 7, 8, 0)
+        assert kind_of(start(newcomer)) == "plan"
+
+    def test_a_weekend_off_drops_its_schedule(self, newcomer, clock):
+        body = self.plan(newcomer, days=WEEKDAYS).json()
+        assert body["plan"]["weekend"] is None
+
+    def test_goals_count_both(self, newcomer, clock):
+        clock.set(2026, 11, 2, 8, 0)  # Monday
+        goals = self.plan(newcomer).json()["targets"]
+        assert goals["week"]["target_minutes"] == 345  # 80% of 5 x 50 and 2 x 90, rounded up to the next 5
+
+    def test_next_study_time_on_friday_evening_is_saturday_night(self, newcomer, clock):
+        clock.set(2026, 11, 6, 12, 0)  # Friday, after the morning
+        self.plan(newcomer)
+        assert newcomer.get(PLAN).json()["today"]["next_window"] == {"date": "2026-11-07", "start": "21:00"}
+
+    def test_moving_your_zone_keeps_the_weekend(self, newcomer, clock):
+        self.plan(newcomer)
+        newcomer.patch("/api/v1/auth/me/", {"time_zone": "Asia/Tokyo"}, format="json")
+        assert newcomer.get(PLAN).json()["pending"]["weekend"]["windows"][0]["start"] == "21:00"
+
+
+class TestTheWeeklyCeiling:
     def test_no_mix_of_blocks_pays_for_more_than_the_plan(self, newcomer, clock):
         """Whatever someone tries, in or out of their windows, paid minutes never pass what was planned."""
         utc_player(newcomer)
@@ -590,17 +791,17 @@ class TestMakeUps:
         chooser = random.Random(7)
         for _ in range(60):
             clock.advance(hours=chooser.randint(1, 30), minutes=chooser.randint(0, 59))
-            run_block(newcomer, clock, chooser.choice(rules.BLOCK_MINUTES))
+            run_block(newcomer, clock, chooser.randint(rules.BLOCK_MIN_MINUTES, rules.BLOCK_MAX_MINUTES))
             now = clock.now().date()
             monday = now - timedelta(days=now.weekday())
-            paid = FocusBlock.objects.filter(player=newcomer.user.player, kind__in=["plan", "makeup"], outcome__in=["done", "not_done"], started_at__date__gte=monday, started_at__date__lte=now)
+            paid = FocusBlock.objects.filter(player=newcomer.user.player, kind="plan", outcome__in=["done", "not_done"], started_at__date__gte=monday, started_at__date__lte=now)
             planned = sum(50 for offset in range((now - monday).days + 1) if offset < 5)
             assert sum(b.minutes for b in paid) <= planned
 
 
 class TestPresenceCheck:
     def test_every_block_gets_one_in_the_right_part(self, api, clock):
-        for minutes in rules.BLOCK_MINUTES:
+        for minutes in (rules.BLOCK_MIN_MINUTES, 25, 45, rules.BLOCK_MAX_MINUTES):
             block = start(api, minutes).json()["block"]
             row = FocusBlock.objects.get(pk=block["id"])
             assert row.started_at + timedelta(seconds=minutes * 60 * 0.25) <= row.check_at
@@ -639,7 +840,7 @@ class TestPresenceCheck:
         assert api.post(f"{BLOCKS}{block['id']}/presence/").json()["block"]["presence"] == "ok"
         assert api.post(f"{BLOCKS}{block['id']}/presence/").status_code == 200  # a double tap is harmless
         clock.value = FocusBlock.objects.get(pk=block["id"]).ends_at
-        assert claim(api, block["id"], checked=False).json()["seconds_earned"] == 600
+        assert claim(api, block["id"], checked=False).json()["seconds_earned"] == 500
 
     def test_too_late_is_too_late(self, api, clock):
         block = start(api).json()["block"]

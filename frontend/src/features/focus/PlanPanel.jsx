@@ -20,7 +20,29 @@ function daysText(days) {
   parts.push(run);
   return parts.map((r) => (r.length > 2 ? `${WEEK[r[0]]} to ${WEEK[r.at(-1)]}` : r.map((d) => WEEK[d]).join(', '))).join(', ');
 }
-export const planText = (p) => `${daysText(p.days)}, ${p.blocks_per_day} x ${p.block_minutes} min, at ${p.windows.map((w) => `${w.start} to ${w.end}`).join(' and ')}`;
+const WEEKEND = [5, 6];
+const timeText = (t) => `${t.start} to ${t.end} (${t.breaks} x ${t.block_minutes} min, ${t.rest_minutes} min breaks)`;
+const scheduleText = (s) => s.windows.map(timeText).join(' and ');
+export function planText(p) {
+  if (!p.weekend) return `${daysText(p.days)}, ${scheduleText(p)}`;
+  const week = p.days.filter((d) => !WEEKEND.includes(d));
+  const end = p.days.filter((d) => WEEKEND.includes(d));
+  return `${daysText(week)}, ${scheduleText(p)}. ${daysText(end)}, ${scheduleText(p.weekend)}`;
+}
+
+/** Today's turns of study and rest, as the server laid them out from the plan. */
+function Slots({ slots }) {
+  if (!slots?.length) return null;
+  return (
+    <ol className="plan-slots" id="planSlots" aria-label="Today's study and rest">
+      {slots.map((s) => (
+        <li key={`${s.kind}${s.start}`} data-kind={s.kind}>
+          <b className="plan-slot-time">{s.start}</b> {s.kind === 'study' ? 'Study' : 'Rest and play'}, {s.minutes} min
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 const nextText = (next, today) => (next ? `Next study time: ${next.date === today ? 'today' : `${weekdayName(next.date)} ${shortDay(next.date)}`} at ${next.start}.` : '');
 
@@ -39,6 +61,7 @@ export function PlanPanel({ onChange }) {
         <b id="planSummary">{planText(plan)}</b>
         <p className="small" style={{ margin: '2px 0 0' }} id="planToday">{todayText({ today })}</p>
       </div>
+      <Slots slots={today.slots} />
       {pending && <p className="small" style={{ margin: 0 }}>From {shortDay(pending.effective_from)}: {planText(pending)}.</p>}
       <GoalMeters targets={targets} />
       <p className="small" style={{ margin: 0 }}>

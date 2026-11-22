@@ -77,9 +77,7 @@ def any_time_plan(user):
     return StudyPlan.objects.create(
         player=user.player,
         days=list(range(7)),
-        blocks_per_day=40,
-        block_minutes=45,
-        windows=[[0, 1440]],
+        windows=[[0, 1440, 24, 15]],  # 24 stretches of 45 minutes, each with 15 minutes of rest
         time_zone=user.player.time_zone,
         effective_from=date(2000, 1, 1),
         by_player=False,

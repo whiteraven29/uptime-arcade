@@ -18,7 +18,7 @@ Real focus earns play time, and play time teaches real technical skills. `docs/D
 
 **Accounts:** no tokens before a confirmed email, and nothing may reveal whether an account or email exists (`docs/adr/0014-confirmed-email-and-a-clock-that-stops.md`). Clearing a mission closes its session.
 
-**Focus:** a block earns only by keeping a study plan set in advance, and paid minutes in a week can never pass what was planned (`docs/adr/0010-study-plans.md`).
+**Focus:** a block earns only by keeping a study plan set in advance, and paid minutes in a week can never pass what was planned (`docs/adr/0010-study-plans.md`). Each study time is set on the player's terms with its rest breaks inside it, nothing earns outside study times, a kept block earns the break after it, and weekends can have their own study times (`docs/adr/0017-rest-weekends-and-no-make-ups.md`).
 
 **Security:** never add a server-only field to a public serializer, list fields one by one, and never read a time from the client. A block's `check_at` stays server-only until it's due. Nothing in `frontend/` may import `content/`, and `tools/check_bundle.mjs` enforces it. Never reveal whether an email is in use.
 

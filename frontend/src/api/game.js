@@ -27,9 +27,15 @@ export const LEVELS = [];
 export const STREAKS = [];
 export const BADGES = [];
 export let BANK_CAP = 1800;
-export let GOAL_BONUS = 2;
 export let HINT_COST = 15;
-export const EARN = {};
+/** What a block of this length would be if started now: the server says how many minutes can still earn and at
+ * what rate, and this does the same sum it does (rest_earned in rules.py). The server decides again at the start. */
+export function outlook(len) {
+  const t = ui.plan?.today;
+  if (!t?.room_minutes || !(len > 0) || len > t.room_minutes) return { kind: 'free', seconds: 0 };
+  return { kind: 'plan', seconds: Math.floor((t.rest_minutes * 60 * len) / t.block_minutes) };
+}
+export const earns = (len) => outlook(len).seconds;
 const ALL = new Map();
 
 /* ---------- things the screens watch ---------- */
@@ -193,7 +199,7 @@ function applyPlayer(p) {
   S.focus = null;
   S.claim = null;
   if (p.block) {
-    const block = { id: p.block.id, goal: p.block.goal, len: p.block.minutes, kind: p.block.kind, startedAt: local(p.block.started_at), endsAt: local(p.block.ends_at), claimBy: local(p.block.claim_by), drifts: p.block.drifts, ...checkIn(p.block) };
+    const block = { id: p.block.id, goal: p.block.goal, len: p.block.minutes, kind: p.block.kind, earns: p.block.earn_seconds, startedAt: local(p.block.started_at), endsAt: local(p.block.ends_at), claimBy: local(p.block.claim_by), drifts: p.block.drifts, ...checkIn(p.block) };
     if (Date.now() >= block.endsAt) S.claim = block;
     else S.focus = block;
   }
@@ -226,10 +232,6 @@ function applyTracks(data) {
   }
 }
 function applyRewards(r) {
-  EARN[15] = r.config.earn_seconds[15] / 60;
-  EARN[25] = r.config.earn_seconds[25] / 60;
-  EARN[45] = r.config.earn_seconds[45] / 60;
-  GOAL_BONUS = r.config.goal_bonus_seconds / 60;
   BANK_CAP = r.config.bank_cap;
   HINT_COST = r.config.hint_cost;
   LEVELS.length = 0;
@@ -253,8 +255,18 @@ const refreshRewards = async () => {
   applyRewards(await get('/rewards/'));
   bump();
 };
+let planLength = null;
+/** The length follows your plan when the study time it points at changes, and stays as you set it otherwise. */
+function followPlanLength() {
+  const planned = ui.plan?.today?.block_minutes;
+  if (planned && planned !== planLength) {
+    planLength = planned;
+    S.len = planned;
+  }
+}
 export const refreshPlan = async () => {
   ui.plan = await get('/focus/plan/');
+  followPlanLength();
   bump();
 };
 const refreshAll = () => Promise.all([refreshPlayer(), refreshTracks(), refreshRewards(), refreshPlan()]);
@@ -319,6 +331,13 @@ export async function logout() {
   } catch { /* the token is dropped below either way */ }
   signedOut();
   go('/login');
+}
+/* Other devices are logged out. This one gets fresh tokens and stays in. */
+export async function changePassword(current_password, password, confirm_password) {
+  const d = await post('/auth/password/change/', { current_password, password, confirm_password });
+  setAccess(d.access);
+  ui.account = d.account;
+  bump();
 }
 export async function deleteAccount(password) {
   const key = machineKey();
@@ -1198,7 +1217,7 @@ export async function startBlock(goal) {
 /** Errors go back to the form, because it's the form that has to change. */
 export async function savePlan(plan) {
   ui.plan = await put('/focus/plan/', plan);
-  S.len = plan.block_minutes;
+  followPlanLength();
   saveMachine();
   bump();
 }
@@ -1280,7 +1299,7 @@ export async function claimBlock(done, note = '') {
   if (!c) return;
   try {
     const d = await post(`/focus/blocks/${c.id}/claim/`, { done, note });
-    toast(UNPAID[d.result] || `+${mmss(d.seconds_earned)} play time`);
+    toast(UNPAID[d.result] || `+${mmss(d.seconds_earned)} of rest earned. Open a session to play it.`);
     await Promise.all([refreshPlayer(), refreshRewards(), refreshPlan()]);
     applyEvents(d.events);
   } catch (e) {
